@@ -175,6 +175,7 @@ export default function CommentSection({ postId, initialComments = [] }) {
           type="submit"
           disabled={isSubmitting || !newComment.trim()}
           className="absolute bottom-4 right-4 p-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          aria-label={t('submit_comment') || 'Submit comment'}
         >
           <Send size={18} />
         </button>
