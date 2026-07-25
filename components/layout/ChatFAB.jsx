@@ -52,6 +52,16 @@ export default function ChatFAB() {
     router.push(query ? `${pathname}?${query}` : pathname, { scroll: false })
   }
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        toggleChat()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, toggleChat])
+
   // Chat State
   const [cycleData, setCycleData] = useState(null)
   const [chatMessages, setChatMessages] = useState([])
