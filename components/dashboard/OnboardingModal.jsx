@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
+import { createClient } from "@/lib/supabase-client";
 
 export default function OnboardingModal({ onComplete, onSkip }) {
   const { userId } = useAuth()
