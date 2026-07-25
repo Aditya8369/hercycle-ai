@@ -52,6 +52,7 @@ export default function ExerciseDetailPage() {
         <button 
           onClick={() => router.back()}
           className="absolute top-6 left-4 w-10 h-10 rounded-full bg-white/10 backdrop-blur flex items-center justify-center text-white hover:bg-white/20 transition-colors z-20"
+          aria-label={t('backToSelfCare')}
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
