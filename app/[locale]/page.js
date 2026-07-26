@@ -283,7 +283,7 @@ const HerCycleApp = () => {
         if (data.offline) {
           toast.success('💾 Saved offline! Will sync when online.')
         } else {
-          toast.success('✅ Log saved!')
+          toast.success('Log saved!')
         }
         setSelectedSymptoms([])
         setSelectedMood(null)
