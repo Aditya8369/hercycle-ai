@@ -91,6 +91,31 @@ body {
   --text-faint: rgba(255, 255, 255, 0.38);
   --serif: var(--font-playfair), 'Georgia', serif;
   --sans: var(--font-inter), system-ui, sans-serif;
+  
+  --bg-gradient: radial-gradient(ellipse 80% 60% at 15% 0%, rgba(255, 182, 208, 0.55) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 90% 10%, rgba(212, 100, 200, 0.40) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 70% at 50% 100%, rgba(157, 63, 122, 0.50) 0%, transparent 55%),
+    linear-gradient(155deg, #fce4ec 0%, #f5a8d0 25%, #e065b5 50%, #b83da0 72%, #7c2d90 90%, #4a1580 100%);
+}
+
+.dark {
+  --bg-gradient: radial-gradient(ellipse 80% 60% at 15% 0%, rgba(216, 108, 154, 0.12) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 90% 10%, rgba(194, 92, 139, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 70% at 50% 100%, rgba(107, 76, 96, 0.20) 0%, transparent 55%),
+    linear-gradient(155deg, #1c141a 0%, #241A22 25%, #2E1F2A 60%, #150f14 100%);
+  --glass-bg: rgba(58, 40, 53, 0.65);
+  --glass-bg2: rgba(74, 50, 67, 0.50);
+  --glass-edge: rgba(107, 76, 96, 0.55);
+  --glass-edge2: rgba(107, 76, 96, 0.35);
+  --text-white: #FFF7FB;
+  --text-soft: #D9C7D2;
+  --text-faint: #B89EAE;
+  --rose-mid: #D86C9A;
+  --rose-bright: #C25C8B;
+  --rose-deep: #C25C8B;
+  --plum: #D9C7D2;
+  --shadow-rose: rgba(36, 26, 34, 0.60);
+  --shadow-plum: rgba(36, 26, 34, 0.40);
 }
 
 .hero-title,
@@ -113,19 +138,19 @@ h3,
 h4,
 h5,
 h6 {
-  color: white !important;
+  color: var(--text-white) !important;
 }
 
 p,
 span,
 label {
-  color: rgba(255, 255, 255, 0.85) !important;
+  color: var(--text-soft) !important;
 }
 
 .subtitle,
 .page-subtitle,
 .description {
-  color: rgba(255, 255, 255, 0.7) !important;
+  color: var(--text-soft) !important;
 }
 
 /* Ensure text inside explicitly white/light cards remains legible */
@@ -162,11 +187,7 @@ input {
 body {
   min-height: 100vh;
   font-family: var(--sans);
-  background:
-    radial-gradient(ellipse 80% 60% at 15% 0%, rgba(255, 182, 208, 0.55) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 50% at 90% 10%, rgba(212, 100, 200, 0.40) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 70% at 50% 100%, rgba(157, 63, 122, 0.50) 0%, transparent 55%),
-    linear-gradient(155deg, #fce4ec 0%, #f5a8d0 25%, #e065b5 50%, #b83da0 72%, #7c2d90 90%, #4a1580 100%);
+  background: var(--bg-gradient);
   overflow-x: hidden;
   position: relative;
 }
