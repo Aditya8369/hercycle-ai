@@ -5,6 +5,7 @@
     "insights": "Insights",
     "chat": "Chat",
     "community": "Community",
+    "challenges": "Challenges",
     "selfCare": "Self Care",
     "offline": "Offline",
     "syncPending": "Sync Pending",
@@ -136,6 +137,7 @@
       "moodEmpty": "Log your mood daily to see your mood distribution here.",
       "exportCsv": "Export Cycles CSV"
     },
+
     "track": {
       "title": "Cycle Tracker",
       "subtitle": "Log your daily symptoms and manage your cycle timeline.",
@@ -211,6 +213,7 @@
     "comment_posted": "Comment posted anonymously!",
     "comments": "Comments",
     "write_comment": "Share your thoughts anonymously...",
+    "submit_comment": "Submit comment",
     "no_comments": "No comments yet. Be the first to share!",
     "cat_pcod-advice_name": "PCOD Advice",
     "cat_pcod-advice_desc": "Share tips and ask questions about managing PCOD.",
@@ -321,5 +324,11 @@
     "greatJob": "Great job taking time for yourself today.",
     "backToSelfCare": "Back to Self Care",
     "step": "Step {current} of {total}"
+  },
+    "Challenges": {
+    "title": "Today's Challenges",
+    "yourBadges": "Your Badges",
+    "badgeEarned": "Badge Earned!",
+    "loading": "Loading challenges..."
   }
 }
