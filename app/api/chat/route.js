@@ -175,12 +175,23 @@ export async function POST(request) {
 
     let systemPrompt = `You are a helpful menstrual health assistant. Provide empathetic, accurate health guidance.`;
 
+    // Sanitize helper to prevent prompt injection
+    const sanitizeForPrompt = (str, maxLen = 200) => {
+      if (!str) return '';
+      return String(str)
+        .replace(/[\[\]"'`\\]/g, '')  // Remove prompt control characters
+        .replace(/\n/g, ' ')
+        .slice(0, maxLen);
+    };
+
     // 4. Inject Profile Context
     if (userProfile) {
       const conditions = userProfile.known_conditions || [];
-      const ageStr = userProfile.age ? `${userProfile.age} yrs old` : 'unknown age';
-      const weightStr = userProfile.weight_kg ? `${userProfile.weight_kg}kg` : 'unknown weight';
-      const conditionsStr = conditions.length > 0 ? conditions.join(', ') : 'none';
+      const ageStr = userProfile.age ? sanitizeForPrompt(`${userProfile.age} yrs old`) : 'unknown age';
+      const weightStr = userProfile.weight_kg ? sanitizeForPrompt(`${userProfile.weight_kg}kg`) : 'unknown weight';
+      const conditionsStr = conditions.length > 0 
+        ? conditions.map(c => sanitizeForPrompt(c)).join(', ') 
+        : 'none';
       
       systemPrompt += `\n[CONTEXT: User is ${ageStr}, weighs ${weightStr}, conditions: ${conditionsStr}]. Use this context to personalize your response, but do not explicitly repeat their data back to them unless necessary.`;
     }
