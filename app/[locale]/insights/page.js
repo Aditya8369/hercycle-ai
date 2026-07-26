@@ -14,7 +14,7 @@ import Footer from '@/components/layout/Footer'
 import { useOffline } from '@/lib/OfflineContext'
 import { useTranslations } from 'next-intl'
 import WeightTrendChart from '@/components/dashboard/WeightTrendChart'
-
+import { toYMD } from '@/lib/utils'
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const PINK = '#e8527e'
 const MAUVE = '#9d3f7a'
@@ -199,7 +199,7 @@ export default function InsightsPage() {
     if (!cycles.length) return
     const header = 'start_date,end_date,cycle_length'
     const rows = cycles.map(c =>
-      `${c.start_date || ''},${c.end_date || ''},${c.cycle_length || ''}`
+      `${toYMD(c.start_date) || ''},${toYMD(c.end_date) || ''},${c.cycle_length || ''}`
     )
     const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
@@ -300,16 +300,66 @@ export default function InsightsPage() {
               </p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={cycleLengthData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                  <CartesianGrid {...gridProps} />
-                  <XAxis dataKey="name" {...axisProps} />
-                  <YAxis domain={[20, 40]} {...axisProps} />
+                <LineChart
+                  data={cycleLengthData}
+                  margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
+                >
+                  <defs>
+                    <filter
+                      id="cycleGlow"
+                      x="-50%"
+                      y="-50%"
+                      width="200%"
+                      height="200%"
+                    >
+                      <feGaussianBlur
+                        in="SourceGraphic"
+                        stdDeviation="4"
+                        result="blur"
+                      />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+
+                  <CartesianGrid
+                    vertical={false}
+                    stroke="rgba(255,255,255,0.05)"
+                  />
+
+                  <XAxis
+                    dataKey="name"
+                    {...axisProps}
+                  />
+
+                  <YAxis
+                    domain={[20, 40]}
+                    {...axisProps}
+                  />
+
                   <Tooltip content={<CustomTooltip />} />
+
                   <Line
-                    type="monotone" dataKey="days" name="days"
-                    stroke={PINK} strokeWidth={2.5}
-                    dot={{ fill: PINK, r: 5 }}
-                    activeDot={{ r: 7, fill: MAUVE }}
+                    type="monotone"
+                    dataKey="days"
+                    name="days"
+                    stroke={PINK}
+                    strokeWidth={2.5}
+                    filter="url(#cycleGlow)"
+                    dot={{
+                      fill: PINK,
+                      stroke: PINK,
+                      strokeWidth: 2,
+                      r: 5,
+                    }}
+                    activeDot={{
+                      r: 8,
+                      fill: MAUVE,
+                      stroke: PINK,
+                      strokeWidth: 3,
+                    }}
                   />
                 </LineChart>
               </ResponsiveContainer>
