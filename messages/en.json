@@ -323,7 +323,10 @@
     "sessionComplete": "Session Complete!",
     "greatJob": "Great job taking time for yourself today.",
     "backToSelfCare": "Back to Self Care",
-    "step": "Step {current} of {total}"
+    "step": "Step {current} of {total}",
+    "recommendedForYou": "Recommended for You",
+    "recExercises": "Recommended Exercises",
+    "recSoundscapes": "Recommended Soundscapes"
   },
     "Challenges": {
     "title": "Today's Challenges",
