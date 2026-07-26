@@ -342,7 +342,7 @@ export function OfflineProvider({ children }) {
           if (data.success) {
             return { success: true };
           }
-          return { success: false, error: data.message || 'Failed to save log' };
+          console.warn('Server rejected log, queuing for retry:', data.message);
         } catch (e) {
           console.warn('Save daily log network request failed, queuing', e);
         }
