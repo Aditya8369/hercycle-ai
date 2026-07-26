@@ -53,6 +53,7 @@ export default function Navbar() {
     { key: 'dashboard', label: t('dashboard'), href: `/${locale}` },
     { key: 'track',     label: t('track'),     href: `/${locale}/track` },
     { key: 'insights',  label: t('insights'),  href: `/${locale}/insights` },
+    { key: 'challenges', label: t('challenges'), href: `/${locale}/challenges` },
     { key: 'community', label: t('community'), href: `/${locale}/community` },
     { key: 'self-care', label: t('selfCare'),  href: `/${locale}/self-care` },
   ]
