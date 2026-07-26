@@ -148,8 +148,16 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 2. Input Validation (Zod)
-    const json = await request.json()
+    // 2. Parse JSON body with error handling for malformed payloads
+    let json;
+    try {
+      json = await request.json();
+    } catch (parseError) {
+      logger.warn(`Malformed JSON payload in AI Chat API: ${parseError.message}`);
+      return NextResponse.json({ success: false, error: 'Bad Request: Invalid JSON payload' }, { status: 400 });
+    }
+
+    // 3. Input Validation (Zod)
     const result = chatPayloadSchema.safeParse(json)
     if (!result.success) {
       logger.warn(`Invalid request payload on AI Chat API: ${result.error.message}`);
@@ -158,6 +166,17 @@ export async function POST(request) {
 
     const { message, context } = result.data
     language = result.data.language || 'en'
+
+    if (!message || message.trim().length === 0) {
+      return NextResponse.json(
+        {
+          error: "Message content cannot be empty",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
     // 3. Fetch User Health Profile for Context Injection
     let userProfile = null;
