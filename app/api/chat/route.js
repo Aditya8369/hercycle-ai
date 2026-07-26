@@ -167,6 +167,17 @@ export async function POST(request) {
     const { message, context } = result.data
     language = result.data.language || 'en'
 
+    if (!message || message.trim().length === 0) {
+      return NextResponse.json(
+        {
+          error: "Message content cannot be empty",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
     // 3. Fetch User Health Profile for Context Injection
     let userProfile = null;
     try {
