@@ -135,8 +135,10 @@
       "symptomEmpty": "No daily logs yet. Log your symptoms on the Track page or dashboard.",
       "moodTitle": "😊 Mood Distribution",
       "moodEmpty": "Log your mood daily to see your mood distribution here.",
-      "exportCsv": "Export Cycles CSV"
-    },
+"exportCsv": "Export Cycles CSV",
+      "copySummary": "Copy Text Summary",
+      "copiedSummary": "Copied! Paste it in WhatsApp",
+      "noSymptomsLogged": "None logged"    },
 
     "track": {
       "title": "Cycle Tracker",
