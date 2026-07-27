@@ -135,11 +135,11 @@
       "symptomEmpty": "No daily logs yet. Log your symptoms on the Track page or dashboard.",
       "moodTitle": "😊 Mood Distribution",
       "moodEmpty": "Log your mood daily to see your mood distribution here.",
-"exportCsv": "Export Cycles CSV",
+      "exportCsv": "Export Cycles CSV",
       "copySummary": "Copy Text Summary",
       "copiedSummary": "Copied! Paste it in WhatsApp",
-      "noSymptomsLogged": "None logged"    },
-
+      "noSymptomsLogged": "None logged"
+    },
     "track": {
       "title": "Cycle Tracker",
       "subtitle": "Log your daily symptoms and manage your cycle timeline.",
@@ -315,6 +315,8 @@
   "SelfCare": {
     "title": "Self Care",
     "crampRelief": "Menstrual cramps relief",
+    "searchPlaceholder": "Search exercises or soundscapes...",
+    "noResults": "No exercises or soundscapes found.",
     "soundscapes": "Soundscapes",
     "start": "Start",
     "next": "Next",
@@ -328,7 +330,7 @@
     "step": "Step {current} of {total}",
     "recommendedForYou": "Recommended for You",
     "recExercises": "Recommended Exercises",
-"recSoundscapes": "Recommended Soundscapes",
+    "recSoundscapes": "Recommended Soundscapes",
     "hydrationTitle": "Hydration Tracker",
     "glasses": "{count} / {target} Glasses",
     "addGlass": "Add a glass of water",
@@ -340,8 +342,9 @@
       "ovulation": "Extra water intake can help ease bloating around ovulation.",
       "luteal": "Staying hydrated can reduce bloating and help stabilize mood before your period.",
       "default": "Staying hydrated helps relax muscles and reduce water retention."
-    }  },
-    "Challenges": {
+    }
+  },
+  "Challenges": {
     "title": "Today's Challenges",
     "yourBadges": "Your Badges",
     "badgeEarned": "Badge Earned!",
