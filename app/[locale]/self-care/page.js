@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react';
-import { useTranslations } from 'next-intl';
+import React, { useState, useEffect, useRef } from 'react';
+import { useTranslations, useLocale } from 'next-intl';
+import Link from 'next/link';
 import { exercises, soundscapes } from '@/lib/selfCareData';
 import HorizontalScroll from '@/components/self-care/HorizontalScroll';
 import ExerciseCard from '@/components/self-care/ExerciseCard';
@@ -72,6 +73,15 @@ export default function SelfCarePage() {
     }
     getPhase();
   }, [offlineClient]);
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     try {
@@ -117,6 +127,34 @@ export default function SelfCarePage() {
   const favoriteExercises = exercises.filter(e => favoriteExerciseIds.includes(e.id));
   const favoriteSoundscapes = soundscapes.filter(s => favoriteSoundscapeIds.includes(s.id));
   const hasFavorites = favoriteExercises.length > 0 || favoriteSoundscapes.length > 0;
+
+  const query = searchQuery.trim().toLowerCase();
+
+  const filteredExercises = query
+    ? exercises.filter(e => e.title.toLowerCase().includes(query))
+    : exercises;
+
+  const filteredSoundscapes = query
+    ? soundscapes.filter(s => s.title.toLowerCase().includes(query))
+    : soundscapes;
+
+  const noResults = query && filteredExercises.length === 0 && filteredSoundscapes.length === 0;
+  const suggestions = query
+    ? [
+      ...filteredExercises.map(e => ({ type: 'exercise', ...e })),
+      ...filteredSoundscapes.map(s => ({ type: 'soundscape', ...s })),
+    ].slice(0, 6)
+    : [];
+
+  const handleSelectSuggestion = (item) => {
+    if (item.type === 'soundscape') {
+      handlePlaySound(item.id);
+    }
+    setIsDropdownOpen(false);
+    if (item.type === 'exercise') {
+      setSearchQuery('');
+    }
+  };
 
   return (
     <div className="page">

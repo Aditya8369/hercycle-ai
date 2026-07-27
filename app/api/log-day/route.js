@@ -4,6 +4,8 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { crudLimiter } from '@/lib/rateLimiter'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { pcodRiskCache } from '@/lib/cache'
+
 
 const logPostSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD'),
@@ -126,6 +128,7 @@ export async function POST(request) {
     }
 
     logger.info(`Successfully upserted daily log for user ${userId}`);
+    pcodRiskCache.invalidate(`pcod-risk:${userId}`);
     return NextResponse.json({ success: true, message: 'Day logged successfully!' })
   } catch (error) {
     logger.error('Error logging day:', error.message || error);
