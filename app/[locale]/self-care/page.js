@@ -6,7 +6,7 @@ import { exercises, soundscapes } from '@/lib/selfCareData';
 import HorizontalScroll from '@/components/self-care/HorizontalScroll';
 import ExerciseCard from '@/components/self-care/ExerciseCard';
 import SoundscapeCard from '@/components/self-care/SoundscapeCard';
-import Navbar from '@/components/layout/Navbar';
+import HydrationTracker from '@/components/self-care/HydrationTracker';import Navbar from '@/components/layout/Navbar';
 import { useOffline } from '@/lib/OfflineContext';
 import { calculateCyclePhase, getLatestCycle } from '@/lib/calculateCyclePhase';
 
@@ -93,8 +93,10 @@ export default function SelfCarePage() {
         </h1>
       </header>
 
-      {/* Recommended for You Section */}
-      {phaseKey && phaseRecommendations && hasRecommendations && (
+{/* Hydration & Cramp Relief Water Tracker */}
+      <HydrationTracker phaseKey={phaseKey} />
+
+      {/* Recommended for You Section */}      {phaseKey && phaseRecommendations && hasRecommendations && (
         <section className="bg-white/5 border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
           <div className="flex items-center gap-2">
             <span className="text-2xl">✨</span>

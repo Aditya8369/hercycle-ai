@@ -328,8 +328,19 @@
     "step": "Step {current} of {total}",
     "recommendedForYou": "Recommended for You",
     "recExercises": "Recommended Exercises",
-    "recSoundscapes": "Recommended Soundscapes"
-  },
+"recSoundscapes": "Recommended Soundscapes",
+    "hydrationTitle": "Hydration Tracker",
+    "glasses": "{count} / {target} Glasses",
+    "addGlass": "Add a glass of water",
+    "removeGlass": "Remove a glass of water",
+    "hydrationGoalReached": "🎉 Daily goal reached! Great job staying hydrated.",
+    "hydrationTips": {
+      "menstrual": "Drinking warm water during your period helps relax uterine muscles and reduce cramp severity.",
+      "follicular": "Steady hydration supports your rising energy levels during this phase.",
+      "ovulation": "Extra water intake can help ease bloating around ovulation.",
+      "luteal": "Staying hydrated can reduce bloating and help stabilize mood before your period.",
+      "default": "Staying hydrated helps relax muscles and reduce water retention."
+    }  },
     "Challenges": {
     "title": "Today's Challenges",
     "yourBadges": "Your Badges",
