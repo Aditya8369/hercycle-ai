@@ -137,8 +137,7 @@ export default function InsightsPage() {
   const [cycleData, setCycleData] = useState(null)
   const [pcodRisk, setPcodRisk] = useState(null)
   const [dailyLogs, setDailyLogs] = useState([])
-  const [loading, setLoading] = useState(true)
-
+const [loading, setLoading] = useState(true)
   useEffect(() => {
     if (!isLoaded) return
     if (!isSignedIn) { router.push('/auth/login'); return }
@@ -195,7 +194,7 @@ export default function InsightsPage() {
   const recordedLabel = totalCycles > 0 ? t('cyclesRecorded') : t('daysLogged')
   const recordedSub = totalCycles > 0 ? t('cycles') : t('entries')
 
-  const handleCSVExport = () => {
+const handleCSVExport = () => {
     if (!cycles.length) return
     const header = 'start_date,end_date,cycle_length'
     const rows = cycles.map(c =>
@@ -210,6 +209,39 @@ export default function InsightsPage() {
     URL.revokeObjectURL(url)
   }
 
+  const riskLevelWord =
+    pcodRisk?.tier === 'HIGH RISK' ? 'High' :
+    pcodRisk?.tier === 'MEDIUM RISK' ? 'Medium' : 'Low'
+
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+  const recentSymptomNames = new Set()
+  dailyLogs.forEach(log => {
+    if (!log.date || new Date(log.date) < thirtyDaysAgo) return
+    ;(log.symptoms || []).forEach(s => {
+      const key = SYMPTOM_LIST.find(k => k.toLowerCase() === s.toLowerCase())
+      if (key) recentSymptomNames.add(tSymp(key))
+    })
+  })
+  const recentSymptomsText = recentSymptomNames.size > 0
+    ? Array.from(recentSymptomNames).join(', ')
+    : t('noSymptomsLogged')
+
+  const handleCopySummary = async () => {
+    const summaryText = `🌸 HerCycle AI Health Summary
+- Avg Cycle Length: ${avgCycle} Days
+- Recent PCOD Risk: ${riskLevelWord}
+- Logged Symptoms (Last 30 Days): ${recentSymptomsText}`
+
+    try {
+      await navigator.clipboard.writeText(summaryText)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Could not copy summary', err)
+    }
+  }
   return (
     <>
       <div className="blob"></div>
@@ -275,9 +307,16 @@ export default function InsightsPage() {
             />
           </div>
 
-          {/* ── CSV Export Button ── */}
-          {cycles.length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+{/* ── Export Buttons ── */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+            <button
+              onClick={handleCopySummary}
+              className="export-btn"
+              style={{ width: 'auto', padding: '10px 20px' }}
+            >
+              {copied ? `✅ ${t('copiedSummary')}` : `📋 ${t('copySummary')}`}
+            </button>
+            {cycles.length > 0 && (
               <button
                 onClick={handleCSVExport}
                 className="export-btn"
@@ -285,9 +324,8 @@ export default function InsightsPage() {
               >
                 ⬇️ {t('exportCsv')}
               </button>
-            </div>
-          )}
-
+            )}
+          </div>
 
           {/* ── Cycle Length Trend ── */}
           <SectionCard
