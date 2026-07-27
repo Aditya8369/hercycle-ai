@@ -6,9 +6,11 @@ import { exercises, soundscapes } from '@/lib/selfCareData';
 import HorizontalScroll from '@/components/self-care/HorizontalScroll';
 import ExerciseCard from '@/components/self-care/ExerciseCard';
 import SoundscapeCard from '@/components/self-care/SoundscapeCard';
-import HydrationTracker from '@/components/self-care/HydrationTracker';import Navbar from '@/components/layout/Navbar';
+import HydrationTracker from '@/components/self-care/HydrationTracker'; import Navbar from '@/components/layout/Navbar';
 import { useOffline } from '@/lib/OfflineContext';
 import { calculateCyclePhase, getLatestCycle } from '@/lib/calculateCyclePhase';
+
+const FAVORITES_STORAGE_KEY = 'hercycle_selfcare_favorites';
 
 const RECOMMENDATIONS_MAP = {
   menstrual: {
@@ -34,6 +36,8 @@ export default function SelfCarePage() {
   const { offlineClient } = useOffline();
   const [activeSoundId, setActiveSoundId] = useState(null);
   const [phaseKey, setPhaseKey] = useState(null);
+  const [favoriteExerciseIds, setFavoriteExerciseIds] = useState([]);
+  const [favoriteSoundscapeIds, setFavoriteSoundscapeIds] = useState([]);
 
   useEffect(() => {
     async function getPhase() {
@@ -46,11 +50,11 @@ export default function SelfCarePage() {
             const periodEnd = latestCycle.end_date || latestCycle.period_end || null;
             const inferredPeriodLength = periodStart && periodEnd
               ? Math.max(
-                  1,
-                  Math.round(
-                    (new Date(`${periodEnd}T00:00:00`) - new Date(`${periodStart}T00:00:00`)) / 86400000
-                  ) + 1
-                )
+                1,
+                Math.round(
+                  (new Date(`${periodEnd}T00:00:00`) - new Date(`${periodStart}T00:00:00`)) / 86400000
+                ) + 1
+              )
               : 5;
             const phaseInfo = calculateCyclePhase({
               periodStart,
@@ -69,8 +73,36 @@ export default function SelfCarePage() {
     getPhase();
   }, [offlineClient]);
 
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(FAVORITES_STORAGE_KEY));
+      if (saved) {
+        setFavoriteExerciseIds(saved.exerciseIds || []);
+        setFavoriteSoundscapeIds(saved.soundscapeIds || []);
+      }
+    } catch (err) {
+      // keep defaults on parse error
+    }
+  }, []);
+
   const handlePlaySound = (id) => {
     setActiveSoundId(id);
+  };
+
+  const toggleFavoriteExercise = (id) => {
+    setFavoriteExerciseIds(prev => {
+      const updated = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify({ exerciseIds: updated, soundscapeIds: favoriteSoundscapeIds }));
+      return updated;
+    });
+  };
+
+  const toggleFavoriteSoundscape = (id) => {
+    setFavoriteSoundscapeIds(prev => {
+      const updated = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify({ exerciseIds: favoriteExerciseIds, soundscapeIds: updated }));
+      return updated;
+    });
   };
 
   const phaseRecommendations = RECOMMENDATIONS_MAP[phaseKey];
@@ -82,84 +114,150 @@ export default function SelfCarePage() {
     : [];
 
   const hasRecommendations = recommendedExercises.length > 0 || recommendedSoundscapes.length > 0;
+  const favoriteExercises = exercises.filter(e => favoriteExerciseIds.includes(e.id));
+  const favoriteSoundscapes = soundscapes.filter(s => favoriteSoundscapeIds.includes(s.id));
+  const hasFavorites = favoriteExercises.length > 0 || favoriteSoundscapes.length > 0;
 
   return (
     <div className="page">
       <Navbar />
       <main className="pb-24 pt-6 px-4 max-w-7xl mx-auto w-full space-y-10">
-      <header className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold text-white drop-shadow-md">
-          {t('title')}
-        </h1>
-      </header>
+        <header className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold text-white drop-shadow-md">
+            {t('title')}
+          </h1>
+        </header>
 
-{/* Hydration & Cramp Relief Water Tracker */}
-      <HydrationTracker phaseKey={phaseKey} />
-
-      {/* Recommended for You Section */}      {phaseKey && phaseRecommendations && hasRecommendations && (
-        <section className="bg-white/5 border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">✨</span>
-            <h2 className="text-2xl font-bold text-white tracking-tight">
-              {t('recommendedForYou')}
-            </h2>
-          </div>
-          
-          {recommendedExercises.length > 0 && (
-            <div>
-              <h3 className="text-white/80 text-sm font-semibold mb-3 tracking-wide uppercase">
-                {t('recExercises')}
-              </h3>
-              <HorizontalScroll>
-                {recommendedExercises.map((exercise) => (
-                  <ExerciseCard key={exercise.id} exercise={exercise} />
-                ))}
-              </HorizontalScroll>
+        {hasFavorites && (
+          <section className="bg-white/5 border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">❤️</span>
+              <h2 className="text-2xl font-bold text-white tracking-tight">
+                {t('yourFavorites')}
+              </h2>
             </div>
-          )}
 
-          {recommendedSoundscapes.length > 0 && (
-            <div>
-              <h3 className="text-white/80 text-sm font-semibold mb-3 tracking-wide uppercase">
-                {t('recSoundscapes')}
-              </h3>
-              <HorizontalScroll>
-                {recommendedSoundscapes.map((sound) => (
-                  <SoundscapeCard 
-                    key={sound.id} 
-                    sound={sound} 
-                    activeSoundId={activeSoundId}
-                    onPlay={handlePlaySound}
-                  />
-                ))}
-              </HorizontalScroll>
+            {favoriteExercises.length > 0 && (
+              <div>
+                <h3 className="text-white/80 text-sm font-semibold mb-3 tracking-wide uppercase">
+                  {t('recExercises')}
+                </h3>
+                <HorizontalScroll>
+                  {favoriteExercises.map((exercise) => (
+                    <ExerciseCard
+                      key={exercise.id}
+                      exercise={exercise}
+                      isFavorite={true}
+                      onToggleFavorite={toggleFavoriteExercise}
+                    />
+                  ))}
+                </HorizontalScroll>
+              </div>
+            )}
+
+            {favoriteSoundscapes.length > 0 && (
+              <div>
+                <h3 className="text-white/80 text-sm font-semibold mb-3 tracking-wide uppercase">
+                  {t('recSoundscapes')}
+                </h3>
+                <HorizontalScroll>
+                  {favoriteSoundscapes.map((sound) => (
+                    <SoundscapeCard
+                      key={sound.id}
+                      sound={sound}
+                      activeSoundId={activeSoundId}
+                      onPlay={handlePlaySound}
+                      isFavorite={true}
+                      onToggleFavorite={toggleFavoriteSoundscape}
+                    />
+                  ))}
+                </HorizontalScroll>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Hydration & Cramp Relief Water Tracker */}
+        <HydrationTracker phaseKey={phaseKey} />
+
+        {/* Recommended for You Section */}      {phaseKey && phaseRecommendations && hasRecommendations && (
+          <section className="bg-white/5 border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">✨</span>
+              <h2 className="text-2xl font-bold text-white tracking-tight">
+                {t('recommendedForYou')}
+              </h2>
             </div>
-          )}
+
+            {recommendedExercises.length > 0 && (
+              <div>
+                <h3 className="text-white/80 text-sm font-semibold mb-3 tracking-wide uppercase">
+                  {t('recExercises')}
+                </h3>
+                <HorizontalScroll>
+                  {recommendedExercises.map((exercise) => (
+                    <ExerciseCard
+                      key={exercise.id}
+                      exercise={exercise}
+                      isFavorite={favoriteExerciseIds.includes(exercise.id)}
+                      onToggleFavorite={toggleFavoriteExercise}
+                    />
+                  ))}
+                </HorizontalScroll>
+              </div>
+            )}
+
+            {recommendedSoundscapes.length > 0 && (
+              <div>
+                <h3 className="text-white/80 text-sm font-semibold mb-3 tracking-wide uppercase">
+                  {t('recSoundscapes')}
+                </h3>
+                <HorizontalScroll>
+                  {recommendedSoundscapes.map((sound) => (
+                    <SoundscapeCard
+                      key={sound.id}
+                      sound={sound}
+                      activeSoundId={activeSoundId}
+                      onPlay={handlePlaySound}
+                      isFavorite={favoriteSoundscapeIds.includes(sound.id)}
+                      onToggleFavorite={toggleFavoriteSoundscape}
+                    />
+                  ))}
+                </HorizontalScroll>
+              </div>
+            )}
+          </section>
+        )}
+
+        <section>
+          <h2 className="text-xl sm:text-2xl font-semibold text-white/90 mb-4">{t('crampRelief')}</h2>
+          <HorizontalScroll>
+            {exercises.map((exercise) => (
+              <ExerciseCard
+                key={exercise.id}
+                exercise={exercise}
+                isFavorite={favoriteExerciseIds.includes(exercise.id)}
+                onToggleFavorite={toggleFavoriteExercise}
+              />
+            ))}
+          </HorizontalScroll>
         </section>
-      )}
 
-      <section>
-        <h2 className="text-xl sm:text-2xl font-semibold text-white/90 mb-4">{t('crampRelief')}</h2>
-        <HorizontalScroll>
-          {exercises.map((exercise) => (
-            <ExerciseCard key={exercise.id} exercise={exercise} />
-          ))}
-        </HorizontalScroll>
-      </section>
-
-      <section>
-        <h2 className="text-xl sm:text-2xl font-semibold text-white/90 mb-4">{t('soundscapes')}</h2>
-        <HorizontalScroll>
-          {soundscapes.map((sound) => (
-            <SoundscapeCard 
-              key={sound.id} 
-              sound={sound} 
-              activeSoundId={activeSoundId}
-              onPlay={handlePlaySound}
-            />
-          ))}
-        </HorizontalScroll>
-      </section>
+        <section>
+          <h2 className="text-xl sm:text-2xl font-semibold text-white/90 mb-4">{t('soundscapes')}</h2>
+          <HorizontalScroll>
+            {soundscapes.map((sound) => (
+              <SoundscapeCard
+                key={sound.id}
+                sound={sound}
+                activeSoundId={activeSoundId}
+                onPlay={handlePlaySound}
+                isFavorite={favoriteSoundscapeIds.includes(sound.id)}
+                onToggleFavorite={toggleFavoriteSoundscape}
+              />
+            ))}
+          </HorizontalScroll>
+        </section>
       </main>
     </div>
   );
