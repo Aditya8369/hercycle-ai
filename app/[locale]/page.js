@@ -24,6 +24,8 @@ import CycleHistoryCard from '@/components/dashboard/CycleHistoryCard'
 import CervicalDischargeTracker from '@/components/dashboard/CervicalDischargeTracker'
 import PcosQuizCard from '@/components/dashboard/PcosQuizCard'
 import PcosQuizModal from '@/components/dashboard/PcosQuizModal'
+import PcosSymptomProfileCard from '@/components/dashboard/PcosSymptomProfileCard'
+import PcosSymptomProfileModal from '@/components/dashboard/PcosSymptomProfileModal'
 import { useOffline } from '@/lib/OfflineContext'
 import { useLocale, useTranslations } from 'next-intl'
 
@@ -145,6 +147,7 @@ const HerCycleApp = () => {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [dataLoaded, setDataLoaded] = useState(false)
   const [showPcosQuiz, setShowPcosQuiz] = useState(false)
+  const [showPcosSymptomProfileQuiz, setShowPcosSymptomProfileQuiz] = useState(false)
 
   const openLogDrawer  = () => setIsLogOpen(true)
   const closeLogDrawer = () => setIsLogOpen(false)
@@ -430,6 +433,11 @@ const phaseInfo = calculateCyclePhase({
         <PcosQuizModal onClose={() => setShowPcosQuiz(false)} />
       )}
 
+      {/* ── PCOS Symptom Profile Modal ── */}
+      {showPcosSymptomProfileQuiz && (
+        <PcosSymptomProfileModal onClose={() => setShowPcosSymptomProfileQuiz(false)} />
+      )}
+
       {/* ── Log Today Drawer ── */}
       {isLogOpen && (
         <div className="drawer-overlay" onClick={closeLogDrawer} role="dialog" aria-modal="true" aria-label="Log Your Day">
@@ -482,6 +490,9 @@ const phaseInfo = calculateCyclePhase({
 
         <VibeCheckin />
         <PartnerLoveBanner />
+
+        <h2 className="sec-head">{tHeadings('pcosAssessments')}</h2>
+        <PcosSymptomProfileCard onClick={() => setShowPcosSymptomProfileQuiz(true)} />
         <PcosQuizCard onClick={() => setShowPcosQuiz(true)} />
 
         <h2 className="sec-head" id="pcod-risk-section">{tHeadings('insights')}</h2>
