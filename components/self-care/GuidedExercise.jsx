@@ -84,8 +84,8 @@ export default function GuidedExercise({ exercise, onFinish }) {
         {!imageLoaded && (
           <div className="absolute inset-0 bg-white/5 animate-pulse"></div>
         )}
-        <img
-          key={currentStep}
+          <img
+          key={`${currentStep}-${pose.image}`}
           src={pose.image}
           alt={pose.title}
           className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'

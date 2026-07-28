@@ -139,7 +139,10 @@ export default function InsightsPage() {
   const [dailyLogs, setDailyLogs] = useState([])
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
+
   useEffect(() => {
+    setMounted(true)
     if (!isLoaded) return
     if (!isSignedIn) { router.push('/auth/login'); return }
 
@@ -163,9 +166,13 @@ export default function InsightsPage() {
   const totalCycles = cycles.length
   const totalLogs = dailyLogs.length
 
-  const nextDate = cycleData?.nextPeriodDate
-    ? new Date(cycleData.nextPeriodDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
-    : '—'
+  let nextDate = '—'
+  if (cycleData?.nextPeriodDate) {
+    const nextPeriodDateObj = new Date(cycleData.nextPeriodDate)
+    if (!isNaN(nextPeriodDateObj.getTime())) {
+      nextDate = nextPeriodDateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+    }
+  }
 
   const cycleLengthData = cycles
     .slice(0, 6)
@@ -175,7 +182,8 @@ export default function InsightsPage() {
   const symptomCounts = {}
   SYMPTOM_LIST.forEach(s => { symptomCounts[s] = 0 })
   dailyLogs.forEach(log => {
-    const syms = log.symptoms || []
+    if (!log) return
+    const syms = Array.isArray(log.symptoms) ? log.symptoms : []
     syms.forEach(s => {
       const key = SYMPTOM_LIST.find(k => k.toLowerCase() === s.toLowerCase())
       if (key) symptomCounts[key] = (symptomCounts[key] || 0) + 1
@@ -184,7 +192,10 @@ export default function InsightsPage() {
   const symptomFreq = SYMPTOM_LIST.map(s => ({ name: tSymp(s), count: symptomCounts[s] }))
 
   const moodCounts = { '😊': 0, '😐': 0, '😢': 0, '😡': 0 }
-  dailyLogs.forEach(log => { if (log.mood && moodCounts[log.mood] !== undefined) moodCounts[log.mood]++ })
+  dailyLogs.forEach(log => {
+    if (!log) return
+    if (log.mood && moodCounts[log.mood] !== undefined) moodCounts[log.mood]++
+  })
   const moodData = MOOD_EMOJIS.map(emoji => ({
     emoji,
     label: tMood(MOOD_LABELS[emoji]),
@@ -210,20 +221,24 @@ export default function InsightsPage() {
     URL.revokeObjectURL(url)
   }
 
+  const riskTier = pcodRisk?.tier || pcodRisk?.label || 'LOW RISK'
   const riskLevelWord =
-    pcodRisk?.tier === 'HIGH RISK' ? 'High' :
-      pcodRisk?.tier === 'MEDIUM RISK' ? 'Medium' : 'Low'
+    riskTier === 'HIGH RISK' ? 'High' :
+      riskTier === 'MEDIUM RISK' ? 'Medium' : 'Low'
 
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
   const recentSymptomNames = new Set()
   dailyLogs.forEach(log => {
-    if (!log.date || new Date(log.date) < thirtyDaysAgo) return
-      ; (log.symptoms || []).forEach(s => {
-        const key = SYMPTOM_LIST.find(k => k.toLowerCase() === s.toLowerCase())
-        if (key) recentSymptomNames.add(tSymp(key))
-      })
+    if (!log || !log.date) return
+    const logDate = new Date(log.date)
+    if (isNaN(logDate.getTime()) || logDate < thirtyDaysAgo) return
+    const syms = Array.isArray(log.symptoms) ? log.symptoms : []
+    syms.forEach(s => {
+      const key = SYMPTOM_LIST.find(k => k.toLowerCase() === s.toLowerCase())
+      if (key) recentSymptomNames.add(tSymp(key))
+    })
   })
   const recentSymptomsText = recentSymptomNames.size > 0
     ? Array.from(recentSymptomNames).join(', ')
@@ -236,13 +251,41 @@ export default function InsightsPage() {
 - Logged Symptoms (Last 30 Days): ${recentSymptomsText}`
 
     try {
-      await navigator.clipboard.writeText(summaryText)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(summaryText)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } else {
+        const textArea = document.createElement('textarea')
+        textArea.value = summaryText
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-999999px'
+        textArea.style.top = '-999999px'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        const successful = document.execCommand('copy')
+        document.body.removeChild(textArea)
+        if (successful) {
+          setCopied(true)
+          setTimeout(() => setCopied(false), 2000)
+        } else {
+          throw new Error('Fallback copy failed')
+        }
+      }
     } catch (err) {
       console.error('Could not copy summary', err)
     }
   }
+
+  if (!mounted) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#0e0314' }}>
+        <p style={{ color: TEXT_FAINT }}>Loading Insights...</p>
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="blob"></div>
@@ -301,8 +344,8 @@ export default function InsightsPage() {
               label={t('pcodRisk')}
               value={loading ? '…' : `${pcodRisk?.score ?? 0}/100`}
               sub={
-                pcodRisk?.tier === 'HIGH RISK' ? tRisk('high')
-                  : pcodRisk?.tier === 'MEDIUM RISK' ? tRisk('med')
+                riskTier === 'HIGH RISK' ? tRisk('high')
+                  : riskTier === 'MEDIUM RISK' ? tRisk('med')
                     : tRisk('low')
               }
             />

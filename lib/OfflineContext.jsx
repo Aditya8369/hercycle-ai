@@ -1,7 +1,7 @@
 
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react'
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react'
 import { initDB, getAllFromStore, putIntoStore, deleteFromStore, queueSyncRequest } from './db'
 import { predictNextPeriod, calculatePCODRisk } from './api-helpers'
 import { useEncryption } from './EncryptionContext'
@@ -31,6 +31,8 @@ export function OfflineProvider({ children }) {
   const [isOffline, setIsOffline] = useState(false)
   const [pendingSyncCount, setPendingSyncCount] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
+
+  const isSyncingRef = useRef(false)
 
   const { encrypt, decrypt, isUnlocked } = useEncryption()
 
@@ -68,43 +70,8 @@ export function OfflineProvider({ children }) {
     }
   }
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleOnline = () => {
-      setIsOffline(false);
-      toast.success('📶 Back online! Syncing your data...');
-      syncData();
-    };
-
-    const handleOffline = () => {
-      setIsOffline(true);
-      toast.error('⚠️ You are offline. Changes will be saved locally.');
-    };
-
-    setIsOffline(!navigator.onLine);
-    updateSyncCount();
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    const interval = setInterval(() => {
-      if (navigator.onLine) {
-        syncData();
-      } else {
-        updateSyncCount();
-      }
-    }, 30000);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      clearInterval(interval);
-    };
-  }, []);
-
   const syncData = async () => {
-    if (!navigator.onLine || isSyncing) return;
+    if (!navigator.onLine || isSyncingRef.current) return;
 
     try {
       const queue = await getAllFromStore('sync_queue');
@@ -113,6 +80,7 @@ export function OfflineProvider({ children }) {
         return;
       }
 
+      isSyncingRef.current = true;
       setIsSyncing(true);
 
       const sortedQueue = [...queue].sort((a, b) => a.id - b.id);
@@ -137,10 +105,50 @@ export function OfflineProvider({ children }) {
     } catch (e) {
       console.error('Error in background sync:', e);
     } finally {
+      isSyncingRef.current = false;
       setIsSyncing(false);
       updateSyncCount();
     }
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleOnline = () => {
+      setIsOffline(false);
+      toast.success('📶 Back online! Syncing your data...');
+      syncData();
+    };
+
+    const handleOffline = () => {
+      setIsOffline(true);
+      toast.error('⚠️ You are offline. Changes will be saved locally.');
+    };
+
+    setIsOffline(!navigator.onLine);
+    updateSyncCount();
+
+    if (navigator.onLine) {
+      syncData();
+    }
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    const interval = setInterval(() => {
+      if (navigator.onLine) {
+        syncData();
+      } else {
+        updateSyncCount();
+      }
+    }, 30000);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(interval);
+    };
+  }, []);
 
 
 
