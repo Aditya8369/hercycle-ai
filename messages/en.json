@@ -344,6 +344,33 @@
       "ovulation": "Extra water intake can help ease bloating around ovulation.",
       "luteal": "Staying hydrated can reduce bloating and help stabilize mood before your period.",
       "default": "Staying hydrated helps relax muscles and reduce water retention."
+    },
+    "cycleTipTitle": "Today's Cycle Tip",
+    "cycleTips": {
+      "menstrual": {
+        "title": "🩸 Menstrual",
+        "tip1": "Stay hydrated and prioritize gentle movement.",
+        "tip2": "Rest when your body needs it.",
+        "tip3": "A heating pad may help relieve cramps."
+      },
+      "follicular": {
+        "title": "🌸 Follicular",
+        "tip1": "Your energy is increasing.",
+        "tip2": "Great time to try new activities.",
+        "tip3": "Maintain balanced nutrition."
+      },
+      "ovulation": {
+        "title": "🌼 Ovulation",
+        "tip1": "Energy may be at its peak.",
+        "tip2": "Great day for light exercise.",
+        "tip3": "Stay hydrated."
+      },
+      "luteal": {
+        "title": "🍂 Luteal",
+        "tip1": "Prioritize quality sleep.",
+        "tip2": "Gentle stretching may reduce tension.",
+        "tip3": "Magnesium-rich foods may help."
+      }
     }
   },
   "Challenges": {
