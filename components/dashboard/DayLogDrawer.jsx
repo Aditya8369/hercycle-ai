@@ -113,7 +113,7 @@ export default function DayLogDrawer({ isOpen, onClose, selectedDate, cycleData,
       const data = await offlineClient.saveDailyLog(logData)
       if (data.success) {
         if (data.offline) toast.success('💾 Saved offline! Will sync when online.')
-        else toast.success('✅ Log saved!')
+        else toast.success('Log saved!')
         onSaved()
         onClose()
       } else {
