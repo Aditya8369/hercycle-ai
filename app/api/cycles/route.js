@@ -4,8 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { crudLimiter } from '@/lib/rateLimiter'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
-import { pcodRiskCache } from '@/lib/cache'
-
+import { eventBus } from '@/lib/events'
 
 /**
  * ISO date string must be a valid calendar date and must not be in the future.
@@ -182,7 +181,10 @@ export async function POST(request) {
     }
 
     logger.info(`Successfully added new period cycle for user ${userId}`);
-    pcodRiskCache.invalidate(`pcod-risk:${userId}`);
+    
+    // Emit event for cycle update
+    eventBus.emit('cycles:updated', { userId });
+
     return NextResponse.json({ success: true })
   } catch (error) {
     logger.error('Error starting period cycle:', error.message || error);
@@ -247,7 +249,10 @@ export async function PATCH(request) {
     }
 
     logger.info(`Successfully updated period cycle ${id} for user ${userId}`);
-    pcodRiskCache.invalidate(`pcod-risk:${userId}`);
+    
+    // Emit event for cycle update
+    eventBus.emit('cycles:updated', { userId });
+
     return NextResponse.json({ success: true })
   } catch (error) {
     logger.error('Error ending period cycle:', error.message || error);
