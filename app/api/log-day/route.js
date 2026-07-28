@@ -4,6 +4,8 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { crudLimiter } from '@/lib/rateLimiter'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { pcodRiskCache } from '@/lib/cache'
+
 
 const logPostSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD'),
@@ -11,6 +13,7 @@ const logPostSchema = z.object({
   mood: z.string().nullable().optional(),
   flow: z.string().nullable().optional(),
   cervical_discharge: z.string().nullable().optional(),
+  encrypted_data: z.any().optional()
 })
 
 // GET /api/log-day?date=... — fetch a single day's log
@@ -100,7 +103,7 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: 'Bad Request', details: result.error.errors }, { status: 400 })
     }
 
-    const { date, symptoms, mood, flow, cervical_discharge } = result.data
+    const { date, symptoms, mood, flow, cervical_discharge, encrypted_data } = result.data
 
     const supabaseAdmin = getSupabaseAdmin()
     const { error } = await supabaseAdmin
@@ -113,6 +116,7 @@ export async function POST(request) {
           mood: mood || null, 
           flow: flow || null, 
           cervical_discharge: cervical_discharge || null, 
+          encrypted_data: encrypted_data || null,
           updated_at: new Date().toISOString() 
         },
         { onConflict: 'user_id,date' }
@@ -124,6 +128,7 @@ export async function POST(request) {
     }
 
     logger.info(`Successfully upserted daily log for user ${userId}`);
+    pcodRiskCache.invalidate(`pcod-risk:${userId}`);
     return NextResponse.json({ success: true, message: 'Day logged successfully!' })
   } catch (error) {
     logger.error('Error logging day:', error.message || error);

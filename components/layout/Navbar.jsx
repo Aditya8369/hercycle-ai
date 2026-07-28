@@ -1,11 +1,11 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { useUser, UserButton, useClerk } from '@clerk/nextjs'
 import { useOffline } from '@/lib/OfflineContext'
-import { User as ProfileIcon, Bell as BellIcon, Shield as ShieldIcon, HelpCircle as HelpIcon, Languages, Users as UsersIcon, LogOut, X } from 'lucide-react'
+import { User as ProfileIcon, Bell as BellIcon, Shield as ShieldIcon, HelpCircle as HelpIcon, Languages, Users as UsersIcon, LogOut, X, Sun, Moon } from 'lucide-react'
 import PrivacySettingsContent from './PrivacySettingsModal'
 import HealthProfileSettings from './HealthProfileSettings'
 import NotificationSettings from './NotificationSettings'
@@ -46,6 +46,42 @@ export default function Navbar() {
   const { signOut } = useClerk()
   const { isOffline, pendingSyncCount, isSyncing } = useOffline()
 
+  const [mounted, setMounted] = useState(false)
+  const [theme, setTheme] = useState('light')
+
+  useEffect(() => {
+    setMounted(true)
+    const savedTheme = localStorage.getItem('theme')
+    if (savedTheme) {
+      setTheme(savedTheme)
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    } else {
+      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+      if (systemPrefersDark) {
+        setTheme('dark')
+        document.documentElement.classList.add('dark')
+      } else {
+        setTheme('light')
+        document.documentElement.classList.remove('dark')
+      }
+    }
+  }, [])
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark'
+    setTheme(nextTheme)
+    localStorage.setItem('theme', nextTheme)
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }
+
   const role = user?.publicMetadata?.role
   const isPartner = role === 'partner'
 
@@ -53,6 +89,7 @@ export default function Navbar() {
     { key: 'dashboard', label: t('dashboard'), href: `/${locale}` },
     { key: 'track',     label: t('track'),     href: `/${locale}/track` },
     { key: 'insights',  label: t('insights'),  href: `/${locale}/insights` },
+    { key: 'challenges', label: t('challenges'), href: `/${locale}/challenges` },
     { key: 'community', label: t('community'), href: `/${locale}/community` },
     { key: 'self-care', label: t('selfCare'),  href: `/${locale}/self-care` },
   ]
@@ -163,6 +200,20 @@ export default function Navbar() {
             {t('logToday')}
           </button>
         )}
+
+        <button
+          onClick={toggleTheme}
+          className="p-2 sm:p-2.5 rounded-full hover:bg-white/10 text-white/80 hover:text-white transition-all duration-200 shrink-0 border border-white/10 flex items-center justify-center bg-white/5 shadow-sm"
+          aria-label="Toggle dark mode"
+        >
+          {!mounted ? (
+            <div className="w-5 h-5 sm:w-6 sm:h-6" />
+          ) : theme === 'dark' ? (
+            <Sun className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300 fill-amber-300/10" />
+          ) : (
+            <Moon className="w-5 h-5 sm:w-6 sm:h-6 text-pink-200 fill-pink-200/10" />
+          )}
+        </button>
 
         <UserButton
           userProfileProps={{

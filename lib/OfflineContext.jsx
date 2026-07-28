@@ -1,9 +1,10 @@
 
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react'
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react'
 import { initDB, getAllFromStore, putIntoStore, deleteFromStore, queueSyncRequest } from './db'
 import { predictNextPeriod, calculatePCODRisk } from './api-helpers'
+import { useEncryption } from './EncryptionContext'
 import toast from 'react-hot-toast'
 
 const OfflineContext = createContext({
@@ -30,6 +31,9 @@ export function OfflineProvider({ children }) {
   const [isOffline, setIsOffline] = useState(false)
   const [pendingSyncCount, setPendingSyncCount] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
+  const isSyncingRef = useRef(false)
+  
+  const { encrypt, decrypt, isUnlocked } = useEncryption()
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -52,43 +56,8 @@ export function OfflineProvider({ children }) {
     }
   }
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleOnline = () => {
-      setIsOffline(false);
-      toast.success('📶 Back online! Syncing your data...');
-      syncData();
-    };
-
-    const handleOffline = () => {
-      setIsOffline(true);
-      toast.error('⚠️ You are offline. Changes will be saved locally.');
-    };
-
-    setIsOffline(!navigator.onLine);
-    updateSyncCount();
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    const interval = setInterval(() => {
-      if (navigator.onLine) {
-        syncData();
-      } else {
-        updateSyncCount();
-      }
-    }, 30000);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-      clearInterval(interval);
-    };
-  }, []);
-
   const syncData = async () => {
-    if (!navigator.onLine || isSyncing) return;
+    if (!navigator.onLine || isSyncingRef.current) return;
 
     try {
       const queue = await getAllFromStore('sync_queue');
@@ -97,6 +66,7 @@ export function OfflineProvider({ children }) {
         return;
       }
 
+      isSyncingRef.current = true;
       setIsSyncing(true);
 
       const sortedQueue = [...queue].sort((a, b) => a.id - b.id);
@@ -121,10 +91,50 @@ export function OfflineProvider({ children }) {
     } catch (e) {
       console.error('Error in background sync:', e);
     } finally {
+      isSyncingRef.current = false;
       setIsSyncing(false);
       updateSyncCount();
     }
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleOnline = () => {
+      setIsOffline(false);
+      toast.success('📶 Back online! Syncing your data...');
+      syncData();
+    };
+
+    const handleOffline = () => {
+      setIsOffline(true);
+      toast.error('⚠️ You are offline. Changes will be saved locally.');
+    };
+
+    setIsOffline(!navigator.onLine);
+    updateSyncCount();
+
+    if (navigator.onLine) {
+      syncData();
+    }
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    const interval = setInterval(() => {
+      if (navigator.onLine) {
+        syncData();
+      } else {
+        updateSyncCount();
+      }
+    }, 30000);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(interval);
+    };
+  }, []);
 
 
 
@@ -142,7 +152,19 @@ export function OfflineProvider({ children }) {
             await store.clear();
             
             for (const c of data.data.cycles) {
-              await store.put(c);
+              if (c.encrypted_data) {
+                try {
+                  const decryptedFields = await decrypt(c.encrypted_data);
+                  const fullyDecrypted = { ...c, ...decryptedFields };
+                  await store.put(fullyDecrypted);
+                  data.data.cycles[data.data.cycles.indexOf(c)] = fullyDecrypted;
+                } catch (e) {
+                  console.error('Failed to decrypt cycle', e);
+                  await store.put(c);
+                }
+              } else {
+                await store.put(c);
+              }
             }
             
             const sortedCycles = [...data.data.cycles].sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
@@ -185,8 +207,17 @@ export function OfflineProvider({ children }) {
           if (res.ok) {
             const data = await res.json();
             if (data.success && data.data) {
-              await putIntoStore('daily_logs', data.data);
-              return { success: true, data: data.data };
+              let log = data.data;
+              if (log.encrypted_data) {
+                try {
+                  const decryptedFields = await decrypt(log.encrypted_data);
+                  log = { ...log, ...decryptedFields };
+                } catch (e) {
+                  console.error('Failed to decrypt daily log', e);
+                }
+              }
+              await putIntoStore('daily_logs', log);
+              return { success: true, data: log };
             }
             return { success: true, data: null };
           }
@@ -212,9 +243,21 @@ export function OfflineProvider({ children }) {
               const tx = db.transaction('daily_logs', 'readwrite');
               const store = tx.objectStore('daily_logs');
               await store.clear();
+              const decryptedLogs = [];
               for (const log of data.data) {
-                await store.put(log);
+                let decryptedLog = log;
+                if (log.encrypted_data) {
+                  try {
+                    const decryptedFields = await decrypt(log.encrypted_data);
+                    decryptedLog = { ...log, ...decryptedFields };
+                  } catch (e) {
+                    console.error('Failed to decrypt log in fetchAll', e);
+                  }
+                }
+                decryptedLogs.push(decryptedLog);
+                await store.put(decryptedLog);
               }
+              data.data = decryptedLogs;
             }
             return data;
           }
@@ -277,25 +320,42 @@ export function OfflineProvider({ children }) {
       };
       await putIntoStore('daily_logs', localLog);
 
+      let payload = { ...localLog };
+      try {
+        const encrypted = await encrypt({
+          symptoms: payload.symptoms,
+          mood: payload.mood,
+          flow: payload.flow,
+          cervical_discharge: payload.cervical_discharge
+        });
+        payload.encrypted_data = encrypted;
+        delete payload.symptoms;
+        delete payload.mood;
+        delete payload.flow;
+        delete payload.cervical_discharge;
+      } catch (e) {
+        console.error('Failed to encrypt daily log', e);
+      }
+
       const isOnline = navigator.onLine;
       if (isOnline) {
         try {
           const res = await fetch('/api/log-day', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(localLog)
+            body: JSON.stringify(payload)
           });
           const data = await res.json();
           if (data.success) {
             return { success: true };
           }
-          return { success: false, error: data.message || 'Failed to save log' };
+          console.warn('Server rejected log, queuing for retry:', data.message);
         } catch (e) {
           console.warn('Save daily log network request failed, queuing', e);
         }
       }
 
-      await queueSyncRequest('/api/log-day', 'POST', localLog);
+      await queueSyncRequest('/api/log-day', 'POST', payload);
       updateSyncCount();
       return { success: true, offline: true };
     },
@@ -308,13 +368,28 @@ export function OfflineProvider({ children }) {
       };
       await putIntoStore('cycles', clientCycle);
 
+      let payload = { ...clientCycle };
+      try {
+        const encrypted = await encrypt({
+          start_date: payload.start_date,
+          end_date: payload.end_date,
+          cycle_length: payload.cycle_length
+        });
+        payload.encrypted_data = encrypted;
+        delete payload.start_date;
+        delete payload.end_date;
+        delete payload.cycle_length;
+      } catch (e) {
+        console.error('Failed to encrypt cycle', e);
+      }
+
       const isOnline = navigator.onLine;
       if (isOnline) {
         try {
           const res = await fetch('/api/cycles', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(clientCycle)
+            body: JSON.stringify(payload)
           });
           const data = await res.json();
           if (data.success) {
@@ -326,7 +401,7 @@ export function OfflineProvider({ children }) {
         }
       }
 
-      await queueSyncRequest('/api/cycles', 'POST', clientCycle);
+      await queueSyncRequest('/api/cycles', 'POST', payload);
       updateSyncCount();
       return { success: true, offline: true };
     },
@@ -340,7 +415,21 @@ export function OfflineProvider({ children }) {
       }
 
       const isOnline = navigator.onLine;
-      const payload = { id, end_date };
+      let payload = { id, end_date };
+      
+      if (cycle) {
+        try {
+          const encrypted = await encrypt({
+            start_date: cycle.start_date,
+            end_date: cycle.end_date,
+            cycle_length: cycle.cycle_length
+          });
+          payload.encrypted_data = encrypted;
+          delete payload.end_date;
+        } catch (e) {
+          console.error('Failed to encrypt cycle ending', e);
+        }
+      }
 
       if (isOnline) {
         try {
@@ -364,7 +453,7 @@ export function OfflineProvider({ children }) {
       return { success: true, offline: true };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), []) // stable reference — methods close over navigator/fetch, not React state
+  }), [encrypt, decrypt, isUnlocked]) // stable reference — methods close over navigator/fetch, not React state
 
   return (
     <OfflineContext.Provider value={{ isOffline, pendingSyncCount, isSyncing, syncData, offlineClient }}>

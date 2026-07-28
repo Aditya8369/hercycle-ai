@@ -5,6 +5,7 @@
     "insights": "Insights",
     "chat": "Chat",
     "community": "Community",
+    "challenges": "Challenges",
     "selfCare": "Self Care",
     "offline": "Offline",
     "syncPending": "Sync Pending",
@@ -134,7 +135,10 @@
       "symptomEmpty": "No daily logs yet. Log your symptoms on the Track page or dashboard.",
       "moodTitle": "😊 Mood Distribution",
       "moodEmpty": "Log your mood daily to see your mood distribution here.",
-      "exportCsv": "Export Cycles CSV"
+      "exportCsv": "Export Cycles CSV",
+      "copySummary": "Copy Text Summary",
+      "copiedSummary": "Copied! Paste it in WhatsApp",
+      "noSymptomsLogged": "None logged"
     },
     "track": {
       "title": "Cycle Tracker",
@@ -211,6 +215,7 @@
     "comment_posted": "Comment posted anonymously!",
     "comments": "Comments",
     "write_comment": "Share your thoughts anonymously...",
+    "submit_comment": "Submit comment",
     "no_comments": "No comments yet. Be the first to share!",
     "cat_pcod-advice_name": "PCOD Advice",
     "cat_pcod-advice_desc": "Share tips and ask questions about managing PCOD.",
@@ -309,7 +314,10 @@
   },
   "SelfCare": {
     "title": "Self Care",
+    "yourFavorites": "Your Favorites",
     "crampRelief": "Menstrual cramps relief",
+    "searchPlaceholder": "Search exercises or soundscapes...",
+    "noResults": "No exercises or soundscapes found.",
     "soundscapes": "Soundscapes",
     "start": "Start",
     "next": "Next",
@@ -320,6 +328,54 @@
     "sessionComplete": "Session Complete!",
     "greatJob": "Great job taking time for yourself today.",
     "backToSelfCare": "Back to Self Care",
-    "step": "Step {current} of {total}"
+    "step": "Step {current} of {total}",
+    "recommendedForYou": "Recommended for You",
+    "recExercises": "Recommended Exercises",
+    "recSoundscapes": "Recommended Soundscapes",
+    "hydrationTitle": "Hydration Tracker",
+    "glasses": "{count} / {target} Glasses",
+    "addGlass": "Add a glass of water",
+    "removeGlass": "Remove a glass of water",
+    "hydrationGoalReached": "🎉 Daily goal reached! Great job staying hydrated.",
+    "hydrationTips": {
+      "menstrual": "Drinking warm water during your period helps relax uterine muscles and reduce cramp severity.",
+      "follicular": "Steady hydration supports your rising energy levels during this phase.",
+      "ovulation": "Extra water intake can help ease bloating around ovulation.",
+      "luteal": "Staying hydrated can reduce bloating and help stabilize mood before your period.",
+      "default": "Staying hydrated helps relax muscles and reduce water retention."
+    },
+    "cycleTipTitle": "Today's Cycle Tip",
+    "cycleTips": {
+      "menstrual": {
+        "title": "🩸 Menstrual",
+        "tip1": "Stay hydrated and prioritize gentle movement.",
+        "tip2": "Rest when your body needs it.",
+        "tip3": "A heating pad may help relieve cramps."
+      },
+      "follicular": {
+        "title": "🌸 Follicular",
+        "tip1": "Your energy is increasing.",
+        "tip2": "Great time to try new activities.",
+        "tip3": "Maintain balanced nutrition."
+      },
+      "ovulation": {
+        "title": "🌼 Ovulation",
+        "tip1": "Energy may be at its peak.",
+        "tip2": "Great day for light exercise.",
+        "tip3": "Stay hydrated."
+      },
+      "luteal": {
+        "title": "🍂 Luteal",
+        "tip1": "Prioritize quality sleep.",
+        "tip2": "Gentle stretching may reduce tension.",
+        "tip3": "Magnesium-rich foods may help."
+      }
+    }
+  },
+  "Challenges": {
+    "title": "Today's Challenges",
+    "yourBadges": "Your Badges",
+    "badgeEarned": "Badge Earned!",
+    "loading": "Loading challenges..."
   }
 }

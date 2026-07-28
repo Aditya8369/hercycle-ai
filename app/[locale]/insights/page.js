@@ -138,8 +138,11 @@ export default function InsightsPage() {
   const [pcodRisk, setPcodRisk] = useState(null)
   const [dailyLogs, setDailyLogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [copied, setCopied] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     if (!isLoaded) return
     if (!isSignedIn) { router.push('/auth/login'); return }
 
@@ -163,9 +166,13 @@ export default function InsightsPage() {
   const totalCycles = cycles.length
   const totalLogs = dailyLogs.length
 
-  const nextDate = cycleData?.nextPeriodDate
-    ? new Date(cycleData.nextPeriodDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
-    : '—'
+  let nextDate = '—'
+  if (cycleData?.nextPeriodDate) {
+    const nextPeriodDateObj = new Date(cycleData.nextPeriodDate)
+    if (!isNaN(nextPeriodDateObj.getTime())) {
+      nextDate = nextPeriodDateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+    }
+  }
 
   const cycleLengthData = cycles
     .slice(0, 6)
@@ -175,7 +182,8 @@ export default function InsightsPage() {
   const symptomCounts = {}
   SYMPTOM_LIST.forEach(s => { symptomCounts[s] = 0 })
   dailyLogs.forEach(log => {
-    const syms = log.symptoms || []
+    if (!log) return
+    const syms = Array.isArray(log.symptoms) ? log.symptoms : []
     syms.forEach(s => {
       const key = SYMPTOM_LIST.find(k => k.toLowerCase() === s.toLowerCase())
       if (key) symptomCounts[key] = (symptomCounts[key] || 0) + 1
@@ -184,7 +192,10 @@ export default function InsightsPage() {
   const symptomFreq = SYMPTOM_LIST.map(s => ({ name: tSymp(s), count: symptomCounts[s] }))
 
   const moodCounts = { '😊': 0, '😐': 0, '😢': 0, '😡': 0 }
-  dailyLogs.forEach(log => { if (log.mood && moodCounts[log.mood] !== undefined) moodCounts[log.mood]++ })
+  dailyLogs.forEach(log => {
+    if (!log) return
+    if (log.mood && moodCounts[log.mood] !== undefined) moodCounts[log.mood]++
+  })
   const moodData = MOOD_EMOJIS.map(emoji => ({
     emoji,
     label: tMood(MOOD_LABELS[emoji]),
@@ -208,6 +219,71 @@ export default function InsightsPage() {
     a.download = 'hercycle-cycles.csv'
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  const riskTier = pcodRisk?.tier || pcodRisk?.label || 'LOW RISK'
+  const riskLevelWord =
+    riskTier === 'HIGH RISK' ? 'High' :
+    riskTier === 'MEDIUM RISK' ? 'Medium' : 'Low'
+
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+  const recentSymptomNames = new Set()
+  dailyLogs.forEach(log => {
+    if (!log || !log.date) return
+    const logDate = new Date(log.date)
+    if (isNaN(logDate.getTime()) || logDate < thirtyDaysAgo) return
+    const syms = Array.isArray(log.symptoms) ? log.symptoms : []
+    syms.forEach(s => {
+      const key = SYMPTOM_LIST.find(k => k.toLowerCase() === s.toLowerCase())
+      if (key) recentSymptomNames.add(tSymp(key))
+    })
+  })
+  const recentSymptomsText = recentSymptomNames.size > 0
+    ? Array.from(recentSymptomNames).join(', ')
+    : t('noSymptomsLogged')
+
+  const handleCopySummary = async () => {
+    const summaryText = `🌸 HerCycle AI Health Summary
+- Avg Cycle Length: ${avgCycle} Days
+- Recent PCOD Risk: ${riskLevelWord}
+- Logged Symptoms (Last 30 Days): ${recentSymptomsText}`
+
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(summaryText)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      } else {
+        const textArea = document.createElement('textarea')
+        textArea.value = summaryText
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-999999px'
+        textArea.style.top = '-999999px'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        const successful = document.execCommand('copy')
+        document.body.removeChild(textArea)
+        if (successful) {
+          setCopied(true)
+          setTimeout(() => setCopied(false), 2000)
+        } else {
+          throw new Error('Fallback copy failed')
+        }
+      }
+    } catch (err) {
+      console.error('Could not copy summary', err)
+    }
+  }
+
+  if (!mounted) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#0e0314' }}>
+        <p style={{ color: TEXT_FAINT }}>Loading Insights...</p>
+      </div>
+    )
   }
 
   return (
@@ -268,16 +344,23 @@ export default function InsightsPage() {
               label={t('pcodRisk')}
               value={loading ? '…' : `${pcodRisk?.score ?? 0}/100`}
               sub={
-                pcodRisk?.tier === 'HIGH RISK' ? tRisk('high')
-                  : pcodRisk?.tier === 'MEDIUM RISK' ? tRisk('med')
+                riskTier === 'HIGH RISK' ? tRisk('high')
+                  : riskTier === 'MEDIUM RISK' ? tRisk('med')
                     : tRisk('low')
               }
             />
           </div>
 
-          {/* ── CSV Export Button ── */}
-          {cycles.length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
+{/* ── Export Buttons ── */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+            <button
+              onClick={handleCopySummary}
+              className="export-btn"
+              style={{ width: 'auto', padding: '10px 20px' }}
+            >
+              {copied ? `✅ ${t('copiedSummary')}` : `📋 ${t('copySummary')}`}
+            </button>
+            {cycles.length > 0 && (
               <button
                 onClick={handleCSVExport}
                 className="export-btn"
@@ -285,9 +368,8 @@ export default function InsightsPage() {
               >
                 ⬇️ {t('exportCsv')}
               </button>
-            </div>
-          )}
-
+            )}
+          </div>
 
           {/* ── Cycle Length Trend ── */}
           <SectionCard
@@ -300,16 +382,66 @@ export default function InsightsPage() {
               </p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={cycleLengthData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                  <CartesianGrid {...gridProps} />
-                  <XAxis dataKey="name" {...axisProps} />
-                  <YAxis domain={[20, 40]} {...axisProps} />
+                <LineChart
+                  data={cycleLengthData}
+                  margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
+                >
+                  <defs>
+                    <filter
+                      id="cycleGlow"
+                      x="-50%"
+                      y="-50%"
+                      width="200%"
+                      height="200%"
+                    >
+                      <feGaussianBlur
+                        in="SourceGraphic"
+                        stdDeviation="4"
+                        result="blur"
+                      />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+
+                  <CartesianGrid
+                    vertical={false}
+                    stroke="rgba(255,255,255,0.05)"
+                  />
+
+                  <XAxis
+                    dataKey="name"
+                    {...axisProps}
+                  />
+
+                  <YAxis
+                    domain={[20, 40]}
+                    {...axisProps}
+                  />
+
                   <Tooltip content={<CustomTooltip />} />
+
                   <Line
-                    type="monotone" dataKey="days" name="days"
-                    stroke={PINK} strokeWidth={2.5}
-                    dot={{ fill: PINK, r: 5 }}
-                    activeDot={{ r: 7, fill: MAUVE }}
+                    type="monotone"
+                    dataKey="days"
+                    name="days"
+                    stroke={PINK}
+                    strokeWidth={2.5}
+                    filter="url(#cycleGlow)"
+                    dot={{
+                      fill: PINK,
+                      stroke: PINK,
+                      strokeWidth: 2,
+                      r: 5,
+                    }}
+                    activeDot={{
+                      r: 8,
+                      fill: MAUVE,
+                      stroke: PINK,
+                      strokeWidth: 3,
+                    }}
                   />
                 </LineChart>
               </ResponsiveContainer>
