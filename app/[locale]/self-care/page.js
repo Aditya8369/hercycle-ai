@@ -139,7 +139,6 @@ export default function SelfCarePage() {
   const favoriteExercises = exercises.filter(e => favoriteExerciseIds.includes(e.id));
   const favoriteSoundscapes = soundscapes.filter(s => favoriteSoundscapeIds.includes(s.id));
   const hasFavorites = isMounted && (favoriteExercises.length > 0 || favoriteSoundscapes.length > 0);
-  const hasFavoritesState = favoriteExercises.length > 0 || favoriteSoundscapes.length > 0;
 
   const query = searchQuery.trim().toLowerCase();
 
@@ -173,10 +172,43 @@ export default function SelfCarePage() {
     <div className="page">
       <Navbar />
       <main className="pb-24 pt-6 px-4 max-w-7xl mx-auto w-full space-y-10">
-        <header className="flex items-center justify-between mb-8">
+        <header className="flex items-center justify-between mb-8 gap-4 flex-wrap">
           <h1 className="text-3xl sm:text-4xl font-bold text-white drop-shadow-md">
             {t('title')}
           </h1>
+
+          <div ref={searchRef} className="relative w-full sm:w-72">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setIsDropdownOpen(true);
+              }}
+              onFocus={() => setIsDropdownOpen(true)}
+              placeholder={t('searchPlaceholder')}
+              className="w-full bg-white/10 border border-white/15 rounded-full px-4 py-2.5 text-white placeholder-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-pink-400/50"
+            />
+
+            {isDropdownOpen && query && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-[#2a1230] border border-white/10 rounded-2xl shadow-xl z-30 overflow-hidden">
+                {noResults ? (
+                  <p className="text-white/60 text-sm px-4 py-3">{t('noResults')}</p>
+                ) : (
+                  suggestions.map((item) => (
+                    <button
+                      key={`${item.type}-${item.id}`}
+                      onClick={() => handleSelectSuggestion(item)}
+                      className="w-full text-left px-4 py-2.5 text-sm text-white/85 hover:bg-white/10 transition-colors flex items-center gap-2"
+                    >
+                      <span className="text-xs text-white/40 uppercase">{item.type === 'exercise' ? '🧘' : '🎧'}</span>
+                      {item.title}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
         </header>
 
         {hasFavorites && (
@@ -286,7 +318,7 @@ export default function SelfCarePage() {
         <section>
           <h2 className="text-xl sm:text-2xl font-semibold text-white/90 mb-4">{t('crampRelief')}</h2>
           <HorizontalScroll>
-            {exercises.map((exercise) => (
+            {filteredExercises.map((exercise) => (
               <ExerciseCard
                 key={exercise.id}
                 exercise={exercise}
@@ -300,7 +332,7 @@ export default function SelfCarePage() {
         <section>
           <h2 className="text-xl sm:text-2xl font-semibold text-white/90 mb-4">{t('soundscapes')}</h2>
           <HorizontalScroll>
-            {soundscapes.map((sound) => (
+            {filteredSoundscapes.map((sound) => (
               <SoundscapeCard
                 key={sound.id}
                 sound={sound}

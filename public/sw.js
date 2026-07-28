@@ -20,7 +20,7 @@
 // intercepts /api/* calls so it can't interfere with that existing sync,
 // encryption, or auth logic.
 
-const CACHE_VERSION = 'v1'
+const CACHE_VERSION = 'v2'
 const STATIC_CACHE = `hercycle-static-${CACHE_VERSION}`
 const PAGES_CACHE = `hercycle-pages-${CACHE_VERSION}`
 const OFFLINE_URL = '/offline.html'
@@ -146,7 +146,7 @@ async function staleWhileRevalidate(event, request) {
     })
     .catch(() => cached || Response.error())
 
-  event.waitUntil(networkFetch.catch(() => {}))
+  event.waitUntil(networkFetch.catch(() => { }))
 
   return cached || networkFetch
 }

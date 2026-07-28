@@ -137,8 +137,8 @@ export default function InsightsPage() {
   const [cycleData, setCycleData] = useState(null)
   const [pcodRisk, setPcodRisk] = useState(null)
   const [dailyLogs, setDailyLogs] = useState([])
-  const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -224,7 +224,7 @@ export default function InsightsPage() {
   const riskTier = pcodRisk?.tier || pcodRisk?.label || 'LOW RISK'
   const riskLevelWord =
     riskTier === 'HIGH RISK' ? 'High' :
-    riskTier === 'MEDIUM RISK' ? 'Medium' : 'Low'
+      riskTier === 'MEDIUM RISK' ? 'Medium' : 'Low'
 
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -351,7 +351,7 @@ export default function InsightsPage() {
             />
           </div>
 
-{/* ── Export Buttons ── */}
+          {/* ── Export Buttons ── */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
             <button
               onClick={handleCopySummary}
