@@ -55,9 +55,9 @@ export default function SoundscapeCard({ sound, activeSoundId, onPlay, isFavorit
             onToggleFavorite?.(sound.id);
           }}
           aria-label={isFavorite ? `Remove ${sound.title} from favorites` : `Add ${sound.title} to favorites`}
-          className="absolute -top-1 -right-1 z-10 w-7 h-7 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center hover:bg-black/60 transition-colors"
+          className="absolute -top-1 -right-1 z-10 w-9 h-9 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center hover:bg-black/50 transition-colors"
         >
-          <Heart className={`w-4 h-4 ${isFavorite ? 'text-pink-500 fill-pink-500' : 'text-white'}`} />
+          <Heart className={`w-5 h-5 transition-colors ${isFavorite ? 'text-pink-500 fill-pink-500' : 'text-white'}`} />
         </button>
       </div>
 

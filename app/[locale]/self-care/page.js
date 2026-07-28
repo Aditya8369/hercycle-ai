@@ -7,7 +7,9 @@ import { exercises, soundscapes } from '@/lib/selfCareData';
 import HorizontalScroll from '@/components/self-care/HorizontalScroll';
 import ExerciseCard from '@/components/self-care/ExerciseCard';
 import SoundscapeCard from '@/components/self-care/SoundscapeCard';
-import HydrationTracker from '@/components/self-care/HydrationTracker'; import Navbar from '@/components/layout/Navbar';
+import HydrationTracker from '@/components/self-care/HydrationTracker';
+import CycleTipCard from '@/components/self-care/CycleTipCard';
+import Navbar from '@/components/layout/Navbar';
 import { useOffline } from '@/lib/OfflineContext';
 import { calculateCyclePhase, getLatestCycle } from '@/lib/calculateCyclePhase';
 
@@ -34,11 +36,20 @@ const RECOMMENDATIONS_MAP = {
 
 export default function SelfCarePage() {
   const t = useTranslations('SelfCare');
+  const locale = useLocale();
   const { offlineClient } = useOffline();
   const [activeSoundId, setActiveSoundId] = useState(null);
   const [phaseKey, setPhaseKey] = useState(null);
   const [favoriteExerciseIds, setFavoriteExerciseIds] = useState([]);
   const [favoriteSoundscapeIds, setFavoriteSoundscapeIds] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const searchRef = useRef(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     async function getPhase() {
@@ -122,11 +133,13 @@ export default function SelfCarePage() {
   const recommendedSoundscapes = phaseRecommendations
     ? soundscapes.filter(s => phaseRecommendations.soundscapes.includes(s.id))
     : [];
-
   const hasRecommendations = recommendedExercises.length > 0 || recommendedSoundscapes.length > 0;
+
+
   const favoriteExercises = exercises.filter(e => favoriteExerciseIds.includes(e.id));
   const favoriteSoundscapes = soundscapes.filter(s => favoriteSoundscapeIds.includes(s.id));
-  const hasFavorites = favoriteExercises.length > 0 || favoriteSoundscapes.length > 0;
+  const hasFavorites = isMounted && (favoriteExercises.length > 0 || favoriteSoundscapes.length > 0);
+  const hasFavoritesState = favoriteExercises.length > 0 || favoriteSoundscapes.length > 0;
 
   const query = searchQuery.trim().toLowerCase();
 
@@ -215,6 +228,9 @@ export default function SelfCarePage() {
           </section>
         )}
 
+        {/* Today's Cycle Tip Card */}
+        <CycleTipCard phaseKey={phaseKey} />
+
         {/* Hydration & Cramp Relief Water Tracker */}
         <HydrationTracker phaseKey={phaseKey} />
 
@@ -274,7 +290,7 @@ export default function SelfCarePage() {
               <ExerciseCard
                 key={exercise.id}
                 exercise={exercise}
-                isFavorite={favoriteExerciseIds.includes(exercise.id)}
+                isFavorite={isMounted && favoriteExerciseIds.includes(exercise.id)}
                 onToggleFavorite={toggleFavoriteExercise}
               />
             ))}
@@ -290,7 +306,7 @@ export default function SelfCarePage() {
                 sound={sound}
                 activeSoundId={activeSoundId}
                 onPlay={handlePlaySound}
-                isFavorite={favoriteSoundscapeIds.includes(sound.id)}
+                isFavorite={isMounted && favoriteSoundscapeIds.includes(sound.id)}
                 onToggleFavorite={toggleFavoriteSoundscape}
               />
             ))}
