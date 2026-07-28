@@ -11,7 +11,7 @@ const OfflineContext = createContext({
   isOffline: false,
   pendingSyncCount: 0,
   isSyncing: false,
-  syncData: async () => {},
+  syncData: async () => { },
   offlineClient: {}
 })
 
@@ -20,7 +20,7 @@ const generateUUID = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
@@ -31,7 +31,7 @@ export function OfflineProvider({ children }) {
   const [isOffline, setIsOffline] = useState(false)
   const [pendingSyncCount, setPendingSyncCount] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
-  
+
   const { encrypt, decrypt, isUnlocked } = useEncryption()
 
   useEffect(() => {
@@ -43,6 +43,19 @@ export function OfflineProvider({ children }) {
         .catch((err) => {
           console.error('Service Worker registration failed:', err);
         });
+
+      let refreshing = false;
+      const handleControllerChange = () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      };
+
+      navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
+      return () => {
+        navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+      };
     }
   }, [])
 
@@ -143,7 +156,7 @@ export function OfflineProvider({ children }) {
             const tx = db.transaction('cycles', 'readwrite');
             const store = tx.objectStore('cycles');
             await store.clear();
-            
+
             for (const c of data.data.cycles) {
               if (c.encrypted_data) {
                 try {
@@ -159,7 +172,7 @@ export function OfflineProvider({ children }) {
                 await store.put(c);
               }
             }
-            
+
             const sortedCycles = [...data.data.cycles].sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
             const prediction = predictNextPeriod(sortedCycles);
             return {
@@ -409,7 +422,7 @@ export function OfflineProvider({ children }) {
 
       const isOnline = navigator.onLine;
       let payload = { id, end_date };
-      
+
       if (cycle) {
         try {
           const encrypted = await encrypt({
@@ -445,7 +458,7 @@ export function OfflineProvider({ children }) {
       updateSyncCount();
       return { success: true, offline: true };
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [encrypt, decrypt, isUnlocked]) // stable reference — methods close over navigator/fetch, not React state
 
   return (

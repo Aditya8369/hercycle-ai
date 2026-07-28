@@ -137,7 +137,8 @@ export default function InsightsPage() {
   const [cycleData, setCycleData] = useState(null)
   const [pcodRisk, setPcodRisk] = useState(null)
   const [dailyLogs, setDailyLogs] = useState([])
-const [loading, setLoading] = useState(true)
+  const [copied, setCopied] = useState(false)
+  const [loading, setLoading] = useState(true)
   useEffect(() => {
     if (!isLoaded) return
     if (!isSignedIn) { router.push('/auth/login'); return }
@@ -194,7 +195,7 @@ const [loading, setLoading] = useState(true)
   const recordedLabel = totalCycles > 0 ? t('cyclesRecorded') : t('daysLogged')
   const recordedSub = totalCycles > 0 ? t('cycles') : t('entries')
 
-const handleCSVExport = () => {
+  const handleCSVExport = () => {
     if (!cycles.length) return
     const header = 'start_date,end_date,cycle_length'
     const rows = cycles.map(c =>
@@ -211,7 +212,7 @@ const handleCSVExport = () => {
 
   const riskLevelWord =
     pcodRisk?.tier === 'HIGH RISK' ? 'High' :
-    pcodRisk?.tier === 'MEDIUM RISK' ? 'Medium' : 'Low'
+      pcodRisk?.tier === 'MEDIUM RISK' ? 'Medium' : 'Low'
 
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -219,10 +220,10 @@ const handleCSVExport = () => {
   const recentSymptomNames = new Set()
   dailyLogs.forEach(log => {
     if (!log.date || new Date(log.date) < thirtyDaysAgo) return
-    ;(log.symptoms || []).forEach(s => {
-      const key = SYMPTOM_LIST.find(k => k.toLowerCase() === s.toLowerCase())
-      if (key) recentSymptomNames.add(tSymp(key))
-    })
+      ; (log.symptoms || []).forEach(s => {
+        const key = SYMPTOM_LIST.find(k => k.toLowerCase() === s.toLowerCase())
+        if (key) recentSymptomNames.add(tSymp(key))
+      })
   })
   const recentSymptomsText = recentSymptomNames.size > 0
     ? Array.from(recentSymptomNames).join(', ')
@@ -307,7 +308,7 @@ const handleCSVExport = () => {
             />
           </div>
 
-{/* ── Export Buttons ── */}
+          {/* ── Export Buttons ── */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
             <button
               onClick={handleCopySummary}
