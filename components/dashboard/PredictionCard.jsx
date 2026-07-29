@@ -65,6 +65,22 @@ export default function PredictionCard({ cycleData }) {
       ? '#fbbf24'
       : '#f87171'
 
+  const hasNoCycles = !cycleData?.cycles || cycleData.cycles.length === 0
+
+  if (hasNoCycles) {
+    return (
+      <div className={`pred-card glass pred-empty ${revealed ? 'pred-revealed' : ''}`}>
+        <div className="pred-sparkle-bar">
+          <span>✨</span>
+          <span className="pred-badge">{t('aiTitle')}</span>
+          <span>✨</span>
+        </div>
+        <h3 className="pred-title">{t('nextCycle')}</h3>
+        <p className="pred-empty-message">{t('emptyState')}</p>
+      </div>
+    )
+  }
+
   return (
     <div className={`pred-card glass ${revealed ? 'pred-revealed' : ''}`}>
       {/* Top sparkle bar */}
