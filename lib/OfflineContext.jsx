@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useRef 
 import { initDB, getAllFromStore, putIntoStore, deleteFromStore, queueSyncRequest } from './db'
 import { predictNextPeriod, calculatePCODRisk } from './api-helpers'
 import { useEncryption } from './EncryptionContext'
+import fetchWithTimeout from './fetch-with-timeout'
 import toast from 'react-hot-toast'
 
 const OfflineContext = createContext({
@@ -87,7 +88,7 @@ export function OfflineProvider({ children }) {
 
       for (const item of sortedQueue) {
         try {
-          const res = await fetch(item.url, {
+          const res = await fetchWithTimeout(item.url, {
             method: item.method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(item.body)
@@ -157,7 +158,7 @@ export function OfflineProvider({ children }) {
       const isOnline = navigator.onLine;
       if (isOnline) {
         try {
-          const res = await fetch('/api/cycles');
+          const res = await fetchWithTimeout('/api/cycles');
           const data = await res.json();
           if (data.success) {
             const db = await initDB();
@@ -217,7 +218,7 @@ export function OfflineProvider({ children }) {
       const isOnline = navigator.onLine;
       if (isOnline) {
         try {
-          const res = await fetch(`/api/log-day?date=${date}`);
+          const res = await fetchWithTimeout(`/api/log-day?date=${date}`);
           if (res.ok) {
             const data = await res.json();
             if (data.success && data.data) {
@@ -249,7 +250,7 @@ export function OfflineProvider({ children }) {
       const isOnline = navigator.onLine;
       if (isOnline) {
         try {
-          const res = await fetch('/api/log-day/all');
+          const res = await fetchWithTimeout('/api/log-day/all');
           if (res.ok) {
             const data = await res.json();
             if (data.success && data.data) {
@@ -289,7 +290,7 @@ export function OfflineProvider({ children }) {
       const isOnline = navigator.onLine;
       if (isOnline) {
         try {
-          const res = await fetch('/api/pcod-risk');
+          const res = await fetchWithTimeout('/api/pcod-risk');
           if (res.ok) {
             const data = await res.json();
             if (data.success) {
@@ -354,7 +355,7 @@ export function OfflineProvider({ children }) {
       const isOnline = navigator.onLine;
       if (isOnline) {
         try {
-          const res = await fetch('/api/log-day', {
+          const res = await fetchWithTimeout('/api/log-day', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -400,7 +401,7 @@ export function OfflineProvider({ children }) {
       const isOnline = navigator.onLine;
       if (isOnline) {
         try {
-          const res = await fetch('/api/cycles', {
+          const res = await fetchWithTimeout('/api/cycles', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -447,7 +448,7 @@ export function OfflineProvider({ children }) {
 
       if (isOnline) {
         try {
-          const res = await fetch('/api/cycles', {
+          const res = await fetchWithTimeout('/api/cycles', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
