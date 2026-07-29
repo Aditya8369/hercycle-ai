@@ -28,6 +28,7 @@ import PcosSymptomProfileCard from '@/components/dashboard/PcosSymptomProfileCar
 import PcosSymptomProfileModal from '@/components/dashboard/PcosSymptomProfileModal'
 import { useOffline } from '@/lib/OfflineContext'
 import { useLocale, useTranslations } from 'next-intl'
+import fetchWithTimeout from '@/lib/fetch-with-timeout'
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
@@ -250,7 +251,7 @@ const HerCycleApp = () => {
     setIsTyping(true)
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetchWithTimeout('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
