@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, Ruler, Scale, Save } from 'lucide-react'
+import fetchWithTimeout from '@/lib/fetch-with-timeout'
 import toast from 'react-hot-toast'
 import { useTranslations } from 'next-intl'
 
@@ -72,7 +73,7 @@ export default function WeightTracker({ onSaved }) {
     setSaving(true)
 
     try {
-      const response = await fetch('/api/weight', {
+      const response = await fetchWithTimeout('/api/weight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

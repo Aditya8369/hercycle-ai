@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { useUser, UserButton, useClerk } from '@clerk/nextjs'
 import { useOffline } from '@/lib/OfflineContext'
-import { User as ProfileIcon, Bell as BellIcon, Shield as ShieldIcon, HelpCircle as HelpIcon, Languages, Users as UsersIcon, LogOut, X, Sun, Moon } from 'lucide-react'
+import { User as ProfileIcon, Bell as BellIcon, Shield as ShieldIcon, HelpCircle as HelpIcon, Languages, Users as UsersIcon, LogOut, X, Sun, Moon, Trophy } from 'lucide-react'
 import PrivacySettingsContent from './PrivacySettingsModal'
 import HealthProfileSettings from './HealthProfileSettings'
 import NotificationSettings from './NotificationSettings'
@@ -89,8 +89,6 @@ export default function Navbar() {
     { key: 'dashboard', label: t('dashboard'), href: `/${locale}` },
     { key: 'track',     label: t('track'),     href: `/${locale}/track` },
     { key: 'insights',  label: t('insights'),  href: `/${locale}/insights` },
-    { key: 'challenges', label: t('challenges'), href: `/${locale}/challenges` },
-    { key: 'community', label: t('community'), href: `/${locale}/community` },
     { key: 'self-care', label: t('selfCare'),  href: `/${locale}/self-care` },
   ]
 
@@ -277,6 +275,20 @@ export default function Navbar() {
           }}
         >
           <UserButton.MenuItems>
+            {!isPartner && (
+              <UserButton.Link
+                label={t('challenges')}
+                labelIcon={<Trophy className="w-4 h-4 text-rose-400" />}
+                href={`/${locale}/challenges`}
+              />
+            )}
+            {!isPartner && (
+              <UserButton.Link
+                label={t('community')}
+                labelIcon={<UsersIcon className="w-4 h-4 text-rose-400" />}
+                href={`/${locale}/community`}
+              />
+            )}
             <UserButton.Action
               label="Notification"
               labelIcon={<BellIcon className="w-4 h-4 text-rose-400" />}

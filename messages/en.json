@@ -57,7 +57,8 @@
     "confidence": "Prediction Confidence",
     "avgCycle": "Avg Cycle (days)",
     "cyclesRecorded": "Cycles Recorded",
-    "basedOn": "Based on your {avg}-day average cycle."
+    "basedOn": "Based on your {avg}-day average cycle.",
+    "emptyState": "Log your first cycle to see predictions"
   },
   "features": {
     "title": "Core Features",
