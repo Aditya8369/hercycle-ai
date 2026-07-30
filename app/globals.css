@@ -178,6 +178,21 @@ label {
   color: #333 !important;
 }
 
+.dark .bg-white h1,
+.dark .bg-white h2,
+.dark .bg-white h3,
+.dark .bg-white h4,
+.dark .bg-white h5,
+.dark .bg-white h6 {
+  color: var(--text-white) !important;
+}
+
+.dark .bg-white p,
+.dark .bg-white span,
+.dark .bg-white label {
+  color: var(--text-soft) !important;
+}
+
 body,
 p,
 span,
