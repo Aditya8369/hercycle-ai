@@ -152,7 +152,7 @@
     }
   },
   "footer": {
-    "copyright": "© 2025 HerCycle AI. Built with 💕 for women's health tech."
+    "copyright": "© 2025 <logo>HerCycle AI</logo>. Built with 💕 for women's health tech."
   },
   "symptoms": {
     "Cramps": "Cramps",
@@ -371,6 +371,12 @@
         "tip1": "Prioritize quality sleep.",
         "tip2": "Gentle stretching may reduce tension.",
         "tip3": "Magnesium-rich foods may help."
+      },
+      "general": {
+        "title": "🌷 General Wellness",
+        "tip1": "Track your cycle to unlock personalized tips.",
+        "tip2": "Stay hydrated and get enough rest.",
+        "tip3": "Gentle movement supports your body every day."
       }
     }
   },
