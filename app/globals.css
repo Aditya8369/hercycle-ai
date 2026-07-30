@@ -419,7 +419,7 @@ nav ul li a {
   font-weight: 600;
   padding: 7px 16px;
   border-radius: 50px;
-  transition: all 0.22s;
+  transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out, opacity 0.3s ease-in-out;
   display: block;
   letter-spacing: 0.01em;
   opacity: 0.8;
@@ -1374,7 +1374,11 @@ nav ul li a.active {
   color: var(--text-soft);
   cursor: pointer;
   transition: all 0.22s;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1.4;
 }
 
 .symp-chip:hover,
