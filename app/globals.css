@@ -1374,7 +1374,11 @@ nav ul li a.active {
   color: var(--text-soft);
   cursor: pointer;
   transition: all 0.22s;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1.4;
 }
 
 .symp-chip:hover,
