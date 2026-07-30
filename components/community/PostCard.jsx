@@ -118,7 +118,7 @@ export default function PostCard({ post, locale }) {
           </p>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 text-slate-500 text-sm">
+            <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-sm">
               <MessageSquare size={16} />
               <span>{t('reply') || 'Reply'}</span>
             </div>
