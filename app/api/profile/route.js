@@ -36,8 +36,14 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { age, weight_kg, height_cm, known_conditions, cycle_goal } = body
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      logger.warn(`Malformed JSON payload in profile POST: ${parseError.message}`);
+      return NextResponse.json({ success: false, error: 'Bad Request: Invalid JSON payload' }, { status: 400 });
+    }
+    const { age, weight_kg, height_cm, known_conditions, cycle_goal, allow_ai_analysis } = body
 
     const supabase = getSupabaseAdmin()
     const { data, error } = await supabase
@@ -49,6 +55,7 @@ export async function POST(request) {
         height_cm: height_cm ? parseFloat(height_cm) : null,
         known_conditions: Array.isArray(known_conditions) ? known_conditions : [],
         cycle_goal: cycle_goal || null,
+        allow_ai_analysis: typeof allow_ai_analysis === 'boolean' ? allow_ai_analysis : true,
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' })
       .select()

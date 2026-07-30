@@ -4,20 +4,80 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { crudLimiter } from '@/lib/rateLimiter'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { eventBus } from '@/lib/events'
 
-const cyclePostSchema = z.object({
-  id: z.string().uuid('Must be a valid UUID').optional(),
-  start_date: z.string().min(1, 'Missing start date'),
-  end_date: z.string().nullable().optional(),
-  cycle_length: z.number().int().optional()
-})
+/**
+ * ISO date string must be a valid calendar date and must not be in the future.
+ */
+const isoDateNotInFuture = z
+  .string()
+  .min(1, 'Date is required')
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
+  .refine(
+    (d) => !isNaN(Date.parse(d)),
+    { message: 'Must be a valid calendar date' }
+  )
+  .refine(
+    (d) => new Date(d) <= new Date(),
+    { message: 'Date cannot be in the future' }
+  );
 
-const cyclePatchSchema = z.object({
-  id: z.string().uuid('Must be a valid UUID'),
-  start_date: z.string().optional(),
-  end_date: z.string().nullable().optional(),
-  cycle_length: z.number().int().optional()
-})
+/**
+ * Physiologically valid cycle length: 15–90 days covers all clinical edge cases
+ * (Polymenorrhea threshold: 21 days; longest documented cycles: ~90 days).
+ */
+const validCycleLength = z
+  .number({ invalid_type_error: 'cycle_length must be a number' })
+  .int('cycle_length must be a whole number')
+  .min(15, 'cycle_length must be at least 15 days')
+  .max(90, 'cycle_length must be no more than 90 days');
+
+const cyclePostSchema = z
+  .object({
+    id: z.string().uuid('Must be a valid UUID').optional(),
+    start_date: isoDateNotInFuture,
+    end_date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'end_date must be in YYYY-MM-DD format')
+      .nullable()
+      .optional(),
+    cycle_length: validCycleLength.optional(),
+    encrypted_data: z.any().optional()
+  })
+  .refine(
+    (data) => {
+      if (data.end_date && data.start_date) {
+        return new Date(data.end_date) >= new Date(data.start_date);
+      }
+      return true;
+    },
+    { message: 'end_date must be on or after start_date', path: ['end_date'] }
+  );
+
+const cyclePatchSchema = z
+  .object({
+    id: z.string().uuid('Must be a valid UUID'),
+    start_date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'start_date must be in YYYY-MM-DD format')
+      .optional(),
+    end_date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'end_date must be in YYYY-MM-DD format')
+      .nullable()
+      .optional(),
+    cycle_length: validCycleLength.optional(),
+    encrypted_data: z.any().optional()
+  })
+  .refine(
+    (data) => {
+      if (data.end_date && data.start_date) {
+        return new Date(data.end_date) >= new Date(data.start_date);
+      }
+      return true;
+    },
+    { message: 'end_date must be on or after start_date', path: ['end_date'] }
+  );
 
 export async function GET(request) {
   // ============ RATE LIMITING ============
@@ -85,21 +145,28 @@ export async function POST(request) {
     await ensureUserExists(userId)
 
     // Payload Validation
-    const json = await request.json()
+    let json;
+    try {
+      json = await request.json();
+    } catch (parseError) {
+      logger.warn(`Malformed JSON payload in cycles POST: ${parseError.message}`);
+      return NextResponse.json({ success: false, error: 'Bad Request: Invalid JSON payload' }, { status: 400 });
+    }
     const result = cyclePostSchema.safeParse(json)
     if (!result.success) {
       logger.warn(`Malformed cycle insertion payload from user ${userId}: ${result.error.message}`);
       return NextResponse.json({ success: false, error: 'Bad Request', details: result.error.errors }, { status: 400 })
     }
 
-    const { id, start_date, end_date, cycle_length } = result.data
+    const { id, start_date, end_date, cycle_length, encrypted_data } = result.data
 
     const supabaseAdmin = getSupabaseAdmin()
     const insertObj = {
       user_id: userId,
-      start_date,
+      start_date: start_date || null,
       end_date: end_date || null,
       cycle_length: cycle_length || 28,
+      encrypted_data: encrypted_data || null,
       created_at: new Date().toISOString(),
     }
     if (id) {
@@ -114,6 +181,10 @@ export async function POST(request) {
     }
 
     logger.info(`Successfully added new period cycle for user ${userId}`);
+    
+    // Emit event for cycle update
+    eventBus.emit('cycles:updated', { userId });
+
     return NextResponse.json({ success: true })
   } catch (error) {
     logger.error('Error starting period cycle:', error.message || error);
@@ -144,20 +215,27 @@ export async function PATCH(request) {
     await ensureUserExists(userId)
 
     // Payload Validation
-    const json = await request.json()
+    let json;
+    try {
+      json = await request.json();
+    } catch (parseError) {
+      logger.warn(`Malformed JSON payload in cycles PATCH: ${parseError.message}`);
+      return NextResponse.json({ success: false, error: 'Bad Request: Invalid JSON payload' }, { status: 400 });
+    }
     const result = cyclePatchSchema.safeParse(json)
     if (!result.success) {
       logger.warn(`Malformed cycle update payload from user ${userId}: ${result.error.message}`);
       return NextResponse.json({ success: false, error: 'Bad Request', details: result.error.errors }, { status: 400 })
     }
 
-    const { id, start_date, end_date, cycle_length } = result.data
+    const { id, start_date, end_date, cycle_length, encrypted_data } = result.data
 
     const supabaseAdmin = getSupabaseAdmin()
     const updateObj = {}
     if (start_date !== undefined) updateObj.start_date = start_date
     if (end_date !== undefined) updateObj.end_date = end_date
     if (cycle_length !== undefined) updateObj.cycle_length = cycle_length
+    if (encrypted_data !== undefined) updateObj.encrypted_data = encrypted_data
 
     const { error } = await supabaseAdmin
       .from('cycles')
@@ -171,6 +249,10 @@ export async function PATCH(request) {
     }
 
     logger.info(`Successfully updated period cycle ${id} for user ${userId}`);
+    
+    // Emit event for cycle update
+    eventBus.emit('cycles:updated', { userId });
+
     return NextResponse.json({ success: true })
   } catch (error) {
     logger.error('Error ending period cycle:', error.message || error);

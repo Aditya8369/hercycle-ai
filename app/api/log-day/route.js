@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { crudLimiter } from '@/lib/rateLimiter'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { eventBus } from '@/lib/events'
 
 const logPostSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD'),
@@ -11,6 +12,7 @@ const logPostSchema = z.object({
   mood: z.string().nullable().optional(),
   flow: z.string().nullable().optional(),
   cervical_discharge: z.string().nullable().optional(),
+  encrypted_data: z.any().optional()
 })
 
 // GET /api/log-day?date=... — fetch a single day's log
@@ -87,14 +89,20 @@ export async function POST(request) {
 
     await ensureUserExists(userId)
 
-    const json = await request.json()
+    let json;
+    try {
+      json = await request.json();
+    } catch (parseError) {
+      logger.warn(`Malformed JSON payload in log-day POST: ${parseError.message}`);
+      return NextResponse.json({ success: false, message: 'Bad Request: Invalid JSON payload' }, { status: 400 });
+    }
     const result = logPostSchema.safeParse(json)
     if (!result.success) {
       logger.warn(`Malformed daily log upsert payload from user ${userId}: ${result.error.message}`);
       return NextResponse.json({ success: false, message: 'Bad Request', details: result.error.errors }, { status: 400 })
     }
 
-    const { date, symptoms, mood, flow, cervical_discharge } = result.data
+    const { date, symptoms, mood, flow, cervical_discharge, encrypted_data } = result.data
 
     const supabaseAdmin = getSupabaseAdmin()
     const { error } = await supabaseAdmin
@@ -107,6 +115,7 @@ export async function POST(request) {
           mood: mood || null, 
           flow: flow || null, 
           cervical_discharge: cervical_discharge || null, 
+          encrypted_data: encrypted_data || null,
           updated_at: new Date().toISOString() 
         },
         { onConflict: 'user_id,date' }
@@ -118,6 +127,10 @@ export async function POST(request) {
     }
 
     logger.info(`Successfully upserted daily log for user ${userId}`);
+    
+    // Emit event for daily logs update
+    eventBus.emit('daily_logs:updated', { userId });
+
     return NextResponse.json({ success: true, message: 'Day logged successfully!' })
   } catch (error) {
     logger.error('Error logging day:', error.message || error);

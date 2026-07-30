@@ -22,8 +22,13 @@ import OnboardingModal from '@/components/dashboard/OnboardingModal'
 import PredictionCard from '@/components/dashboard/PredictionCard'
 import CycleHistoryCard from '@/components/dashboard/CycleHistoryCard'
 import CervicalDischargeTracker from '@/components/dashboard/CervicalDischargeTracker'
+import PcosQuizCard from '@/components/dashboard/PcosQuizCard'
+import PcosQuizModal from '@/components/dashboard/PcosQuizModal'
+import PcosSymptomProfileCard from '@/components/dashboard/PcosSymptomProfileCard'
+import PcosSymptomProfileModal from '@/components/dashboard/PcosSymptomProfileModal'
 import { useOffline } from '@/lib/OfflineContext'
 import { useLocale, useTranslations } from 'next-intl'
+import fetchWithTimeout from '@/lib/fetch-with-timeout'
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
@@ -142,6 +147,8 @@ const HerCycleApp = () => {
   const [isLogOpen, setIsLogOpen] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [dataLoaded, setDataLoaded] = useState(false)
+  const [showPcosQuiz, setShowPcosQuiz] = useState(false)
+  const [showPcosSymptomProfileQuiz, setShowPcosSymptomProfileQuiz] = useState(false)
 
   const openLogDrawer  = () => setIsLogOpen(true)
   const closeLogDrawer = () => setIsLogOpen(false)
@@ -244,7 +251,7 @@ const HerCycleApp = () => {
     setIsTyping(true)
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetchWithTimeout('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -283,7 +290,7 @@ const HerCycleApp = () => {
         if (data.offline) {
           toast.success('💾 Saved offline! Will sync when online.')
         } else {
-          toast.success('✅ Log saved!')
+          toast.success('Log saved!')
         }
         setSelectedSymptoms([])
         setSelectedMood(null)
@@ -422,6 +429,16 @@ const phaseInfo = calculateCyclePhase({
         />
       )}
 
+      {/* ── PCOS Screening Quiz Modal ── */}
+      {showPcosQuiz && (
+        <PcosQuizModal onClose={() => setShowPcosQuiz(false)} />
+      )}
+
+      {/* ── PCOS Symptom Profile Modal ── */}
+      {showPcosSymptomProfileQuiz && (
+        <PcosSymptomProfileModal onClose={() => setShowPcosSymptomProfileQuiz(false)} />
+      )}
+
       {/* ── Log Today Drawer ── */}
       {isLogOpen && (
         <div className="drawer-overlay" onClick={closeLogDrawer} role="dialog" aria-modal="true" aria-label="Log Your Day">
@@ -474,6 +491,10 @@ const phaseInfo = calculateCyclePhase({
 
         <VibeCheckin />
         <PartnerLoveBanner />
+
+        <h2 className="sec-head">{tHeadings('pcosAssessments')}</h2>
+        <PcosSymptomProfileCard onClick={() => setShowPcosSymptomProfileQuiz(true)} />
+        <PcosQuizCard onClick={() => setShowPcosQuiz(true)} />
 
         <h2 className="sec-head" id="pcod-risk-section">{tHeadings('insights')}</h2>
         <div className="dual-row">

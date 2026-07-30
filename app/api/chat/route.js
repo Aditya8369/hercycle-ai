@@ -20,7 +20,7 @@ const chatPayloadSchema = z.object({
       day: z.number().optional(),
       phase: z.string().max(50).optional()
     }).optional()
-  }).optional()
+  }).nullish()
 })
 
 /**
@@ -148,8 +148,16 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 2. Input Validation (Zod)
-    const json = await request.json()
+    // 2. Parse JSON body with error handling for malformed payloads
+    let json;
+    try {
+      json = await request.json();
+    } catch (parseError) {
+      logger.warn(`Malformed JSON payload in AI Chat API: ${parseError.message}`);
+      return NextResponse.json({ success: false, error: 'Bad Request: Invalid JSON payload' }, { status: 400 });
+    }
+
+    // 3. Input Validation (Zod)
     const result = chatPayloadSchema.safeParse(json)
     if (!result.success) {
       logger.warn(`Invalid request payload on AI Chat API: ${result.error.message}`);
@@ -158,6 +166,17 @@ export async function POST(request) {
 
     const { message, context } = result.data
     language = result.data.language || 'en'
+
+    if (!message || message.trim().length === 0) {
+      return NextResponse.json(
+        {
+          error: "Message content cannot be empty",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
     // 3. Fetch User Health Profile for Context Injection
     let userProfile = null;
@@ -173,14 +192,29 @@ export async function POST(request) {
       logger.warn(`Could not fetch user profile for AI context: ${profileErr.message}`);
     }
 
+    if (userProfile && userProfile.allow_ai_analysis === false) {
+      return NextResponse.json({ success: true, response: 'Privacy mode enabled' });
+    }
+
     let systemPrompt = `You are a helpful menstrual health assistant. Provide empathetic, accurate health guidance.`;
+
+    // Sanitize helper to prevent prompt injection
+    const sanitizeForPrompt = (str, maxLen = 200) => {
+      if (!str) return '';
+      return String(str)
+        .replace(/[\[\]"'`\\]/g, '')  // Remove prompt control characters
+        .replace(/\n/g, ' ')
+        .slice(0, maxLen);
+    };
 
     // 4. Inject Profile Context
     if (userProfile) {
       const conditions = userProfile.known_conditions || [];
-      const ageStr = userProfile.age ? `${userProfile.age} yrs old` : 'unknown age';
-      const weightStr = userProfile.weight_kg ? `${userProfile.weight_kg}kg` : 'unknown weight';
-      const conditionsStr = conditions.length > 0 ? conditions.join(', ') : 'none';
+      const ageStr = userProfile.age ? sanitizeForPrompt(`${userProfile.age} yrs old`) : 'unknown age';
+      const weightStr = userProfile.weight_kg ? sanitizeForPrompt(`${userProfile.weight_kg}kg`) : 'unknown weight';
+      const conditionsStr = conditions.length > 0 
+        ? conditions.map(c => sanitizeForPrompt(c)).join(', ') 
+        : 'none';
       
       systemPrompt += `\n[CONTEXT: User is ${ageStr}, weighs ${weightStr}, conditions: ${conditionsStr}]. Use this context to personalize your response, but do not explicitly repeat their data back to them unless necessary.`;
     }

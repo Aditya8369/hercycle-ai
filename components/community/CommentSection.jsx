@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useAuth } from '@clerk/nextjs';
 import { formatDistanceToNow } from 'date-fns';
+import { enUS, hi } from 'date-fns/locale';
 import { Send, ArrowUp, ArrowDown } from 'lucide-react';
+import fetchWithTimeout from '@/lib/fetch-with-timeout';
 import toast from 'react-hot-toast';
 import { createClient } from '@/lib/supabase-client';
 
@@ -12,6 +14,8 @@ import { createClient } from '@/lib/supabase-client';
 const supabase = createClient();
 
 export default function CommentSection({ postId, initialComments = [] }) {
+  const locale = useLocale();
+  const dateLocale = locale === 'hi' ? hi : enUS;
   const t = useTranslations('Community');
   const [comments, setComments] = useState(initialComments);
   const [newComment, setNewComment] = useState('');
@@ -21,7 +25,7 @@ export default function CommentSection({ postId, initialComments = [] }) {
   useEffect(() => {
     // Set up Supabase Realtime subscription
     const channel = supabase.channel(`public:forum_comments:post_id=eq.${postId}`);
-    
+
     channel
       .on(
         'postgres_changes',
@@ -55,9 +59,9 @@ export default function CommentSection({ postId, initialComments = [] }) {
     setIsSubmitting(true);
     try {
       const token = await getToken();
-      const res = await fetch('/api/forum/comments', {
+      const res = await fetchWithTimeout('/api/forum/comments', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -92,44 +96,59 @@ export default function CommentSection({ postId, initialComments = [] }) {
     const [userVote, setUserVote] = useState(0);
 
     const handleVote = async (value) => {
-        const previousVote = userVote;
-        const previousUpvotes = upvotes;
-        let newVote = userVote === value ? 0 : value;
-        let upvoteChange = newVote === 0 ? -previousVote : (previousVote === 0 ? newVote : newVote * 2);
-    
-        setUpvotes(prev => prev + upvoteChange);
-        setUserVote(newVote);
-    
-        try {
-          const token = await getToken();
-          const res = await fetch('/api/forum/vote', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ itemType: 'comment', itemId: comment.id, voteValue: value })
-          });
-          if (!res.ok) throw new Error('Failed to vote');
-        } catch (error) {
-          setUpvotes(previousUpvotes);
-          setUserVote(previousVote);
-          toast.error(t('vote_failed') || 'Vote failed');
-        }
+      const previousVote = userVote;
+      const previousUpvotes = upvotes;
+      let newVote = userVote === value ? 0 : value;
+      let upvoteChange = newVote === 0 ? -previousVote : (previousVote === 0 ? newVote : newVote * 2);
+
+      setUpvotes(prev => prev + upvoteChange);
+      setUserVote(newVote);
+
+      try {
+        const token = await getToken();
+        const res = await fetchWithTimeout('/api/forum/vote', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ itemType: 'comment', itemId: comment.id, voteValue: value })
+        });
+        if (!res.ok) throw new Error('Failed to vote');
+      } catch (error) {
+        setUpvotes(previousUpvotes);
+        setUserVote(previousVote);
+        toast.error(t('vote_failed') || 'Vote failed');
+      }
     };
 
     return (
       <div className="flex gap-3 p-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 last:border-0">
         <div className="flex flex-col items-center gap-1">
-          <button onClick={() => handleVote(1)} className={`text-slate-400 hover:text-pink-500 ${userVote === 1 ? 'text-pink-500' : ''}`}><ArrowUp size={16} /></button>
+          <button
+            onClick={() => handleVote(1)}
+            className={`text-slate-400 hover:text-pink-500 ${userVote === 1 ? 'text-pink-500' : ''}`}
+            aria-label="Upvote comment"
+          >
+            <ArrowUp size={16} />
+          </button>
           <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{upvotes}</span>
-          <button onClick={() => handleVote(-1)} className={`text-slate-400 hover:text-blue-500 ${userVote === -1 ? 'text-blue-500' : ''}`}><ArrowDown size={16} /></button>
+          <button
+            onClick={() => handleVote(-1)}
+            className={`text-slate-400 hover:text-blue-500 ${userVote === -1 ? 'text-blue-500' : ''}`}
+            aria-label="Downvote comment"
+          >
+            <ArrowDown size={16} />
+          </button>
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">{comment.author_alias}</span>
             <span className="text-xs text-slate-400">•</span>
-            <span className="text-xs text-slate-400">{formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}</span>
+            <span className="text-xs text-slate-400">{formatDistanceToNow(new Date(comment.created_at), {
+              addSuffix: true,
+              locale: dateLocale
+            })}</span>
           </div>
           <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{comment.content}</p>
         </div>
@@ -157,6 +176,7 @@ export default function CommentSection({ postId, initialComments = [] }) {
           type="submit"
           disabled={isSubmitting || !newComment.trim()}
           className="absolute bottom-4 right-4 p-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          aria-label={t('submit_comment') || 'Submit comment'}
         >
           <Send size={18} />
         </button>

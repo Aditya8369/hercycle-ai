@@ -1,6 +1,7 @@
 import { getAuthUserId } from '@/lib/clerk-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { logger } from '@/lib/logger'
+import { formatDateForCSV } from '@/lib/utils'
 const archiver = require('archiver')
 
 export const dynamic = 'force-dynamic'
@@ -65,7 +66,7 @@ export async function GET(request) {
           if (!data || data.length === 0) return ''
           const keys = Object.keys(data[0])
           const header = keys.join(',')
-          const rows = data.map(row => 
+          const rows = data.map(row =>
             keys.map(key => {
               let val = row[key]
               if (Array.isArray(val)) val = val.join(';')
@@ -80,9 +81,20 @@ export async function GET(request) {
         archive.append(JSON.stringify(cycles, null, 2), { name: 'cycles.json' })
         archive.append(JSON.stringify(dailyLogs, null, 2), { name: 'daily_logs.json' })
 
+        // Format date fields before CSV generation (keep JSON exports as full ISO values)
+        const cyclesForCsv = cycles.map(c => ({
+          ...c,
+          start_date: formatDateForCSV(c.start_date),
+          end_date: formatDateForCSV(c.end_date),
+        }))
+        const dailyLogsForCsv = dailyLogs.map(l => ({
+          ...l,
+          date: formatDateForCSV(l.date),
+        }))
+
         // Append CSV files
-        archive.append(generateCsv(cycles), { name: 'cycles.csv' })
-        archive.append(generateCsv(dailyLogs), { name: 'daily_logs.csv' })
+        archive.append(generateCsv(cyclesForCsv), { name: 'cycles.csv' })
+        archive.append(generateCsv(dailyLogsForCsv), { name: 'daily_logs.csv' })
 
         // Finalize the archive (this triggers 'end')
         archive.finalize()
