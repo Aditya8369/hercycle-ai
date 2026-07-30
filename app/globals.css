@@ -20,8 +20,10 @@ body,
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
-  -ms-overflow-style: none !important; /* IE and Edge */
-  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important;
+  /* IE and Edge */
+  scrollbar-width: none !important;
+  /* Firefox */
 }
 
 /* Universal scrollbar hiding across all elements (Chrome, Edge, Safari, Opera) */
@@ -45,6 +47,7 @@ body,
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
 }
+
 .scrollbar-none::-webkit-scrollbar,
 .scrollbar-thin::-webkit-scrollbar {
   display: none !important;
@@ -91,7 +94,7 @@ body {
   --text-faint: rgba(255, 255, 255, 0.38);
   --serif: var(--font-playfair), 'Georgia', serif;
   --sans: var(--font-inter), system-ui, sans-serif;
-  
+
   --bg-gradient: radial-gradient(ellipse 80% 60% at 15% 0%, rgba(255, 182, 208, 0.55) 0%, transparent 55%),
     radial-gradient(ellipse 70% 50% at 90% 10%, rgba(212, 100, 200, 0.40) 0%, transparent 55%),
     radial-gradient(ellipse 60% 70% at 50% 100%, rgba(157, 63, 122, 0.50) 0%, transparent 55%),
@@ -173,6 +176,21 @@ label {
 .bg-white h5,
 .bg-white h6 {
   color: #333 !important;
+}
+
+.dark .bg-white h1,
+.dark .bg-white h2,
+.dark .bg-white h3,
+.dark .bg-white h4,
+.dark .bg-white h5,
+.dark .bg-white h6 {
+  color: var(--text-white) !important;
+}
+
+.dark .bg-white p,
+.dark .bg-white span,
+.dark .bg-white label {
+  color: var(--text-soft) !important;
 }
 
 body,
@@ -3025,14 +3043,29 @@ nav ul li a:focus-visible,
 
   font-weight: 600;
 }
+
 /* Force Hide Clerk Watermark */
-.cl-watermark, .cl-internal-b3alnr { display: none !important; opacity: 0 !important; visibility: hidden !important; }
+.cl-watermark,
+.cl-internal-b3alnr {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
 
 
 /* Ultra Aggressive Clerk Watermark Removal */
-.cl-rootBox a[href*='clerk.com'], .cl-rootBox a[href*='clerk.dev'] { display: none !important; }
-.cl-rootBox div:has(> a[href*='clerk.com']) { display: none !important; }
-.cl-rootBox div[style*='bottom: 0'] { display: none !important; }
+.cl-rootBox a[href*='clerk.com'],
+.cl-rootBox a[href*='clerk.dev'] {
+  display: none !important;
+}
+
+.cl-rootBox div:has(> a[href*='clerk.com']) {
+  display: none !important;
+}
+
+.cl-rootBox div[style*='bottom: 0'] {
+  display: none !important;
+}
 
 /* ──── DAY LOG DRAWER ──── */
 .day-log-drawer-overlay {
@@ -3041,7 +3074,7 @@ nav ul li a:focus-visible,
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0,0,0,0.5);
+  background-color: rgba(0, 0, 0, 0.5);
   z-index: 999;
 }
 
@@ -3060,8 +3093,13 @@ nav ul li a:focus-visible,
 }
 
 @keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
 }
 
 /* ──── MOOD DISTRIBUTION GRID ──── */
@@ -3082,7 +3120,7 @@ nav ul li a:focus-visible,
     margin-bottom: 32px !important;
   }
 
-  .dual-row > * {
+  .dual-row>* {
     width: 100% !important;
     max-width: 100% !important;
   }
@@ -3111,32 +3149,72 @@ nav ul li a:focus-visible,
 
 /* ──── CHALLENGES ──── */
 @keyframes popIn {
-  0% { transform: scale(0.85); opacity: 0; }
-  60% { transform: scale(1.04); }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(1.04);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
+
 @keyframes celebrate {
-  0%, 100% { transform: scale(1) rotate(0deg); }
-  25% { transform: scale(1.15) rotate(-6deg); }
-  50% { transform: scale(1.05) rotate(4deg); }
-  75% { transform: scale(1.15) rotate(-2deg); }
+
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+
+  25% {
+    transform: scale(1.15) rotate(-6deg);
+  }
+
+  50% {
+    transform: scale(1.05) rotate(4deg);
+  }
+
+  75% {
+    transform: scale(1.15) rotate(-2deg);
+  }
 }
+
 @keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
+
 @keyframes flicker {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .challenge-card {
   animation: popIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
+
 .challenge-card:hover {
   transform: translateY(-3px);
 }
+
 .challenge-card.is-complete {
   border-color: rgba(255, 255, 255, 0.6);
 }
@@ -3145,15 +3223,17 @@ nav ul li a:focus-visible,
   position: relative;
   overflow: hidden;
 }
+
 .progress-fill {
   position: relative;
   overflow: hidden;
 }
+
 .progress-fill.shine::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
   background-size: 200% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
 }
@@ -3165,9 +3245,11 @@ nav ul li a:focus-visible,
 .badge-chip {
   transition: transform 0.2s ease;
 }
+
 .badge-chip.earned:hover {
   transform: translateY(-2px) scale(1.05);
 }
+
 .badge-chip.locked {
   filter: grayscale(1) brightness(0.7);
   opacity: 0.45;
@@ -3178,5 +3260,7 @@ nav ul li a:focus-visible,
 }
 
 @media (min-width: 640px) {
-  .heatmap-grid { grid-template-columns: repeat(15, minmax(0, 1fr)); }
+  .heatmap-grid {
+    grid-template-columns: repeat(15, minmax(0, 1fr));
+  }
 }
