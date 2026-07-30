@@ -12,6 +12,7 @@ import DayLogDrawer from '@/components/dashboard/DayLogDrawer'
 import { useOffline } from '@/lib/OfflineContext'
 import { useTranslations, useLocale } from 'next-intl'
 import WeightTracker from '@/components/dashboard/WeightTracker'
+import { isEncryptionFailure } from '@/lib/encryption-policy'
 
 const TEXT_PRIMARY = '#ffffff'
 const TEXT_FAINT = 'rgba(255,255,255,0.65)'
@@ -142,6 +143,10 @@ export default function TrackPage() {
         setSelectedMood(null)
         setSelectedFlow(null)
         fetchCycleData()
+      } else if (isEncryptionFailure(data)) {
+        // Fail-closed: nothing was sent, so keep the form populated for retry
+        // after unlocking rather than clearing the user's input.
+        toast.error(`🔒 ${data.error}`)
       } else {
         toast.error(`❌ Failed to save: ${data.message || data.error || 'Unknown error'}`)
       }
@@ -163,7 +168,9 @@ export default function TrackPage() {
     try {
       const data = await offlineClient.startPeriod(cycleDataObj)
       if (!data.success) {
-        toast.error(`❌ Could not start period: ${data.error || data.message || 'Unknown error'}`)
+        toast.error(isEncryptionFailure(data)
+          ? `🔒 ${data.error}`
+          : `❌ Could not start period: ${data.error || data.message || 'Unknown error'}`)
         return
       }
       if (data.offline) {
@@ -186,7 +193,9 @@ export default function TrackPage() {
     try {
       const data = await offlineClient.endPeriod(open.id, today)
       if (!data.success) {
-        toast.error(`❌ Could not end period: ${data.error || data.message || 'Unknown error'}`)
+        toast.error(isEncryptionFailure(data)
+          ? `🔒 ${data.error}`
+          : `❌ Could not end period: ${data.error || data.message || 'Unknown error'}`)
         return
       }
       if (data.offline) {
