@@ -3094,6 +3094,7 @@ nav ul li a:focus-visible,
   border-top-left-radius: 24px;
   border-top-right-radius: 24px;
   padding: 1.5rem;
+  padding-bottom: 3rem;
   z-index: 1000;
   max-height: 85vh;
   overflow-y: auto;
