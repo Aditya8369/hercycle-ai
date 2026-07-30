@@ -12,6 +12,7 @@ import DayLogDrawer from '@/components/dashboard/DayLogDrawer'
 import { useOffline } from '@/lib/OfflineContext'
 import { useTranslations, useLocale } from 'next-intl'
 import WeightTracker from '@/components/dashboard/WeightTracker'
+import { addDaysISO, eachDayISO, getTodayISO, toISODate } from '@/lib/date-utils'
 
 const TEXT_PRIMARY = '#ffffff'
 const TEXT_FAINT = 'rgba(255,255,255,0.65)'
@@ -20,31 +21,28 @@ function deriveDateSets(cycleData) {
   const periodDays = new Set()
   const ovulationDays = new Set()
   const predictedDays = new Set()
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayISO()
   const cycles = cycleData?.cycles || []
-  const toISO = (d) => d.toISOString().split('T')[0]
 
   cycles.forEach(cycle => {
     const startStr = cycle.start_date
     const endStr = cycle.end_date
     if (!startStr) return
-    const start = new Date(startStr)
-    const end = endStr ? new Date(endStr) : new Date(start.getTime() + 5 * 86400000)
+    // Default an open period to a 5-day span (start + 5 days, inclusive of start).
+    const endISO = endStr || addDaysISO(startStr, 5)
 
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      periodDays.add(toISO(new Date(d)))
-    }
+    eachDayISO(startStr, endISO).forEach(day => periodDays.add(day))
+
     for (let ov = 12; ov <= 16; ov++) {
-      ovulationDays.add(toISO(new Date(start.getTime() + ov * 86400000)))
+      const day = addDaysISO(startStr, ov)
+      if (day) ovulationDays.add(day)
     }
   })
 
   if (cycleData?.nextPeriodDate) {
-    const predStart = new Date(cycleData.nextPeriodDate)
-    if (!isNaN(predStart)) {
-      for (let p = 0; p < 7; p++) {
-        predictedDays.add(toISO(new Date(predStart.getTime() + p * 86400000)))
-      }
+    for (let p = 0; p < 7; p++) {
+      const day = addDaysISO(cycleData.nextPeriodDate, p)
+      if (day) predictedDays.add(day)
     }
   }
   return { periodDays, ovulationDays, predictedDays, today }
@@ -107,7 +105,7 @@ export default function TrackPage() {
 
   const fetchTodayLog = async () => {
     try {
-      const today = new Date().toISOString().split('T')[0]
+      const today = getTodayISO()
       const data = await offlineClient.fetchTodayLog(today)
       if (data.success && data.data) {
         if (data.data.symptoms) setSelectedSymptoms(data.data.symptoms)
@@ -126,7 +124,7 @@ export default function TrackPage() {
   const handleSaveLog = async () => {
     try {
       const logData = {
-        date: new Date().toISOString().split('T')[0],
+        date: getTodayISO(),
         symptoms: selectedSymptoms,
         mood: selectedMood,
         flow: selectedFlow,
@@ -151,12 +149,10 @@ export default function TrackPage() {
   }
 
   const handleStartPeriod = async () => {
-    const today = new Date()
-    const endDate = new Date(today)
-    endDate.setDate(endDate.getDate() + 5)
+    const today = getTodayISO()
     const cycleDataObj = {
-      start_date: today.toISOString().split('T')[0],
-      end_date: endDate.toISOString().split('T')[0],
+      start_date: today,
+      end_date: addDaysISO(today, 5),
       cycle_length: cycleData?.averageCycleLength || 28,
     }
 
@@ -178,9 +174,11 @@ export default function TrackPage() {
   }
 
   const handleEndPeriod = async () => {
-    const today = new Date().toISOString().split('T')[0]
+    const today = getTodayISO()
     const cycles = cycleData?.cycles || []
-    const open = cycles.find(c => !c.end_date || new Date(c.end_date) > new Date())
+    // ISO date strings compare correctly lexicographically, so this needs no
+    // Date construction — and therefore cannot drift by a day across timezones.
+    const open = cycles.find(c => !c.end_date || toISODate(c.end_date) > today)
     if (!open) { toast.error('No open period found to end'); return }
 
     try {
@@ -326,7 +324,7 @@ export default function TrackPage() {
         cycleData={cycleData}
         onSaved={() => {
           fetchCycleData();
-          if (selectedDate === new Date().toISOString().split('T')[0]) {
+          if (selectedDate === getTodayISO()) {
             fetchTodayLog();
           }
         }}
