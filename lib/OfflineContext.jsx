@@ -5,14 +5,25 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useRef 
 import { initDB, getAllFromStore, putIntoStore, deleteFromStore, queueSyncRequest } from './db'
 import { predictNextPeriod, calculatePCODRisk } from './api-helpers'
 import { useEncryption } from './EncryptionContext'
+import {
+  DEAD_LETTER_STORE,
+  classifyResponse,
+  describeQueueItem,
+  isDue,
+  orderForDrain,
+  planNextAttempt,
+} from './sync-queue'
 import fetchWithTimeout from './fetch-with-timeout'
 import toast from 'react-hot-toast'
 
 const OfflineContext = createContext({
   isOffline: false,
   pendingSyncCount: 0,
+  failedSyncItems: [],
   isSyncing: false,
   syncData: async () => { },
+  retryFailedSync: async () => { },
+  discardFailedSync: async () => { },
   offlineClient: {}
 })
 
@@ -32,6 +43,9 @@ export function OfflineProvider({ children }) {
   const [isOffline, setIsOffline] = useState(false)
   const [pendingSyncCount, setPendingSyncCount] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
+  // Operations that will not be retried again, kept so the user can review,
+  // retry or discard them instead of losing them silently.
+  const [failedSyncItems, setFailedSyncItems] = useState([])
 
   const isSyncingRef = useRef(false)
 
@@ -69,7 +83,65 @@ export function OfflineProvider({ children }) {
     } catch (e) {
       console.error('Failed to update sync count:', e);
     }
+
+    try {
+      const failed = await getAllFromStore(DEAD_LETTER_STORE);
+      setFailedSyncItems(failed.map(item => ({ ...item, description: describeQueueItem(item) })));
+    } catch (e) {
+      console.error('Failed to read dead-lettered sync operations:', e);
+    }
   }
+
+  /**
+   * Puts a dead-lettered operation back on the queue for another try — the
+   * manual recovery path the old code had no equivalent of.
+   */
+  const retryFailedSync = async (deadLetterId) => {
+    try {
+      const failed = await getAllFromStore(DEAD_LETTER_STORE);
+      const candidates = deadLetterId === undefined
+        ? failed
+        : failed.filter(item => item.id === deadLetterId);
+
+      for (const item of candidates) {
+        // Requeue as a fresh operation: drop the dead-letter bookkeeping and
+        // reset the attempt counter so it is retried immediately.
+        await queueSyncRequest(item.url, item.method, item.body);
+        await deleteFromStore(DEAD_LETTER_STORE, item.id);
+      }
+    } catch (e) {
+      console.error('Failed to requeue a dead-lettered operation:', e);
+    } finally {
+      await updateSyncCount();
+    }
+    syncData();
+  }
+
+  /** Permanently discards a dead-lettered operation at the user's request. */
+  const discardFailedSync = async (deadLetterId) => {
+    try {
+      await deleteFromStore(DEAD_LETTER_STORE, deadLetterId);
+    } catch (e) {
+      console.error('Failed to discard a dead-lettered operation:', e);
+    } finally {
+      await updateSyncCount();
+    }
+  }
+
+  /**
+   * Moves an operation out of the retry queue and into the dead-letter store,
+   * so it stays visible to the user instead of being silently dropped or
+   * retried forever.
+   */
+  const deadLetter = async (item, reason) => {
+    const { id, ...rest } = item;
+    try {
+      await putIntoStore(DEAD_LETTER_STORE, { ...rest, reason, deadLetteredAt: Date.now() });
+    } catch (e) {
+      console.error('Failed to record a dead-lettered sync operation:', e);
+    }
+    await deleteFromStore('sync_queue', id);
+  };
 
   const syncData = async () => {
     if (!navigator.onLine || isSyncingRef.current) return;
@@ -84,24 +156,65 @@ export function OfflineProvider({ children }) {
       isSyncingRef.current = true;
       setIsSyncing(true);
 
-      const sortedQueue = [...queue].sort((a, b) => a.id - b.id);
+      const now = Date.now();
+      let gaveUpCount = 0;
 
-      for (const item of sortedQueue) {
+      for (const item of orderForDrain(queue, now)) {
+        // Not due yet — its backoff has not elapsed. Skip to the next item
+        // rather than abandoning the whole queue.
+        if (!isDue(item, now)) continue;
+
+        let response = null;
+        let errorMessage = null;
+
         try {
-          const res = await fetchWithTimeout(item.url, {
+          response = await fetchWithTimeout(item.url, {
             method: item.method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(item.body)
           });
-
-          if (res.ok || res.status === 400 || res.status === 401 || res.status === 403 || res.status === 422) {
-            await deleteFromStore('sync_queue', item.id);
-          } else {
-            break;
-          }
         } catch (fetchErr) {
+          errorMessage = fetchErr?.message || 'Network request failed';
+        }
+
+        const classification = classifyResponse(response);
+        const plan = planNextAttempt({
+          item,
+          classification,
+          now: Date.now(),
+          errorMessage: errorMessage || (response ? `Server responded ${response.status}` : null)
+        });
+
+        if (plan.action === 'remove') {
+          await deleteFromStore('sync_queue', item.id);
+          continue;
+        }
+
+        if (plan.action === 'pause') {
+          // The session expired. Stop draining so the rest of the queue is not
+          // burned against a dead session — but keep every item, including this
+          // one. The old code DELETED on 401, destroying queued health logs.
+          console.warn('Sync paused: authentication required. Queued changes are preserved.');
           break;
         }
+
+        if (plan.action === 'dead-letter') {
+          await deadLetter(plan.item, plan.reason);
+          gaveUpCount += 1;
+          continue;
+        }
+
+        // Transient: record the attempt and its backoff, then move on to the
+        // next item. A failing operation no longer blocks its siblings.
+        await putIntoStore('sync_queue', plan.item);
+      }
+
+      if (gaveUpCount > 0) {
+        toast.error(
+          gaveUpCount === 1
+            ? '⚠️ 1 offline change could not be saved and needs your attention.'
+            : `⚠️ ${gaveUpCount} offline changes could not be saved and need your attention.`
+        );
       }
     } catch (e) {
       console.error('Error in background sync:', e);
@@ -471,7 +584,16 @@ export function OfflineProvider({ children }) {
   }), [encrypt, decrypt, isUnlocked]) // stable reference — methods close over navigator/fetch, not React state
 
   return (
-    <OfflineContext.Provider value={{ isOffline, pendingSyncCount, isSyncing, syncData, offlineClient }}>
+    <OfflineContext.Provider value={{
+      isOffline,
+      pendingSyncCount,
+      failedSyncItems,
+      isSyncing,
+      syncData,
+      retryFailedSync,
+      discardFailedSync,
+      offlineClient
+    }}>
       {children}
     </OfflineContext.Provider>
   )
