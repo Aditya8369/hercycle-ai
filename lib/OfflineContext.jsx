@@ -2,7 +2,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react'
-import { initDB, getAllFromStore, putIntoStore, deleteFromStore, queueSyncRequest } from './db'
+import { getAllFromStore, putIntoStore, deleteFromStore, queueSyncRequest, replaceAll } from './db'
 import { predictNextPeriod, calculatePCODRisk } from './api-helpers'
 import { useEncryption } from './EncryptionContext'
 import {
@@ -22,6 +22,77 @@ const OfflineContext = createContext({
   syncData: async () => { },
   offlineClient: {}
 })
+
+/**
+ * Resolves every record's `encrypted_data` into plain fields.
+ *
+ * This MUST complete before any IndexedDB write transaction is opened. An
+ * IndexedDB transaction auto-commits as soon as control returns to the event
+ * loop with no request pending, and `crypto.subtle.decrypt` settles in a later
+ * task — so decrypting *inside* a write loop killed the transaction and made
+ * every subsequent `put` throw `TransactionInactiveError`.
+ *
+ * A record that cannot be decrypted is kept in its original form rather than
+ * dropped, so a single bad row never costs the user the rest of their history.
+ *
+ * @param {any[]} records
+ * @param {(payload: any) => Promise<any>} decrypt
+ * @param {string} label used only for logging
+ * @returns {Promise<any[]>}
+ */
+async function decryptRecords(records, decrypt, label) {
+  if (!Array.isArray(records)) return []
+
+  const resolved = []
+  for (const record of records) {
+    if (!record) continue
+    if (!record.encrypted_data) {
+      resolved.push(record)
+      continue
+    }
+    try {
+      const decryptedFields = await decrypt(record.encrypted_data)
+      resolved.push({ ...record, ...decryptedFields })
+    } catch (e) {
+      console.error(`Failed to decrypt ${label}`, e)
+      resolved.push(record)
+    }
+  }
+  return resolved
+}
+
+/**
+ * Replaces a cache store's contents, treating a cache write failure as
+ * non-fatal: the caller already holds fresh server data and should return it
+ * even if the local mirror could not be refreshed.
+ *
+ * @param {string} storeName
+ * @param {any[]} records
+ * @returns {Promise<void>}
+ */
+async function cacheRecords(storeName, records) {
+  try {
+    await replaceAll(storeName, records)
+  } catch (e) {
+    console.error(`Failed to refresh the ${storeName} offline cache`, e)
+  }
+}
+
+/**
+ * Newest period first. Uses plain YYYY-MM-DD string ordering, which is exact
+ * for ISO dates and needs no Date construction.
+ *
+ * @param {any[]} cycles
+ * @returns {any[]} a new array; the input is not mutated
+ */
+function sortByStartDateDesc(cycles) {
+  return [...(cycles || [])].sort((a, b) => {
+    const left = String(a?.start_date || '')
+    const right = String(b?.start_date || '')
+    if (left === right) return 0
+    return left < right ? 1 : -1
+  })
+}
 
 // Helper to generate robust UUIDs client-side
 const generateUUID = () => {
@@ -168,33 +239,20 @@ export function OfflineProvider({ children }) {
           const res = await fetchWithTimeout('/api/cycles');
           const data = await res.json();
           if (data.success) {
-            const db = await initDB();
-            const tx = db.transaction('cycles', 'readwrite');
-            const store = tx.objectStore('cycles');
-            await store.clear();
+            // Decrypt everything FIRST. Awaiting inside a readwrite transaction
+            // auto-commits it, after which every remaining put throws
+            // TransactionInactiveError — which used to leave the store cleared
+            // but never repopulated.
+            const cycles = await decryptRecords(data.data.cycles, decrypt, 'cycle');
 
-            for (const c of data.data.cycles) {
-              if (c.encrypted_data) {
-                try {
-                  const decryptedFields = await decrypt(c.encrypted_data);
-                  const fullyDecrypted = { ...c, ...decryptedFields };
-                  await store.put(fullyDecrypted);
-                  data.data.cycles[data.data.cycles.indexOf(c)] = fullyDecrypted;
-                } catch (e) {
-                  console.error('Failed to decrypt cycle', e);
-                  await store.put(c);
-                }
-              } else {
-                await store.put(c);
-              }
-            }
+            // One atomic clear+repopulate, no interleaved awaits.
+            await cacheRecords('cycles', cycles);
 
-            const sortedCycles = [...data.data.cycles].sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
-            const prediction = predictNextPeriod(sortedCycles);
+            const prediction = predictNextPeriod(sortByStartDateDesc(cycles));
             return {
               success: true,
               data: {
-                cycles: data.data.cycles,
+                cycles,
                 nextPeriodDate: prediction.nextPeriodDate,
                 confidence: prediction.confidence,
                 averageCycleLength: prediction.averageCycleLength
@@ -207,7 +265,7 @@ export function OfflineProvider({ children }) {
       }
 
       const cachedCycles = await getAllFromStore('cycles');
-      const sortedCycles = [...cachedCycles].sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+      const sortedCycles = sortByStartDateDesc(cachedCycles);
       const prediction = predictNextPeriod(sortedCycles);
 
       return {
@@ -261,25 +319,11 @@ export function OfflineProvider({ children }) {
           if (res.ok) {
             const data = await res.json();
             if (data.success && data.data) {
-              const db = await initDB();
-              const tx = db.transaction('daily_logs', 'readwrite');
-              const store = tx.objectStore('daily_logs');
-              await store.clear();
-              const decryptedLogs = [];
-              for (const log of data.data) {
-                let decryptedLog = log;
-                if (log.encrypted_data) {
-                  try {
-                    const decryptedFields = await decrypt(log.encrypted_data);
-                    decryptedLog = { ...log, ...decryptedFields };
-                  } catch (e) {
-                    console.error('Failed to decrypt log in fetchAll', e);
-                  }
-                }
-                decryptedLogs.push(decryptedLog);
-                await store.put(decryptedLog);
-              }
-              data.data = decryptedLogs;
+              // Same ordering rule as fetchCycles: decrypt fully, then write in
+              // a single transaction that never yields.
+              const logs = await decryptRecords(data.data, decrypt, 'daily log');
+              await cacheRecords('daily_logs', logs);
+              data.data = logs;
             }
             return data;
           }
