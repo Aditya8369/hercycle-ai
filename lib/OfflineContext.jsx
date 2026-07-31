@@ -5,6 +5,13 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useRef 
 import { getAllFromStore, putIntoStore, deleteFromStore, queueSyncRequest, replaceAll } from './db'
 import { predictNextPeriod, calculatePCODRisk } from './api-helpers'
 import { useEncryption } from './EncryptionContext'
+import {
+  SENSITIVE_CYCLE_FIELDS,
+  SENSITIVE_DAILY_LOG_FIELDS,
+  notifyEncryptionLocked,
+  sealPayload,
+  toEncryptionFailure,
+} from './encryption-policy'
 import fetchWithTimeout from './fetch-with-timeout'
 import toast from 'react-hot-toast'
 
@@ -106,7 +113,7 @@ export function OfflineProvider({ children }) {
 
   const isSyncingRef = useRef(false)
 
-  const { encrypt, decrypt, isUnlocked } = useEncryption()
+  const { encrypt, decrypt, isUnlocked, isEncryptionEnabled } = useEncryption()
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -377,24 +384,27 @@ export function OfflineProvider({ children }) {
         ...log,
         updated_at: new Date().toISOString()
       };
-      await putIntoStore('daily_logs', localLog);
 
-      let payload = { ...localLog };
+      // Seal BEFORE touching local storage. If encryption is required but
+      // unavailable the write is refused outright, so the device is not left
+      // holding an entry that can never be synced.
+      let payload;
       try {
-        const encrypted = await encrypt({
-          symptoms: payload.symptoms,
-          mood: payload.mood,
-          flow: payload.flow,
-          cervical_discharge: payload.cervical_discharge
-        });
-        payload.encrypted_data = encrypted;
-        delete payload.symptoms;
-        delete payload.mood;
-        delete payload.flow;
-        delete payload.cervical_discharge;
+        ({ payload } = await sealPayload({
+          payload: localLog,
+          fields: SENSITIVE_DAILY_LOG_FIELDS,
+          encrypt,
+          required: isEncryptionEnabled,
+          unlocked: isUnlocked
+        }));
       } catch (e) {
-        console.error('Failed to encrypt daily log', e);
+        const failure = toEncryptionFailure(e);
+        if (!failure) throw e;
+        notifyEncryptionLocked(failure.reason);
+        return failure;
       }
+
+      await putIntoStore('daily_logs', localLog);
 
       const isOnline = navigator.onLine;
       if (isOnline) {
@@ -425,22 +435,24 @@ export function OfflineProvider({ children }) {
         id: cycle.id || generateUUID(),
         created_at: new Date().toISOString()
       };
-      await putIntoStore('cycles', clientCycle);
 
-      let payload = { ...clientCycle };
+      let payload;
       try {
-        const encrypted = await encrypt({
-          start_date: payload.start_date,
-          end_date: payload.end_date,
-          cycle_length: payload.cycle_length
-        });
-        payload.encrypted_data = encrypted;
-        delete payload.start_date;
-        delete payload.end_date;
-        delete payload.cycle_length;
+        ({ payload } = await sealPayload({
+          payload: clientCycle,
+          fields: SENSITIVE_CYCLE_FIELDS,
+          encrypt,
+          required: isEncryptionEnabled,
+          unlocked: isUnlocked
+        }));
       } catch (e) {
-        console.error('Failed to encrypt cycle', e);
+        const failure = toEncryptionFailure(e);
+        if (!failure) throw e;
+        notifyEncryptionLocked(failure.reason);
+        return failure;
       }
+
+      await putIntoStore('cycles', clientCycle);
 
       const isOnline = navigator.onLine;
       if (isOnline) {
@@ -468,27 +480,47 @@ export function OfflineProvider({ children }) {
     endPeriod: async (id, end_date) => {
       const cachedCycles = await getAllFromStore('cycles');
       const cycle = cachedCycles.find(c => c.id === id);
-      if (cycle) {
-        cycle.end_date = end_date;
-        await putIntoStore('cycles', cycle);
+
+      const updatedCycle = cycle ? { ...cycle, end_date } : null;
+
+      // Without the cached cycle there is nothing to encrypt, so an E2EE device
+      // cannot seal this update — refuse rather than PATCH a plaintext date.
+      if (!updatedCycle && isEncryptionEnabled) {
+        notifyEncryptionLocked('encryption-locked');
+        return {
+          success: false,
+          reason: 'encryption-locked',
+          error: 'This period is not available on this device, so it could not be ended securely.'
+        };
+      }
+
+      let payload;
+      try {
+        const sealed = await sealPayload({
+          payload: updatedCycle || { id, end_date },
+          fields: SENSITIVE_CYCLE_FIELDS,
+          encrypt,
+          required: isEncryptionEnabled,
+          unlocked: isUnlocked
+        });
+        // PATCH only needs the row id plus whichever representation applies —
+        // the sealed blob, or the plaintext end_date when E2EE is off. Keeping
+        // this explicit avoids widening the request body.
+        payload = sealed.encrypted
+          ? { id, encrypted_data: sealed.payload.encrypted_data }
+          : { id, end_date };
+      } catch (e) {
+        const failure = toEncryptionFailure(e);
+        if (!failure) throw e;
+        notifyEncryptionLocked(failure.reason);
+        return failure;
+      }
+
+      if (updatedCycle) {
+        await putIntoStore('cycles', updatedCycle);
       }
 
       const isOnline = navigator.onLine;
-      let payload = { id, end_date };
-
-      if (cycle) {
-        try {
-          const encrypted = await encrypt({
-            start_date: cycle.start_date,
-            end_date: cycle.end_date,
-            cycle_length: cycle.cycle_length
-          });
-          payload.encrypted_data = encrypted;
-          delete payload.end_date;
-        } catch (e) {
-          console.error('Failed to encrypt cycle ending', e);
-        }
-      }
 
       if (isOnline) {
         try {
@@ -512,7 +544,8 @@ export function OfflineProvider({ children }) {
       return { success: true, offline: true };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [encrypt, decrypt, isUnlocked]) // stable reference — methods close over navigator/fetch, not React state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [encrypt, decrypt, isUnlocked, isEncryptionEnabled]) // rebuilt when the encryption state changes; otherwise stable
 
   return (
     <OfflineContext.Provider value={{ isOffline, pendingSyncCount, isSyncing, syncData, offlineClient }}>

@@ -29,7 +29,7 @@ import PcosSymptomProfileModal from '@/components/dashboard/PcosSymptomProfileMo
 import { useOffline } from '@/lib/OfflineContext'
 import { useLocale, useTranslations } from 'next-intl'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
-import { addDaysISO, eachDayISO, getTodayISO } from '@/lib/date-utils'
+import { isEncryptionFailure } from '@/lib/encryption-policy'
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
@@ -289,6 +289,9 @@ const HerCycleApp = () => {
         setSelectedDischarge(null)
         setSaveTrigger(prev => prev + 1)
         fetchCycleData()
+      } else if (isEncryptionFailure(data)) {
+        // Fail-closed: nothing was sent, so the form is left intact for retry.
+        toast.error(`🔒 ${data.error}`)
       } else {
         toast.error('❌ Failed to save')
       }
