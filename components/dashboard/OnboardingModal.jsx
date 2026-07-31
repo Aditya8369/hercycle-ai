@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
 import { createClient } from "@/lib/supabase-client";
+import { addDaysISO, getTodayISO, toISODate } from "@/lib/date-utils";
 
 export default function OnboardingModal({ onComplete, onSkip }) {
   const { userId } = useAuth()
@@ -28,13 +29,9 @@ export default function OnboardingModal({ onComplete, onSkip }) {
         return
       }
 
-      const startDate = new Date(lastPeriodDate)
-      const endDate = new Date(startDate)
-      endDate.setDate(endDate.getDate() + periodLength - 1)
-
-      // MUST be YYYY-MM-DD
-      const periodStart = startDate.toISOString().split('T')[0]
-      const periodEnd = endDate.toISOString().split('T')[0]
+      // MUST be YYYY-MM-DD, in the user's local calendar
+      const periodStart = toISODate(lastPeriodDate)
+      const periodEnd = addDaysISO(lastPeriodDate, periodLength - 1)
 
       const { data, error } = await supabase
         .from('cycles')
@@ -77,7 +74,7 @@ export default function OnboardingModal({ onComplete, onSkip }) {
   }
 
   // Today's date as max for input
-  const today = new Date().toISOString().split('T')[0]
+  const today = getTodayISO()
 
   return (
     <div

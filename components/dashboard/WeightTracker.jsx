@@ -5,6 +5,7 @@ import { Activity, Ruler, Scale, Save } from 'lucide-react'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
 import toast from 'react-hot-toast'
 import { useTranslations } from 'next-intl'
+import { getTodayISO } from '@/lib/date-utils'
 
 const cardStyle = {
   background: 'rgba(255,255,255,0.08)',
@@ -25,7 +26,7 @@ const fieldStyle = {
 }
 
 function todayISO() {
-  return new Date().toISOString().split('T')[0]
+  return getTodayISO()
 }
 
 function bmiLabel(bmi) {
