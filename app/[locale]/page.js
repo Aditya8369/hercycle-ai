@@ -280,7 +280,7 @@ const HerCycleApp = () => {
   const handleSaveLog = async () => {
     try {
       const logData = {
-        date: new Date().toISOString().split('T')[0],
+        date: getTodayISO(),
         symptoms: selectedSymptoms,
         mood: selectedMood,
         flow: selectedFlow,
@@ -299,6 +299,9 @@ const HerCycleApp = () => {
         setSelectedDischarge(null)
         setSaveTrigger(prev => prev + 1)
         fetchCycleData()
+      } else if (isEncryptionFailure(data)) {
+        // Fail-closed: nothing was sent, so the form is left intact for retry.
+        toast.error(`🔒 ${data.error}`)
       } else {
         toast.error('❌ Failed to save')
       }

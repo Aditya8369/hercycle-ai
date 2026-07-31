@@ -87,9 +87,9 @@ export default function Navbar() {
 
   const NAV_ITEMS = isPartner ? [] : [
     { key: 'dashboard', label: t('dashboard'), href: `/${locale}` },
-    { key: 'track',     label: t('track'),     href: `/${locale}/track` },
-    { key: 'insights',  label: t('insights'),  href: `/${locale}/insights` },
-    { key: 'self-care', label: t('selfCare'),  href: `/${locale}/self-care` },
+    { key: 'track', label: t('track'), href: `/${locale}/track` },
+    { key: 'insights', label: t('insights'), href: `/${locale}/insights` },
+    { key: 'self-care', label: t('selfCare'), href: `/${locale}/self-care` },
   ]
 
   const handleLogToday = () => {
@@ -115,12 +115,16 @@ export default function Navbar() {
       {/* Top Row (Mobile) / Left Side (Desktop) */}
       <div className="flex justify-between items-center w-full md:w-auto">
         <div className="logo text-lg sm:text-2xl flex items-center gap-2">
-          <span>
+          <Link
+            href={`/${locale}`}
+            aria-label="HerCycle AI — Go to Dashboard"
+            style={{ cursor: 'pointer' }}
+          >
             <span className="logo-her">Her</span>
             <span className="logo-cycle">Cycle</span>
             <span className="logo-dot"> AI</span>
             🌸
-          </span>
+          </Link>
           {isOffline && (
             <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-red-500/20 text-red-300 border border-red-500/30 whitespace-nowrap animate-pulse">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
@@ -143,16 +147,16 @@ export default function Navbar() {
             </span>
           )}
         </div>
-        
+
         {/* Hamburger Icon */}
         {NAV_ITEMS.length > 0 && (
-          <button 
+          <button
             className="nav-menu-btn md:hidden text-white/80 hover:text-white p-1"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle Menu"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {mobileMenuOpen 
+              {mobileMenuOpen
                 ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               }
