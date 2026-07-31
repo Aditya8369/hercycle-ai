@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import DailyLogPanel from './DailyLogPanel'
 import { useOffline } from '@/lib/OfflineContext'
 import { findCycleContainingDate } from '@/lib/cycle-helpers'
+import { addDaysISO, toISODate } from '@/lib/date-utils'
 
 export default function DayLogDrawer({ isOpen, onClose, selectedDate, cycleData, onSaved }) {
   const tTrack = useTranslations('pages.track')
@@ -48,13 +49,9 @@ export default function DayLogDrawer({ isOpen, onClose, selectedDate, cycleData,
 
   const handleStartPeriod = async () => {
     if (!selectedDate) return
-    const startDate = new Date(selectedDate)
-    const endDate = new Date(startDate)
-    endDate.setDate(endDate.getDate() + 5)
-    
     const cycleDataObj = {
-      start_date: startDate.toISOString().split('T')[0],
-      end_date: endDate.toISOString().split('T')[0],
+      start_date: toISODate(selectedDate),
+      end_date: addDaysISO(selectedDate, 5),
       cycle_length: cycleData?.averageCycleLength || 28,
     }
 
