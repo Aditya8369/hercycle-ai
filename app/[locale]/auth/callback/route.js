@@ -9,9 +9,12 @@ export async function GET(request) {
     const errorDescription = searchParams.get('error_description') || searchParams.get('error_reason')
 
     if (error || errorDescription) {
-      const sanitizedError = String(error || 'oauth_error').replace(/[^\w.-]/g, '_')
-      const rawDesc = String(errorDescription || '').replace(/[\w\.-]+@[\w\.-]+\.\w+/g, '[EMAIL_REDACTED]')
-      const sanitizedDesc = rawDesc.replace(/(token|code|session|jwt|key)=[^&]+/gi, '$1=[REDACTED]')
+      const sanitizedError = String(error || 'oauth_error').replace(/[^a-zA-Z0-9._\-]+/g, '_')
+      const rawDescStr = String(errorDescription || '')
+      const rawDesc = rawDescStr.includes('@')
+        ? rawDescStr.replace(/\b[a-zA-Z0-9._%+\-]{1,64}@[a-zA-Z0-9\-]{1,63}(?:\.[a-zA-Z0-9\-]{1,63})+/g, '[EMAIL_REDACTED]')
+        : rawDescStr
+      const sanitizedDesc = rawDesc.replace(/(token|code|session|jwt|key)=[^&\s]+/gi, '$1=[REDACTED]')
 
       logger.warn(`[OAuth Callback] Auth callback error: ${sanitizedError}`, {
         errorCode: sanitizedError,
