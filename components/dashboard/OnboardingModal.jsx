@@ -51,7 +51,7 @@ export default function OnboardingModal({ onComplete, onSkip }) {
         const errMsg = error?.message || error?.details || error?.hint || JSON.stringify(error) || 'Unknown error'
         console.error('Insert error details:', {
           message: error?.message,
-          details: error?.details, 
+          details: error?.details,
           hint: error?.hint,
           code: error?.code,
           full: error
@@ -80,8 +80,18 @@ export default function OnboardingModal({ onComplete, onSkip }) {
   const today = new Date().toISOString().split('T')[0]
 
   return (
-    <div className="onboard-overlay" role="dialog" aria-modal="true">
-      <div className="onboard-card">
+    <div
+      className="onboard-overlay"
+      role="dialog"
+      aria-modal="true"
+      style={{ cursor: 'pointer' }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleSkip()
+        }
+      }}
+    >
+      <div className="onboard-card" onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>
         {/* Decorative top */}
         <div className="onboard-header-art">
           <span className="onboard-emoji">🌸</span>
