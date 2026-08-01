@@ -3297,6 +3297,16 @@ nav ul li a:focus-visible,
   }
 }
 
+/* ──── SELF-CARE OPACITY & TRANSITION GLITCH FIX (Fixes #330) ──── */
+.self-care-step-img,
+.self-care-card img,
+.group-hover\:scale-110 {
+  will-change: opacity, transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
 /* ──── LOGS HISTORY SCROLL CONTAINER MARGIN ADJUSTMENT (Fixes #327) ──── */
 .logs-history-container,
 .logs-history-scroll,
