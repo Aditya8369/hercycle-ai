@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
-import { RefreshCw, Calendar, TrendingUp, Activity, BarChart2 } from 'lucide-react'
+import { RefreshCw, Calendar, CalendarRange, TrendingUp, Activity, BarChart2 } from 'lucide-react'
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, Tooltip, CartesianGrid,
@@ -298,17 +298,18 @@ export default function InsightsPage() {
         <div style={{ maxWidth: 1000, margin: '0 auto', padding: '2rem 1.5rem' }}>
 
           {/* ── Page header ── */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap', rowGap: '12px' }}>
             <div style={{
               background: 'rgba(255,255,255,0.2)',
               borderRadius: '12px',
               padding: '8px',
               display: 'flex',
               alignItems: 'center',
+              flexShrink: 0,
             }}>
               <BarChart2 size={28} color="white" strokeWidth={1.5} />
             </div>
-            <h1 style={{ margin: 0, fontSize: '2rem', flex: 1 }}>{t('title')}</h1>
+            <h1 style={{ margin: 0, fontSize: '2rem', flex: 1, minWidth: 0 }}>{t('title')}</h1>
             
             {!loading && (
               <div style={{
@@ -319,8 +320,10 @@ export default function InsightsPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
               }}>
-                <RefreshCw size={16} color={PINK} />
+                <CalendarRange size={16} color={PINK} />
                 <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#ffb3d9' }}>
                   {t('avgCycle')}: {avgCycle}d
                 </span>
