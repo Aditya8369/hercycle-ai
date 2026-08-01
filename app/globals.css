@@ -1803,6 +1803,30 @@ footer {
   overflow: hidden;
 }
 
+.onboard-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: var(--interaction-transition);
+}
+
+.onboard-close-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  color: white;
+  transform: rotate(90deg) scale(1.05);
+}
+
 @keyframes cardPop {
   from {
     transform: scale(0.85) translateY(40px);

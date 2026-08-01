@@ -6,6 +6,7 @@ import { useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
 import { createClient } from "@/lib/supabase-client";
 import { addDaysISO, getTodayISO, toISODate } from "@/lib/date-utils";
+import { X } from 'lucide-react'
 
 export default function OnboardingModal({ onComplete, onSkip }) {
   const { userId } = useAuth()
@@ -89,6 +90,15 @@ export default function OnboardingModal({ onComplete, onSkip }) {
       }}
     >
       <div className="onboard-card" onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>
+        {/* Close button */}
+        <button
+          className="onboard-close-btn"
+          onClick={handleSkip}
+          aria-label={t('skip')}
+        >
+          <X className="w-5 h-5" />
+        </button>
+
         {/* Decorative top */}
         <div className="onboard-header-art">
           <span className="onboard-emoji">🌸</span>
