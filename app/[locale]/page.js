@@ -29,10 +29,11 @@ import PcosSymptomProfileModal from '@/components/dashboard/PcosSymptomProfileMo
 import { useOffline } from '@/lib/OfflineContext'
 import { useLocale, useTranslations } from 'next-intl'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
+import FeaturesSection from '@/components/dashboard/FeaturesSection'
 import { isEncryptionFailure } from '@/lib/encryption-policy'
 import { getTodayISO, eachDayISO, addDaysISO } from '@/lib/date-utils'
 
-const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
 /**
  * Derives the four date-type Sets from raw API cycle data.
@@ -41,34 +42,44 @@ const MONTH_NAMES = ['January','February','March','April','May','June','July','A
  *   - User description: period_start / period_end
  */
 function deriveDateSets(cycleData) {
-  const periodDays    = new Set()  // 'YYYY-MM-DD' strings
+  const periodDays = new Set()  // 'YYYY-MM-DD' strings
   const ovulationDays = new Set()
   const predictedDays = new Set()
-  const today         = getTodayISO()
+  const today = new Date().toISOString().split('T')[0]
 
   const cycles = cycleData?.cycles || []
+  const toISO = (d) => d.toISOString().split('T')[0]
 
   cycles.forEach(cycle => {
     const startStr = cycle.start_date
-    const endStr   = cycle.end_date
+    const endStr = cycle.end_date
     if (!startStr) return
 
-    // Period days — eachDayISO walks the local calendar, so a period never
-    // gains or loses a day depending on the viewer's timezone.
-    eachDayISO(startStr, endStr || startStr).forEach(day => periodDays.add(day))
+    const start = new Date(startStr)
+    const end = new Date(endStr || startStr)
+
+    // Period days
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      periodDays.add(toISO(d))
+    }
 
     // Ovulation window: days 11-15 after period start
-    for(let i = 11; i <= 15; i++){
-      const day = addDaysISO(startStr, i)
-      if (day) ovulationDays.add(day)
+    for (let i = 11; i <= 15; i++) {
+      const d = new Date(start)
+      d.setDate(d.getDate() + i)
+      ovulationDays.add(toISO(d))
     }
   })
 
   // Predicted: days -1 to +5 around nextPeriodDate
   if (cycleData?.nextPeriodDate) {
-    for(let i = -1; i <= 5; i++){
-      const day = addDaysISO(cycleData.nextPeriodDate, i)
-      if (day) predictedDays.add(day)
+    const pred = new Date(cycleData.nextPeriodDate)
+    if (!isNaN(pred)) {
+      for (let i = -1; i <= 5; i++) {
+        const d = new Date(pred)
+        d.setDate(d.getDate() + i)
+        predictedDays.add(toISO(d))
+      }
     }
   }
 
@@ -80,12 +91,12 @@ function deriveDateSets(cycleData) {
  * Uses pre-derived ISO-date Sets (YYYY-MM-DD) for O(1) lookups.
  */
 function buildCalendarDays(year, month, periodDays, ovulationDays, predictedDays, todayStr) {
-  const firstDay       = new Date(year, month, 1).getDay()
-  const daysInMonth    = new Date(year, month + 1, 0).getDate()
+  const firstDay = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
   const daysInPrevMonth = new Date(year, month, 0).getDate()
 
   const days = []
-  ;['S','M','T','W','T','F','S'].forEach(h => days.push({ type: 'header', label: h }))
+    ;['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(h => days.push({ type: 'header', label: h }))
 
   // Prev-month overflow cells
   for (let i = firstDay - 1; i >= 0; i--) {
@@ -94,12 +105,12 @@ function buildCalendarDays(year, month, periodDays, ovulationDays, predictedDays
 
   // Actual days
   for (let i = 1; i <= daysInMonth; i++) {
-    const iso    = `${year}-${String(month + 1).padStart(2,'0')}-${String(i).padStart(2,'0')}`
+    const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`
     const isToday = iso === todayStr
     let type = 'normal'
-    if (periodDays?.has(iso))                         type = 'period'
-    else if (predictedDays?.has(iso))                 type = 'predicted'
-    else if (ovulationDays?.has(iso))                 type = 'ovulation'
+    if (periodDays?.has(iso)) type = 'period'
+    else if (predictedDays?.has(iso)) type = 'predicted'
+    else if (ovulationDays?.has(iso)) type = 'ovulation'
     if (isToday) type = type === 'normal' ? 'today' : type  // today badge on top of any type
     days.push({ type, label: i, isToday })
   }
@@ -117,12 +128,12 @@ const HerCycleApp = () => {
   const locale = useLocale()
   const tHeadings = useTranslations('headings')
   const tChat = useTranslations('Chat')
-  
+
   // We keep activeLang to pass to legacy components temporarily. 
   // Map 'en' -> 'EN' and 'hi' -> 'हि'
   const activeLang = locale === 'hi' ? 'हि' : 'EN'
   const tCycle = useTranslations('cycle')
-  
+
   const [viewYear, setViewYear] = useState(now.getFullYear())
   const [viewMonth, setViewMonth] = useState(now.getMonth()) // 0-indexed
   const [chatMessages, setChatMessages] = useState([])
@@ -142,7 +153,7 @@ const HerCycleApp = () => {
   const [showPcosQuiz, setShowPcosQuiz] = useState(false)
   const [showPcosSymptomProfileQuiz, setShowPcosSymptomProfileQuiz] = useState(false)
 
-  const openLogDrawer  = () => setIsLogOpen(true)
+  const openLogDrawer = () => setIsLogOpen(true)
   const closeLogDrawer = () => setIsLogOpen(false)
 
   const goToPrevMonth = () => {
@@ -196,7 +207,7 @@ const HerCycleApp = () => {
       const data = await offlineClient.fetchCycles()
       if (data.success) {
         setCycleData(data.data)
-        
+
         const onboardingDone = localStorage.getItem('onboarding_complete')
         if (onboardingDone) {
           setShowOnboarding(false)
@@ -246,7 +257,7 @@ const HerCycleApp = () => {
       const response = await fetchWithTimeout('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           message: userMessage,
           language: activeLang,
           context: { ...cycleData, currentPhase: cycleDayInfo }
@@ -261,8 +272,8 @@ const HerCycleApp = () => {
       }
     } catch (error) {
       setIsTyping(false)
-      setChatMessages(prev => [...prev, { 
-        role: 'ai', 
+      setChatMessages(prev => [...prev, {
+        role: 'ai',
         text: tChat('error')
       }])
     }
@@ -302,15 +313,15 @@ const HerCycleApp = () => {
   }
 
   const toggleSymptom = (symptom) => {
-    setSelectedSymptoms(prev => 
-      prev.includes(symptom) 
+    setSelectedSymptoms(prev =>
+      prev.includes(symptom)
         ? prev.filter(s => s !== symptom)
         : [...prev, symptom]
     )
   }
 
   // Derive the four ISO-date Sets from the API cycle data
-  const dateSets     = deriveDateSets(cycleData)
+  const dateSets = deriveDateSets(cycleData)
   const calendarDays = buildCalendarDays(
     viewYear, viewMonth,
     dateSets.periodDays,
@@ -340,15 +351,15 @@ const HerCycleApp = () => {
       const bDate = new Date(b.start_date)
       return bDate - aDate
     })
-    
+
     const mostRecentCycle = sortedCycles[0]
     const lastPeriodStart = new Date(mostRecentCycle.start_date)
     const todayObj = new Date()
-    
+
     // Normalize times to midnight to get accurate day difference
-    todayObj.setHours(0,0,0,0)
-    lastPeriodStart.setHours(0,0,0,0)
-    
+    todayObj.setHours(0, 0, 0, 0)
+    lastPeriodStart.setHours(0, 0, 0, 0)
+
     const cycleDay = Math.floor((todayObj - lastPeriodStart) / (1000 * 60 * 60 * 24)) + 1
     cycleDayInfo.day = cycleDay
 
@@ -373,27 +384,27 @@ const HerCycleApp = () => {
       cycleDayInfo.color = '#636e72'
       cycleDayInfo.dot = '#636e72'
     }
-    
+
     if (cycleDay >= 1) {
       cycleDayInfo.text = tCycle('cycleDay', { day: cycleDay, phase: cycleDayInfo.phase })
     }
   }
 
-  
+
   const latestCycle = getLatestCycle(cycleData?.cycles)
 
-const periodStart =
-  latestCycle?.start_date ||
-  latestCycle?.period_start ||
-  null
+  const periodStart =
+    latestCycle?.start_date ||
+    latestCycle?.period_start ||
+    null
 
-const periodEnd =
-  latestCycle?.end_date ||
-  latestCycle?.period_end ||
-  null
+  const periodEnd =
+    latestCycle?.end_date ||
+    latestCycle?.period_end ||
+    null
 
-const inferredPeriodLength = periodStart && periodEnd
-  ? Math.max(
+  const inferredPeriodLength = periodStart && periodEnd
+    ? Math.max(
       1,
       Math.round(
         (
@@ -402,16 +413,16 @@ const inferredPeriodLength = periodStart && periodEnd
         ) / 86400000
       ) + 1
     )
-  : 5
+    : 5
 
-const phaseInfo = calculateCyclePhase({
-  periodStart,
-  cycleLength:
-    latestCycle?.cycle_length ||
-    cycleData?.averageCycleLength ||
-    28,
-  periodLength: inferredPeriodLength,
-})
+  const phaseInfo = calculateCyclePhase({
+    periodStart,
+    cycleLength:
+      latestCycle?.cycle_length ||
+      cycleData?.averageCycleLength ||
+      28,
+    periodLength: inferredPeriodLength,
+  })
 
   return (
     <>
@@ -464,7 +475,7 @@ const phaseInfo = calculateCyclePhase({
 
         <div className="hero">
           <HeroSection activeLang={activeLang} cycleDayInfo={cycleDayInfo} />
-          <CycleCalendar 
+          <CycleCalendar
             calendarDays={calendarDays}
             currentMonth={`${new Intl.DateTimeFormat(locale === 'hi' ? 'hi-IN' : 'en-US', { month: 'long' }).format(new Date(viewYear, viewMonth))} ${viewYear}`}
             onPrevMonth={goToPrevMonth}
@@ -474,18 +485,19 @@ const phaseInfo = calculateCyclePhase({
             activeLang={activeLang}
           />
         </div>
-        
+
         <div style={{ marginTop: '1.5rem' }}>
-        <CyclePhaseCard
-        phaseKey={phaseInfo.phaseKey}
-        cycleDay={phaseInfo.cycleDay}
-        ovulationDay={phaseInfo.ovulationDay}
-        hasData={phaseInfo.hasData}
-        />
+          <CyclePhaseCard
+            phaseKey={phaseInfo.phaseKey}
+            cycleDay={phaseInfo.cycleDay}
+            ovulationDay={phaseInfo.ovulationDay}
+            hasData={phaseInfo.hasData}
+          />
         </div>
 
         <VibeCheckin />
         <PartnerLoveBanner />
+        <FeaturesSection activeLang={activeLang} />
 
         <h2 className="sec-head">{tHeadings('pcosAssessments')}</h2>
         <PcosSymptomProfileCard onClick={() => setShowPcosSymptomProfileQuiz(true)} />
@@ -515,15 +527,15 @@ const phaseInfo = calculateCyclePhase({
 
         <h2 className="sec-head">{tHeadings('log')}</h2>
         <div className="bottom-grid" id="daily-log-section">
-          <DailyLogPanel 
-            selectedSymptoms={selectedSymptoms} 
-            toggleSymptom={toggleSymptom} 
-            selectedMood={selectedMood} 
-            setSelectedMood={setSelectedMood} 
-            selectedFlow={selectedFlow} 
-            setSelectedFlow={setSelectedFlow} 
-            handleSaveLog={handleSaveLog} 
-            cycleData={cycleData} 
+          <DailyLogPanel
+            selectedSymptoms={selectedSymptoms}
+            toggleSymptom={toggleSymptom}
+            selectedMood={selectedMood}
+            setSelectedMood={setSelectedMood}
+            selectedFlow={selectedFlow}
+            setSelectedFlow={setSelectedFlow}
+            handleSaveLog={handleSaveLog}
+            cycleData={cycleData}
             activeLang={activeLang}
           />
           <PredictionCard cycleData={cycleData} activeLang={activeLang} />
@@ -531,10 +543,10 @@ const phaseInfo = calculateCyclePhase({
 
         <div className="half-row">
           <CycleHistoryCard cycleData={cycleData} />
-          <CervicalDischargeTracker 
-            selectedDischarge={selectedDischarge} 
-            setSelectedDischarge={setSelectedDischarge} 
-            saveTrigger={saveTrigger} 
+          <CervicalDischargeTracker
+            selectedDischarge={selectedDischarge}
+            setSelectedDischarge={setSelectedDischarge}
+            saveTrigger={saveTrigger}
           />
         </div>
 
