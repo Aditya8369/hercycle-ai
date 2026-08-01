@@ -379,6 +379,15 @@ nav {
   color: var(--rose-deep);
   letter-spacing: -0.01em;
   white-space: nowrap;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.logo a {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .logo em {
@@ -3275,5 +3284,11 @@ nav ul li a:focus-visible,
 @media (min-width: 640px) {
   .heatmap-grid {
     grid-template-columns: repeat(15, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 479px) {
+  .logo {
+    font-size: 1.1rem;
   }
 }
