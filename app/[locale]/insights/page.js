@@ -328,7 +328,7 @@ export default function InsightsPage() {
             )}
           </div>
           <p style={{ color: TEXT_FAINT, marginBottom: '2rem' }}>
-            {t('subtitle')}
+            {t('subtitle')} {!loading && <span style={{ opacity: 0.9, marginLeft: '0.5rem', color: PINK, fontWeight: 500 }}>({t('avgCycle')}: {avgCycle} days)</span>}
           </p>
 
           {/* ── Stat Cards ── */}
