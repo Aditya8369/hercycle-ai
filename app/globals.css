@@ -2790,6 +2790,13 @@ nav ul li a.active {
   letter-spacing: 0.02em;
 }
 
+.nav-menu-btn,
+.lang-btn,
+.nav-action,
+.nav-mobile-link {
+  transition: var(--interaction-transition);
+}
+
 .nav-log-btn {
   background: linear-gradient(135deg, #a80f4e 0%, #e12a70 58%, #ff6aa2 100%) !important;
   border: 1px solid rgba(255, 255, 255, 0.32) !important;
