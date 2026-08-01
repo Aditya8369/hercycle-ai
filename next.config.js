@@ -13,20 +13,25 @@ const nextConfig = {
     minimumCacheTTL: 60,
   },
 
-  // turbopack: {
-  //   root: __dirname,
-  //   resolveAlias: {
-  //     '@clerk/nextjs/server': './lib/clerk-server-mock.js',
-  //     '@clerk/nextjs': './lib/clerk-mock.js'
-  //   }
-  // },
+  ...(process.env.NEXT_PUBLIC_MOCK_AUTH === 'true' ? {
+    turbopack: {
+      resolveAlias: {
+        '@clerk/nextjs/server': './lib/clerk-server-mock.js',
+        '@clerk/nextjs': './lib/clerk-mock.js',
+        '@supabase/supabase-js': './lib/supabase-mock.js'
+      }
+    }
+  } : {}),
 
-  // webpack: (config) => {
-  //   const path = require('path');
-  //   config.resolve.alias['@clerk/nextjs/server'] = path.resolve(__dirname, 'lib/clerk-server-mock.js');
-  //   config.resolve.alias['@clerk/nextjs'] = path.resolve(__dirname, 'lib/clerk-mock.js');
-  //   return config;
-  // },
+  webpack: (config) => {
+    if (process.env.NEXT_PUBLIC_MOCK_AUTH === 'true') {
+      const path = require('path');
+      config.resolve.alias['@clerk/nextjs/server'] = path.resolve(__dirname, 'lib/clerk-server-mock.js');
+      config.resolve.alias['@clerk/nextjs'] = path.resolve(__dirname, 'lib/clerk-mock.js');
+      config.resolve.alias['@supabase/supabase-js'] = path.resolve(__dirname, 'lib/supabase-mock.js');
+    }
+    return config;
+  },
 
 
   // Optimize heavy packages — tree-shake on import
