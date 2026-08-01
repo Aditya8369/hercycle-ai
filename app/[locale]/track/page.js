@@ -13,7 +13,7 @@ import { useOffline } from '@/lib/OfflineContext'
 import { useTranslations, useLocale } from 'next-intl'
 import WeightTracker from '@/components/dashboard/WeightTracker'
 import { isEncryptionFailure } from '@/lib/encryption-policy'
-import { getTodayISO, eachDayISO, addDaysISO } from '@/lib/date-utils'
+import { getTodayISO, eachDayISO, addDaysISO, toISODate } from '@/lib/date-utils'
 
 const TEXT_PRIMARY = '#ffffff'
 const TEXT_FAINT = 'rgba(255,255,255,0.65)'
@@ -157,7 +157,7 @@ export default function TrackPage() {
     const today = getTodayISO()
     const cycleDataObj = {
       start_date: today,
-      end_date: addDaysISO(today, 5),
+      end_date: null,   // no end date on period start — user will log it when it ends
       cycle_length: cycleData?.averageCycleLength || 28,
     }
 
@@ -226,7 +226,9 @@ export default function TrackPage() {
     : null
 
   const hasCycles = (cycleData?.cycles?.length ?? 0) > 0
-  const openCycle = cycleData?.cycles?.find(c => !c.end_date || new Date(c.end_date) > new Date())
+  // A period is "open" only when it has no end_date yet — the user started it but hasn't ended it.
+  // Using !c.end_date avoids any timezone comparison issues.
+  const openCycle = cycleData?.cycles?.find(c => !c.end_date)
 
   return (
     <>
@@ -247,15 +249,17 @@ export default function TrackPage() {
             {t('subtitle')}
           </p>
 
-          {/* Period action buttons */}
+          {/* Period action buttons — mutually exclusive: Start shown when no active period, End shown when one is active */}
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
-            <button
-              className="btn-white"
-              onClick={handleStartPeriod}
-              style={{ padding: '0.75rem 1.75rem', fontSize: '0.95rem', fontWeight: 600 }}
-            >
-              {t('startPeriod')}
-            </button>
+            {!openCycle && (
+              <button
+                className="btn-white"
+                onClick={handleStartPeriod}
+                style={{ padding: '0.75rem 1.75rem', fontSize: '0.95rem', fontWeight: 600 }}
+              >
+                {t('startPeriod')}
+              </button>
+            )}
             {openCycle && (
               <button
                 className="btn-outline"
