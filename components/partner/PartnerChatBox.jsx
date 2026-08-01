@@ -19,24 +19,43 @@ function formatTime(dateStr) {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-function getActiveStatus(nudges) {
-  if (!nudges || nudges.length === 0) return { label: 'Active now', isOnline: true }
+function getActiveStatus(partnerLastActiveAt, nudges) {
+  if (partnerLastActiveAt) {
+    const lastActiveTime = typeof partnerLastActiveAt === 'number'
+      ? partnerLastActiveAt
+      : new Date(partnerLastActiveAt).getTime();
+    
+    const diffMins = Math.floor((Date.now() - lastActiveTime) / 60000);
+
+    if (isNaN(diffMins) || diffMins < 2) {
+      return { label: 'Online', isOnline: true };
+    } else if (diffMins < 60) {
+      return { label: `Offline (Active ${diffMins}m ago)`, isOnline: false };
+    } else {
+      const hrs = Math.floor(diffMins / 60);
+      if (hrs < 24) return { label: `Offline (Active ${hrs}h ago)`, isOnline: false };
+      const days = Math.floor(hrs / 24);
+      return { label: `Offline (Active ${days}d ago)`, isOnline: false };
+    }
+  }
+
+  if (!nudges || nudges.length === 0) return { label: 'Offline', isOnline: false }
   const latestDate = new Date(nudges[nudges.length - 1].created_at)
   const diffMins = Math.floor((Date.now() - latestDate.getTime()) / 60000)
 
   if (isNaN(diffMins) || diffMins < 2) {
-    return { label: 'Active now', isOnline: true }
+    return { label: 'Online', isOnline: true }
   } else if (diffMins < 60) {
-    return { label: `Active ${diffMins}m ago`, isOnline: false }
+    return { label: `Offline (Active ${diffMins}m ago)`, isOnline: false }
   } else {
     const hrs = Math.floor(diffMins / 60)
-    if (hrs < 24) return { label: `Active ${hrs}h ago`, isOnline: false }
+    if (hrs < 24) return { label: `Offline (Active ${hrs}h ago)`, isOnline: false }
     const days = Math.floor(hrs / 24)
-    return { label: `Active ${days}d ago`, isOnline: false }
+    return { label: `Offline (Active ${days}d ago)`, isOnline: false }
   }
 }
 
-export default function PartnerChatBox({ nudges = [], currentUserId, onRefresh, title = "Partner Love Chat 💌", showPresetChips = true }) {
+export default function PartnerChatBox({ nudges = [], currentUserId, onRefresh, title = "Partner Love Chat 💌", showPresetChips = true, partnerLastActiveAt = null }) {
   const [inputText, setInputText] = useState('')
   const [quotedNudge, setQuotedNudge] = useState(null)
   const [sending, setSending] = useState(false)
@@ -44,7 +63,7 @@ export default function PartnerChatBox({ nudges = [], currentUserId, onRefresh, 
   const chatContainerRef = useRef(null)
   const chatBottomRef = useRef(null)
 
-  const activeStatus = getActiveStatus(nudges)
+  const activeStatus = getActiveStatus(partnerLastActiveAt, nudges)
 
   const isNearBottom = () => {
     const el = chatContainerRef.current

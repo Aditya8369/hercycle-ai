@@ -25,7 +25,8 @@ export default function ExerciseCard({ exercise, isFavorite, onToggleFavorite })
       <img
         src={exercise.image}
         alt={exercise.title}
-        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 [will-change:opacity,transform] [backface-visibility:hidden]"
+        style={{ willChange: 'opacity, transform', backfaceVisibility: 'hidden' }}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-80"></div>
 
