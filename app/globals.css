@@ -3277,3 +3277,35 @@ nav ul li a:focus-visible,
     grid-template-columns: repeat(15, minmax(0, 1fr));
   }
 }
+
+/* ──── SYMPTOM PILL TRACK (mobile) ──── */
+@media (max-width: 639px) {
+  .symp-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    gap: 8px;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+  }
+
+  .symp-grid .symp-chip {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .symp-grid::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .symp-grid::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .symp-grid::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+  }
+}
