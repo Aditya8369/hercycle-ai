@@ -3277,3 +3277,13 @@ nav ul li a:focus-visible,
     grid-template-columns: repeat(15, minmax(0, 1fr));
   }
 }
+
+/* ──── SELF-CARE OPACITY & TRANSITION GLITCH FIX (Fixes #330) ──── */
+.self-care-step-img,
+.self-care-card img,
+.group-hover\:scale-110 {
+  will-change: opacity, transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
