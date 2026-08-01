@@ -14,6 +14,7 @@ import { useOffline } from '@/lib/OfflineContext'
 import { useTranslations, useLocale } from 'next-intl'
 import WeightTracker from '@/components/dashboard/WeightTracker'
 import { isEncryptionFailure } from '@/lib/encryption-policy'
+import { getTodayISO, eachDayISO, addDaysISO } from '@/lib/date-utils'
 
 const TEXT_PRIMARY = '#ffffff'
 const TEXT_FAINT = 'rgba(255,255,255,0.65)'

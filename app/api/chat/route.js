@@ -10,6 +10,27 @@ import { z } from 'zod'
 
 const TIMEOUT_MS = 8000; // 8 seconds timeout to prevent long hangs
 
+// Maximum number of conversation messages forwarded to the LLM. Sending a full
+// transcript costs tokens and risks context-length errors on long threads.
+const MAX_CONTEXT_MESSAGES = 15;
+
+/**
+ * Truncates a conversation history to the latest `maxMessages` entries while
+ * keeping the system prompt at position 0.
+ *
+ * Long-running chats stay inside the model's context window without losing
+ * either the system instructions or the most recent turns.
+ *
+ * @param {Array<{role: string, ...}>} messages
+ * @param {number} [maxMessages=MAX_CONTEXT_MESSAGES]
+ * @returns {Array<{role: string, ...}>}
+ */
+function pruneMessageHistory(messages, maxMessages = MAX_CONTEXT_MESSAGES) {
+  if (!Array.isArray(messages) || messages.length <= maxMessages) return messages;
+  // Keep the leading system prompt plus the most recent (max - 1) turns.
+  return [messages[0], ...messages.slice(-(maxMessages - 1))];
+}
+
 const chatPayloadSchema = z.object({
   language: z.string().max(10).optional(),
   message: z.string().min(1).max(1000),
@@ -47,7 +68,7 @@ async function callGemini(message, systemPrompt) {
   });
 
   const chat = model.startChat({
-    history: [
+    history: pruneMessageHistory([
       {
         role: 'user',
         parts: [{ text: systemPrompt }],
@@ -60,7 +81,7 @@ async function callGemini(message, systemPrompt) {
           },
         ],
       },
-    ],
+    ]),
   });
 
   const result = await chat.sendMessage(message);
@@ -86,10 +107,10 @@ async function callGroq(message, systemPrompt) {
     },
     body: JSON.stringify({
       model: 'llama-3.1-8b-instant',
-      messages: [
+      messages: pruneMessageHistory([
         { role: 'system', content: systemPrompt },
         { role: 'user', content: message }
-      ],
+      ]),
       max_tokens: 300 // Keeping response small per prompt constraints
     })
   });

@@ -1,0 +1,54 @@
+name: Auto Unassign Stale Issues
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # Runs every 6 hours
+  workflow_dispatch: # Allows manual trigger anytime from GitHub Actions tab
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  unassign-stale:
+    name: Unassign Inactive Assigned Issues (34h Deadline)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check and Unassign Stale Issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Scanning open assigned issues for 34h inactivity..."
+          
+          # Fetch open assigned issues
+          ISSUES=$(gh issue list --state open --json number,assignees,updatedAt --limit 100 --repo "$GITHUB_REPOSITORY")
+          
+          NOW=$(date +%s)
+          DEADLINE_SECONDS=$((34 * 3600)) # 34 hours in seconds
+
+          echo "$ISSUES" | jq -c '.[]' | while read -r item; do
+            NUMBER=$(echo "$item" | jq -r '.number')
+            ASSIGNEES=$(echo "$item" | jq -r '.assignees[].login')
+            UPDATED_AT=$(echo "$item" | jq -r '.updatedAt')
+            
+            if [ -n "$ASSIGNEES" ]; then
+              UPDATED_SEC=$(date -d "$UPDATED_AT" +%s 2>/dev/null || date -j -f "%Y-%m-%dT%H:%M:%SZ" "$UPDATED_AT" +%s 2>/dev/null || echo "$NOW")
+              DIFF=$((NOW - UPDATED_SEC))
+              
+              if [ $DIFF -ge $DEADLINE_SECONDS ]; then
+                echo "Issue #$NUMBER assigned to $ASSIGNEES is stale ($((DIFF / 3600)) hours inactive). Unassigning..."
+                
+                # Check if assignee has an open PR
+                OPEN_PRS=$(gh pr list --author "$ASSIGNEES" --state open --repo "$GITHUB_REPOSITORY" --json number --jq 'length')
+                
+                if [ "$OPEN_PRS" -eq 0 ]; then
+                  for USER in $ASSIGNEES; do
+                    gh issue edit "$NUMBER" --remove-assignee "$USER" --repo "$GITHUB_REPOSITORY" || true
+                  done
+                  
+                  NOTICE="Hi @$ASSIGNEES, this issue was assigned over **34 hours ago** and has seen no recent PR activity. Unassigning to keep the repository active for other contributors! 🌸\n\nFeel free to re-claim with \`/claim\` when you are ready to submit a Pull Request! ✨"
+                  gh issue comment "$NUMBER" --body "$NOTICE" --repo "$GITHUB_REPOSITORY" || true
+                fi
+              fi
+            fi
+          done
