@@ -42,7 +42,7 @@ const nextConfig = {
     ],
   },
 
-  // Security & CORS headers
+  // Security, CORS & Compression headers
   async headers() {
     return [
       {
@@ -57,17 +57,32 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         ],
       },
-      // Cache static API responses (cycle data, PCOD risk) for 60s
+      // Compression & Cache headers for API JSON responses (cycle history, daily logs, PCOD risk)
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Vary', value: 'Accept-Encoding' },
+        ],
+      },
       {
         source: '/api/cycles',
         headers: [
           { key: 'Cache-Control', value: 'private, max-age=60, stale-while-revalidate=30' },
+          { key: 'Vary', value: 'Accept-Encoding' },
+        ],
+      },
+      {
+        source: '/api/log-day/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'private, max-age=60, stale-while-revalidate=30' },
+          { key: 'Vary', value: 'Accept-Encoding' },
         ],
       },
       {
         source: '/api/pcod-risk',
         headers: [
           { key: 'Cache-Control', value: 'private, max-age=300, stale-while-revalidate=60' },
+          { key: 'Vary', value: 'Accept-Encoding' },
         ],
       },
     ]
