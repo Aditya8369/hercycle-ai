@@ -13,7 +13,7 @@ import {
   orderForDrain,
   planNextAttempt,
 } from './sync-queue'
-import fetchWithTimeout from './fetch-with-timeout'
+import fetchWithTimeout, { TimeoutError } from './fetch-with-timeout'
 import toast from 'react-hot-toast'
 
 const OfflineContext = createContext({
@@ -26,6 +26,23 @@ const OfflineContext = createContext({
   discardFailedSync: async () => { },
   offlineClient: {}
 })
+
+/**
+ * Logs a network fallback and, when the cause was an aborted request
+ * (AbortController 8s timeout), tells the user what happened instead of
+ * leaving them staring at a frozen loading state.
+ *
+ * @param {Error} err
+ * @param {string} label
+ */
+function logNetworkFallback(err, label) {
+  if (err instanceof TimeoutError) {
+    console.warn(`${label}: request timed out, falling back to offline data`, err);
+    toast.error('⚠️ The server took too long to respond. Showing your saved data.');
+    return;
+  }
+  console.warn(`${label}: fetch failed, falling back to offline data`, err);
+}
 
 /**
  * Resolves every record's `encrypted_data` into plain fields.
@@ -379,7 +396,7 @@ export function OfflineProvider({ children }) {
             };
           }
         } catch (e) {
-          console.warn('Fetch cycles failed, falling back to IndexedDB', e);
+          logNetworkFallback(e, 'Fetch cycles');
         }
       }
 
@@ -421,7 +438,7 @@ export function OfflineProvider({ children }) {
             return { success: true, data: null };
           }
         } catch (e) {
-          console.warn('Fetch today log failed, falling back to IndexedDB', e);
+          logNetworkFallback(e, 'Fetch today log');
         }
       }
 
@@ -447,7 +464,7 @@ export function OfflineProvider({ children }) {
             return data;
           }
         } catch (e) {
-          console.warn('Fetch all logs failed, falling back to IndexedDB', e);
+          logNetworkFallback(e, 'Fetch all logs');
         }
       }
 
