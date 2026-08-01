@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
+import { X } from 'lucide-react'
 import { createClient } from "@/lib/supabase-client";
 import { addDaysISO, getTodayISO, toISODate } from "@/lib/date-utils";
 
@@ -89,6 +90,15 @@ export default function OnboardingModal({ onComplete, onSkip }) {
       }}
     >
       <div className="onboard-card" onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>
+        <button
+          type="button"
+          onClick={handleSkip}
+          className="absolute top-4 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:!translate-y-0 hover:bg-white/20 hover:text-white active:!translate-y-0"
+          aria-label="Close onboarding"
+        >
+          <X className="h-5 w-5" aria-hidden="true" />
+        </button>
+
         {/* Decorative top */}
         <div className="onboard-header-art">
           <span className="onboard-emoji">🌸</span>
