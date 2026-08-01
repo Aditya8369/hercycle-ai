@@ -114,35 +114,40 @@ async function main() {
       path: '/api/cycles',
       method: 'GET',
       headers: {},
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
     {
       name: 'GET /api/cycles (Unauthorized Failure)',
       path: '/api/cycles',
       method: 'GET',
       headers: { 'x-mock-unauthorized': 'true' },
-      expectedStatus: 401
+      expectedStatus: 401,
+      expectRateLimit: true
     },
     {
       name: 'POST /api/cycles (Valid Payload Success)',
       path: '/api/cycles',
       method: 'POST',
       body: { start_date: '2026-07-01', end_date: '2026-07-05', cycle_length: 28 },
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
     {
       name: 'POST /api/cycles (Invalid Date format - Validation Failure)',
       path: '/api/cycles',
       method: 'POST',
-      body: { start_date: '2026-07-35' }, // Invalid calendar date (out of range/future)
-      expectedStatus: 400
+      body: { start_date: '2026-07-35' }, // Invalid calendar date
+      expectedStatus: 400,
+      expectRateLimit: true
     },
     {
       name: 'POST /api/cycles (Invalid Cycle Length - Validation Failure)',
       path: '/api/cycles',
       method: 'POST',
-      body: { start_date: '2026-07-01', cycle_length: 10 }, // 10 days is physiologically invalid (min: 15)
-      expectedStatus: 400
+      body: { start_date: '2026-07-01', cycle_length: 10 },
+      expectedStatus: 400,
+      expectRateLimit: true
     },
 
     // 2. Log-day Endpoint
@@ -150,21 +155,24 @@ async function main() {
       name: 'GET /api/log-day (Authenticated Success)',
       path: '/api/log-day',
       method: 'GET',
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
     {
       name: 'POST /api/log-day (Valid Payload Success)',
       path: '/api/log-day',
       method: 'POST',
       body: { date: '2026-07-01', symptoms: ['cramps'], mood: '😊', flow: 'f2' },
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
     {
       name: 'POST /api/log-day (Invalid Date - Validation Failure)',
       path: '/api/log-day',
       method: 'POST',
-      body: { date: '2026/07/01' }, // Bad format
-      expectedStatus: 400
+      body: { date: '2026/07/01' },
+      expectedStatus: 400,
+      expectRateLimit: true
     },
 
     // 3. Log-day all Endpoint
@@ -172,7 +180,8 @@ async function main() {
       name: 'GET /api/log-day/all (Authenticated Success)',
       path: '/api/log-day/all',
       method: 'GET',
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
 
     // 4. Weight Endpoint
@@ -180,21 +189,24 @@ async function main() {
       name: 'GET /api/weight (Authenticated Success)',
       path: '/api/weight',
       method: 'GET',
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
     {
       name: 'POST /api/weight (Valid Payload Success)',
       path: '/api/weight',
       method: 'POST',
       body: { recorded_date: '2026-07-01', weight_kg: 65, height_cm: 165 },
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
     {
       name: 'POST /api/weight (Invalid Weight - Validation Failure)',
       path: '/api/weight',
       method: 'POST',
-      body: { recorded_date: '2026-07-01', weight_kg: 5, height_cm: 165 }, // Too low
-      expectedStatus: 400
+      body: { recorded_date: '2026-07-01', weight_kg: 5, height_cm: 165 },
+      expectedStatus: 400,
+      expectRateLimit: true
     },
 
     // 5. User Profile Endpoint
@@ -217,7 +229,8 @@ async function main() {
       name: 'GET /api/predict-cycle (Authenticated Success)',
       path: '/api/predict-cycle',
       method: 'GET',
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
 
     // 7. PCOD Risk Endpoint
@@ -225,7 +238,8 @@ async function main() {
       name: 'GET /api/pcod-risk (Authenticated Success)',
       path: '/api/pcod-risk',
       method: 'GET',
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
 
     // 8. Partner Coach Endpoint
@@ -274,14 +288,16 @@ async function main() {
       path: '/api/chat',
       method: 'POST',
       body: { message: 'Hello' },
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
     {
       name: 'POST /api/chat (Validation Failure)',
       path: '/api/chat',
       method: 'POST',
       body: { message: '' },
-      expectedStatus: 400
+      expectedStatus: 400,
+      expectRateLimit: true
     },
 
     // 12. Challenges Endpoint
@@ -289,14 +305,16 @@ async function main() {
       name: 'GET /api/challenges (Success)',
       path: '/api/challenges',
       method: 'GET',
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
     {
       name: 'POST /api/challenges (Valid Success)',
       path: '/api/challenges',
       method: 'POST',
       body: { challengeId: 'water' },
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
 
     // 13. Challenges Heatmap
@@ -304,7 +322,8 @@ async function main() {
       name: 'GET /api/challenges/heatmap (Success)',
       path: '/api/challenges/heatmap',
       method: 'GET',
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
 
     // 14. Challenges Progress
@@ -312,7 +331,8 @@ async function main() {
       name: 'GET /api/challenges/progress (Success)',
       path: '/api/challenges/progress',
       method: 'GET',
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
 
     // 15. Challenges Monthly Recap
@@ -320,7 +340,8 @@ async function main() {
       name: 'GET /api/challenges/monthly-recap (Success)',
       path: '/api/challenges/monthly-recap',
       method: 'GET',
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
 
     // 16. Export Data
@@ -336,7 +357,8 @@ async function main() {
       name: 'GET /api/forum/categories (Success)',
       path: '/api/forum/categories',
       method: 'GET',
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
 
     // 18. Forum Posts
@@ -345,14 +367,16 @@ async function main() {
       path: '/api/forum/posts',
       method: 'POST',
       body: { categoryId: 'mock-cat-12345', title: 'Hello', content: 'World content' },
-      expectedStatus: 201
+      expectedStatus: 201,
+      expectRateLimit: true
     },
     {
       name: 'POST /api/forum/posts (Validation Failure)',
       path: '/api/forum/posts',
       method: 'POST',
       body: { title: 'Hello' },
-      expectedStatus: 400
+      expectedStatus: 400,
+      expectRateLimit: true
     },
 
     // 19. Forum Comments
@@ -361,7 +385,8 @@ async function main() {
       path: '/api/forum/comments',
       method: 'POST',
       body: { postId: 'mock-uuid-12345', content: 'This is a comment.' },
-      expectedStatus: 201
+      expectedStatus: 201,
+      expectRateLimit: true
     },
 
     // 20. Forum Vote
@@ -370,7 +395,8 @@ async function main() {
       path: '/api/forum/vote',
       method: 'POST',
       body: { itemType: 'post', itemId: 'mock-uuid-12345', voteValue: 1 },
-      expectedStatus: 201
+      expectedStatus: 201,
+      expectRateLimit: true
     },
 
     // 21. Clerk Webhooks Signature Verification
@@ -404,7 +430,8 @@ async function main() {
       name: 'GET /api/seed (Success)',
       path: '/api/seed',
       method: 'GET',
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     },
 
     // 23. Test DB Endpoint
@@ -412,7 +439,8 @@ async function main() {
       name: 'GET /api/test-db (Success)',
       path: '/api/test-db',
       method: 'GET',
-      expectedStatus: 200
+      expectedStatus: 200,
+      expectRateLimit: true
     }
   ];
 
@@ -438,11 +466,33 @@ async function main() {
     try {
       const res = await fetch(url, options);
       if (res.status === test.expectedStatus) {
+        // Assert rate limit headers if expected
+        if (test.expectRateLimit) {
+          const limitHeader = res.headers.get('x-ratelimit-limit');
+          const remainingHeader = res.headers.get('x-ratelimit-remaining');
+          const resetHeader = res.headers.get('x-ratelimit-reset');
+
+          if (!limitHeader || !remainingHeader || !resetHeader) {
+            log(`🔴 [FAIL] ${test.name} - Missing rate limit headers! (Limit: ${limitHeader}, Remaining: ${remainingHeader}, Reset: ${resetHeader})`);
+            failedTests++;
+            continue;
+          }
+
+          const limitVal = parseInt(limitHeader, 10);
+          const remainingVal = parseInt(remainingHeader, 10);
+          const resetVal = parseInt(resetHeader, 10);
+
+          if (isNaN(limitVal) || isNaN(remainingVal) || isNaN(resetVal)) {
+            log(`🔴 [FAIL] ${test.name} - Rate limit headers are not valid numbers! (Limit: ${limitHeader}, Remaining: ${remainingHeader}, Reset: ${resetHeader})`);
+            failedTests++;
+            continue;
+          }
+        }
+        
         log(`🟢 [PASS] ${test.name} (Expected: ${test.expectedStatus}, Actual: ${res.status})`);
         passedTests++;
       } else {
         log(`🔴 [FAIL] ${test.name} (Expected: ${test.expectedStatus}, Actual: ${res.status})`);
-        // Log the response text to help debugging
         try {
           const bodyText = await res.text();
           console.error(`          Response Body: ${bodyText}`);
