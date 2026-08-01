@@ -1379,6 +1379,10 @@ nav ul li a.active {
   justify-content: center;
   gap: 6px;
   line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
 }
 
 .symp-chip:hover,
@@ -2987,12 +2991,14 @@ nav ul li a:focus-visible,
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 44px;
+  min-height: 44px;
+  height: auto;
 }
 
 .chip-icon {
   font-size: 0.95rem;
   width: 18px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
