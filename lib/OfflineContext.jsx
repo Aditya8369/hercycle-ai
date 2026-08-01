@@ -132,11 +132,24 @@ export function OfflineProvider({ children }) {
           console.error('Service Worker registration failed:', err);
         });
 
-      let refreshing = false;
+      let refreshPrompted = false;
       const handleControllerChange = () => {
-        if (refreshing) return;
-        refreshing = true;
-        window.location.reload();
+        // Never force a reload: the user may be mid-log or mid-typing, and a
+        // spontaneous window.location.reload() would discard unsaved local
+        // state. Surface a non-intrusive banner and let them refresh on their
+        // own terms.
+        if (refreshPrompted) return;
+        refreshPrompted = true;
+        toast('🔄 Update available — click to refresh.', {
+          duration: Infinity,
+          action: {
+            label: 'Refresh',
+            onClick: () => {
+              refreshPrompted = false;
+              window.location.reload();
+            },
+          },
+        });
       };
 
       navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
