@@ -83,7 +83,12 @@ export default function PrivacySettingsContent() {
     }
   }
 
-
+  const handleKeyDown = (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && !isExporting) {
+      e.preventDefault()
+      handleExportData()
+    }
+  }
 
   return (
     <div className="p-4 sm:p-8 flex flex-col h-full animate-in fade-in duration-300 mt-2 max-w-2xl mx-auto w-full space-y-6">
@@ -127,6 +132,7 @@ export default function PrivacySettingsContent() {
         </div>
         <button
           onClick={!isExporting ? handleExportData : undefined}
+          onKeyDown={handleKeyDown}
           disabled={isExporting}
           className={`shrink-0 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-xl transition-all font-medium border border-white/10 ${isExporting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-95'}`}
         >
