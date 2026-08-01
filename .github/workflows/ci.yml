@@ -27,7 +27,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
       - name: Install dependencies
@@ -69,3 +69,11 @@ jobs:
 
       - name: Run build
         run: npm run build
+
+      - name: Start Next.js server for E2E tests
+        run: |
+          npm run start &
+          npx wait-on http://localhost:3000 --timeout 30000
+
+      - name: Run E2E Integration Tests
+        run: npm run test:e2e

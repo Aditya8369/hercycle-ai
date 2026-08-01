@@ -30,6 +30,8 @@ import { useOffline } from '@/lib/OfflineContext'
 import { useLocale, useTranslations } from 'next-intl'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
 import FeaturesSection from '@/components/dashboard/FeaturesSection'
+import { isEncryptionFailure } from '@/lib/encryption-policy'
+import { getTodayISO, eachDayISO, addDaysISO } from '@/lib/date-utils'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
