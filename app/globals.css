@@ -3277,3 +3277,17 @@ nav ul li a:focus-visible,
     grid-template-columns: repeat(15, minmax(0, 1fr));
   }
 }
+
+/* ──── LOGS HISTORY SCROLL CONTAINER MARGIN ADJUSTMENT (Fixes #327) ──── */
+.logs-history-container,
+.logs-history-scroll,
+.logs-scroll-wrapper,
+.track-logs-history {
+  margin-left: -4px;
+  margin-right: -4px;
+  padding-left: 4px;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
