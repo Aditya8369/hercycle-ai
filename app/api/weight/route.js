@@ -6,16 +6,26 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { crudLimiter } from '@/lib/rateLimiter'
 import { logger } from '@/lib/logger'
 
-const dateSchema = z.string().regex(
-  /^\d{4}-\d{2}-\d{2}$/,
-  'Date must use YYYY-MM-DD format'
-)
+const dateSchema = z
+  .string({ required_error: 'recorded_date is required', invalid_type_error: 'recorded_date must be a string' })
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'recorded_date must be in YYYY-MM-DD format')
 
 const weightEntrySchema = z.object({
   recorded_date: dateSchema,
-  weight_kg: z.coerce.number().min(20).max(350),
-  waist_cm: z.coerce.number().min(30).max(250).nullable().optional(),
-  height_cm: z.coerce.number().min(100).max(250),
+  weight_kg: z
+    .coerce.number({ required_error: 'weight_kg is required', invalid_type_error: 'weight_kg must be a number' })
+    .min(20, 'weight_kg must be at least 20 kg')
+    .max(350, 'weight_kg cannot exceed 350 kg'),
+  height_cm: z
+    .coerce.number({ required_error: 'height_cm is required', invalid_type_error: 'height_cm must be a number' })
+    .min(100, 'height_cm must be at least 100 cm')
+    .max(250, 'height_cm cannot exceed 250 cm'),
+  waist_cm: z
+    .coerce.number({ invalid_type_error: 'waist_cm must be a number' })
+    .min(30, 'waist_cm must be at least 30 cm')
+    .max(250, 'waist_cm cannot exceed 250 cm')
+    .nullable()
+    .optional(),
 })
 
 function calculateBMI(weightKg, heightCm) {
@@ -101,11 +111,14 @@ export async function POST(request) {
     const parsed = weightEntrySchema.safeParse(json)
 
     if (!parsed.success) {
+      const errorMessage = parsed.error.issues.map(i => i.message).join('; ')
+      logger.warn(`Validation failed for weight POST from user ${userId}: ${errorMessage}`)
       return NextResponse.json(
         {
           success: false,
-          error: 'Please check the entered values.',
+          error: errorMessage || 'Please check the entered values.',
           details: parsed.error.flatten(),
+          issues: parsed.error.issues,
         },
         { status: 400 }
       )
