@@ -13,24 +13,7 @@ CREATE TABLE IF NOT EXISTS public.rate_limits (
 
 ALTER TABLE public.rate_limits ENABLE ROW LEVEL SECURITY;
 
-CREATE OR REPLACE FUNCTION public.enforce_rate_limit(
-    p_identifier TEXT,
-    p_limit INTEGER,
-    p_interval INTEGER -- in milliseconds
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-    v_now TIMESTAMPTZ := clock_timestamp();
-    v_record RECORD;
-    v_allowed BOOLEAN;
-    v_interval_dur INTERVAL;
-END;
-$$;
-
--- Re-define the full enforce_rate_limit RPC body
+-- 2. Define the enforce_rate_limit RPC function
 CREATE OR REPLACE FUNCTION public.enforce_rate_limit(
     p_identifier TEXT,
     p_limit INTEGER,
