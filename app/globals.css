@@ -1620,10 +1620,18 @@ nav ul li a.active {
 
 footer {
   text-align: center;
-  padding: 24px;
+  padding: 24px 20px;
   color: var(--text-faint);
   font-size: 0.85rem;
   margin-top: 48px;
+  overflow-wrap: anywhere;
+}
+
+.footer-logo {
+  font-family: var(--serif);
+  font-weight: 700;
+  color: var(--rose-bright);
+  white-space: nowrap;
 }
 
 @keyframes fillAnim {
@@ -3275,5 +3283,12 @@ nav ul li a:focus-visible,
 @media (min-width: 640px) {
   .heatmap-grid {
     grid-template-columns: repeat(15, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 479px) {
+  footer {
+    padding: 20px 16px 32px;
+    font-size: 0.8rem;
   }
 }
