@@ -82,7 +82,7 @@ export default function OnboardingModal({ onComplete, onSkip }) {
       className="onboard-overlay"
       role="dialog"
       aria-modal="true"
-      style={{ cursor: 'pointer' }}
+      style={{ cursor: 'pointer' /* Pointer cursor on overlay hover for interactive dismissal */ }}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           handleSkip()
