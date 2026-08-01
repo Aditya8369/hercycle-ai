@@ -3305,6 +3305,8 @@ nav ul li a:focus-visible,
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   transform-style: preserve-3d;
+}
+
 /* ──── LOGS HISTORY SCROLL CONTAINER MARGIN ADJUSTMENT (Fixes #327) ──── */
 .logs-history-container,
 .logs-history-scroll,
