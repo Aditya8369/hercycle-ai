@@ -37,9 +37,7 @@ export default function CommentSection({ postId, initialComments = [] }) {
         },
         (payload) => {
           // If we receive a new comment via realtime, add it to the top of the list
-          // Ensure we don't duplicate if it's our own comment (though optimistic UI usually needs this check, we aren't doing optimistic insert here)
           setComments((current) => {
-            // Check if it already exists (if we added it on successful POST response)
             if (current.some(c => c.id === payload.new.id)) return current;
             return [payload.new, ...current];
           });
@@ -78,7 +76,6 @@ export default function CommentSection({ postId, initialComments = [] }) {
       }
 
       setNewComment('');
-      // It will also come through realtime, but we can add it immediately for faster feedback
       setComments((current) => {
         if (current.some(c => c.id === data.comment.id)) return current;
         return [data.comment, ...current];
@@ -168,6 +165,7 @@ export default function CommentSection({ postId, initialComments = [] }) {
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder={t('write_comment') || 'Share your thoughts anonymously...'}
+          aria-label={t('write_comment') || 'Write your comment anonymously'}
           className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl p-4 pr-12 focus:outline-none focus:ring-2 focus:ring-pink-500/50 resize-none"
           rows={3}
           disabled={isSubmitting}
