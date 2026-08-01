@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import http from 'node:http';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,6 +16,22 @@ const suites = [
   { id: 7, name: 'Suite 7: Internationalization (i18n) Parity & Algorithm Edge Cases', file: 'suite7_i18n_resilience_edgecases.test.mjs' }
 ];
 
+function isServerRunning(port = 3000) {
+  return new Promise((resolve) => {
+    const req = http.request({
+      host: '127.0.0.1',
+      port,
+      path: '/api/forum/categories',
+      method: 'GET',
+      timeout: 1000
+    }, (res) => {
+      resolve(true);
+    });
+    req.on('error', () => resolve(false));
+    req.end();
+  });
+}
+
 async function runSuite(suite) {
   const filePath = path.join(__dirname, suite.file);
   const startTime = Date.now();
@@ -22,7 +39,7 @@ async function runSuite(suite) {
   return new Promise((resolve) => {
     const child = spawn('node', ['--test', filePath], {
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: process.env
+      env: { ...process.env, TEST_BASE_URL: 'http://127.0.0.1:3000' }
     });
 
     let stdout = '';
@@ -51,6 +68,40 @@ async function main() {
   console.log('🚀 Running Complete 7-Part E2E Test Suite Framework');
   console.log('====================================================\n');
 
+  let serverProcess = null;
+  const running = await isServerRunning(3000);
+
+  if (!running) {
+    console.log('Next.js server not detected on port 3000. Starting Next.js server automatically...');
+    
+    // Spawn server process
+    serverProcess = spawn('npx', ['next', 'start', '--port', '3000'], {
+      stdio: 'ignore',
+      shell: true,
+      detached: process.platform !== 'win32'
+    });
+
+    // Wait for the server to spin up and respond
+    let retries = 20;
+    let started = false;
+    while (retries > 0) {
+      if (await isServerRunning(3000)) {
+        started = true;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+      retries--;
+    }
+
+    if (started) {
+      console.log('Next.js server started successfully! Proceeding to execute tests...\n');
+    } else {
+      console.warn('Warning: Server did not respond in time. Running tests anyway...\n');
+    }
+  } else {
+    console.log('Next.js server detected running on port 3000. Executing tests...\n');
+  }
+
   const results = [];
   for (const suite of suites) {
     console.log(`▶ Executing ${suite.name}...`);
@@ -62,6 +113,20 @@ async function main() {
       console.log(`  ❌ ${suite.name} FAILED (${res.duration}ms)`);
       if (res.stderr) console.error(res.stderr);
       console.log('');
+    }
+  }
+
+  // Tear down background server if we started it
+  if (serverProcess) {
+    console.log('Shutting down automatically started Next.js server...');
+    try {
+      if (process.platform === 'win32') {
+        spawn('taskkill', ['/pid', serverProcess.pid, '/f', '/t']);
+      } else {
+        process.kill(-serverProcess.pid);
+      }
+    } catch (e) {
+      // ignore
     }
   }
 
