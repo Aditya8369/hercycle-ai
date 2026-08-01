@@ -2,13 +2,17 @@ import { NextResponse } from 'next/server'
 import { predictNextPeriod } from '@/lib/api-helpers'
 import { getAuthUserId } from '@/lib/clerk-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
-import { aiLimiter } from '@/lib/rateLimiter'
+import { aiLimiter, getRateLimitIdentifier } from '@/lib/rateLimiter'
 import { logger } from '@/lib/logger'
 
 export async function POST(request) {
   // ============ RATE LIMITING ============
   try {
-    await aiLimiter.check(request);
+    // Resolve the identifier explicitly (user → IP with proxy-header
+    // fallbacks) so unidentifiable clients are throttled securely instead of
+    // bypassing the limiter through a shared `unknown` bucket.
+    const identifier = await getRateLimitIdentifier(request);
+    await aiLimiter.check(5, identifier);
   } catch (rateLimitError) {
     console.warn(`[Rate Limit] Predict cycle endpoint: ${rateLimitError.message}`);
     return NextResponse.json(
