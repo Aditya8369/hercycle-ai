@@ -41,8 +41,16 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 
-    const prediction = predictNextPeriod(cycles || [])
-    logger.info(`Successfully generated cycle prediction for user ${userId}`);
+    // Gracefully handle new users / empty cycle history using default prediction baseline
+    const cycleHistory = Array.isArray(cycles) ? cycles : []
+    const prediction = predictNextPeriod(cycleHistory)
+
+    if (!cycleHistory.length) {
+      logger.info(`New user or empty cycle history for user ${userId}; returned default baseline prediction`);
+    } else {
+      logger.info(`Successfully generated cycle prediction for user ${userId}`);
+    }
+
     return NextResponse.json({ success: true, prediction })
   } catch (error) {
     logger.error('Error predicting cycle:', error.message || error)
