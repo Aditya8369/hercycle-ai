@@ -3277,3 +3277,7 @@ nav ul li a:focus-visible,
     grid-template-columns: repeat(15, minmax(0, 1fr));
   }
 }
+
+.heatmap-grid > * {
+  cursor: pointer;
+}
