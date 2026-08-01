@@ -3160,6 +3160,10 @@ nav ul li a:focus-visible,
   }
 }
 
+.challenge-content {
+  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* ──── CHALLENGES ──── */
 @keyframes popIn {
   0% {
