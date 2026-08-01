@@ -3277,3 +3277,36 @@ nav ul li a:focus-visible,
     grid-template-columns: repeat(15, minmax(0, 1fr));
   }
 }
+
+/* ──── HEATMAP RESPONSIVE GUARD ──── */
+.heatmap-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.heatmap-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.heatmap-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.heatmap-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+}
+
+.heatmap-grid {
+  min-width: 360px;
+}
+
+.heatmap-grid > * {
+  min-width: 20px;
+  min-height: 20px;
+  cursor: pointer;
+}

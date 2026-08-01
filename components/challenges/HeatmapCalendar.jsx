@@ -36,15 +36,17 @@ export default function HeatmapCalendar() {
           {Object.values(counts).filter((c) => c > 0).length} active days
         </span>
       </div>
-      <div className="grid grid-cols-10 gap-1.5 heatmap-grid">
-        {days.map((day) => (
-          <div
-            key={day.key}
-            title={`${day.label} — ${day.count} completion${day.count === 1 ? '' : 's'}`}
-            className="aspect-square rounded-md transition-transform hover:scale-110"
-            style={{ background: getIntensity(day.count) }}
-          />
-        ))}
+      <div className="heatmap-scroll">
+        <div className="grid grid-cols-10 gap-1.5 heatmap-grid">
+          {days.map((day) => (
+            <div
+              key={day.key}
+              title={`${day.label} — ${day.count} completion${day.count === 1 ? '' : 's'}`}
+              className="aspect-square rounded-md transition-transform hover:scale-110"
+              style={{ background: getIntensity(day.count) }}
+            />
+          ))}
+        </div>
       </div>
       <div className="flex items-center gap-1.5 mt-3 justify-end">
         <span className="text-xs" style={{ color: 'var(--text-faint)' }}>Less</span>
