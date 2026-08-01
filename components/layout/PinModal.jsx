@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useEncryption } from '@/lib/EncryptionContext'
 import { useUser } from '@clerk/nextjs'
 
@@ -10,6 +10,48 @@ export default function PinModal({ onPinSet }) {
   const [pinInput, setPinInput] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const modalRef = useRef(null)
+
+  // Focus management and focus trapping
+  useEffect(() => {
+    // Focus the input when the modal opens
+    const input = modalRef.current?.querySelector('input')
+    if (input) {
+      input.focus()
+    }
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Tab') {
+        if (!modalRef.current) return
+        const focusableElements = modalRef.current.querySelectorAll(
+          'input, button, [href], [tabIndex]:not([tabIndex="-1"])'
+        )
+        if (focusableElements.length === 0) return
+
+        const firstElement = focusableElements[0]
+        const lastElement = focusableElements[focusableElements.length - 1]
+
+        if (e.shiftKey) {
+          // Shift + Tab: Go to last element if first element is focused
+          if (document.activeElement === firstElement) {
+            lastElement.focus()
+            e.preventDefault()
+          }
+        } else {
+          // Tab: Go to first element if last element is focused
+          if (document.activeElement === lastElement) {
+            firstElement.focus()
+            e.preventDefault()
+          }
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
 
   // If the key is already derived in context, don't show the modal
   if (isUnlocked) return null;
@@ -44,11 +86,18 @@ export default function PinModal({ onPinSet }) {
 
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#241330] border border-[#e8527e]/30 rounded-2xl p-6 md:p-8 shadow-2xl max-w-sm w-full mx-4">
-        <h2 className="text-xl md:text-2xl font-bold text-white mb-2 text-center">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pin-modal-title"
+        aria-describedby="pin-modal-description"
+        className="bg-[#241330] border border-[#e8527e]/30 rounded-2xl p-6 md:p-8 shadow-2xl max-w-sm w-full mx-4"
+      >
+        <h2 id="pin-modal-title" className="text-xl md:text-2xl font-bold text-white mb-2 text-center">
           Unlock Health Data 🔒
         </h2>
-        <p className="text-sm text-gray-300 text-center mb-6">
+        <p id="pin-modal-description" className="text-sm text-gray-300 text-center mb-6">
           Your menstrual data is End-to-End Encrypted. Enter your 6-digit Security PIN to decrypt your data on this device.
         </p>
 
