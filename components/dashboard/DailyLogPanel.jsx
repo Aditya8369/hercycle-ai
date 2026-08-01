@@ -56,7 +56,7 @@ export default function DailyLogPanel({
           Common Symptoms
         </div>
 
-        <div className="symp-grid">
+        <div className="symp-grid symp-grid-scroll-wrapper">
           {allDisplaySymptoms.map(symptom => {
             const active = selectedSymptoms.includes(symptom)
             const isCustom = !baseSymptoms.includes(symptom)
