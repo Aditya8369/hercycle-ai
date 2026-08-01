@@ -5,6 +5,7 @@ import { crudLimiter } from '@/lib/rateLimiter'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { eventBus } from '@/lib/events'
+import { pcodRiskCache } from '@/lib/cache'
 
 /**
  * ISO date string must be a valid calendar date and must not be in the future.
@@ -182,6 +183,10 @@ export async function POST(request) {
 
     logger.info(`Successfully added new period cycle for user ${userId}`);
     
+    // Automatic LRU cache invalidation for PCOD risk score
+    pcodRiskCache.invalidate(`pcod-risk:${userId}`);
+    pcodRiskCache.invalidate(userId);
+
     // Emit event for cycle update
     eventBus.emit('cycles:updated', { userId });
 
@@ -250,6 +255,10 @@ export async function PATCH(request) {
 
     logger.info(`Successfully updated period cycle ${id} for user ${userId}`);
     
+    // Automatic LRU cache invalidation for PCOD risk score
+    pcodRiskCache.invalidate(`pcod-risk:${userId}`);
+    pcodRiskCache.invalidate(userId);
+
     // Emit event for cycle update
     eventBus.emit('cycles:updated', { userId });
 
