@@ -1368,7 +1368,7 @@ nav ul li a.active {
   margin-bottom: 12px;
 }
 
-/* Mobile horizontal scroll wrapper for logged symptoms (Fixes #329) */
+/* Mobile horizontal scroll wrapper for logged symptoms (Fixes #249, #329) */
 @media (max-width: 640px) {
   .symp-grid-scroll-wrapper,
   .symptoms-horizontal-scroll {
