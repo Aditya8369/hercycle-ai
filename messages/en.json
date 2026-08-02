@@ -480,5 +480,21 @@
         "step3": "Adopt a holistic lifestyle approach targeting both metabolic and hormonal health."
       }
     }
+  },
+  "HydrationReminder": {
+    "title": "Hydration Reminder 💧",
+    "subtitle": "Schedule automatic hydration reminders",
+    "statusLabel": "Enabled",
+    "statusDesc": "Send browser notifications on a set schedule",
+    "scheduleLabel": "Reminder Schedule",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "repeatEvery": "Repeat Every",
+    "estimatedLabel": "Estimated Reminders Today",
+    "remindersUnit": "reminders",
+    "skipIfGoalReached": "Skip reminders after daily hydration goal is reached",
+    "saveBtn": "Save Changes",
+    "savedSuccess": "Hydration reminder schedule saved! 💧",
+    "savedError": "Failed to save reminder settings."
   }
 }
