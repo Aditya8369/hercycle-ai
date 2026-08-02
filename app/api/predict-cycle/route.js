@@ -2,13 +2,17 @@ import { NextResponse } from 'next/server'
 import { predictNextPeriod } from '@/lib/api-helpers'
 import { getAuthUserId } from '@/lib/clerk-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
-import { aiLimiter } from '@/lib/rateLimiter'
+import { aiLimiter, getRateLimitIdentifier } from '@/lib/rateLimiter'
 import { logger } from '@/lib/logger'
 
 export async function POST(request) {
   // ============ RATE LIMITING ============
   try {
-    await aiLimiter.check(request);
+    // Resolve the identifier explicitly (user → IP with proxy-header
+    // fallbacks) so unidentifiable clients are throttled securely instead of
+    // bypassing the limiter through a shared `unknown` bucket.
+    const identifier = await getRateLimitIdentifier(request);
+    await aiLimiter.check(5, identifier);
   } catch (rateLimitError) {
     console.warn(`[Rate Limit] Predict cycle endpoint: ${rateLimitError.message}`);
     return NextResponse.json(
@@ -41,8 +45,16 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 
-    const prediction = predictNextPeriod(cycles || [])
-    logger.info(`Successfully generated cycle prediction for user ${userId}`);
+    // Gracefully handle new users / empty cycle history using default prediction baseline
+    const cycleHistory = Array.isArray(cycles) ? cycles : []
+    const prediction = predictNextPeriod(cycleHistory)
+
+    if (!cycleHistory.length) {
+      logger.info(`New user or empty cycle history for user ${userId}; returned default baseline prediction`);
+    } else {
+      logger.info(`Successfully generated cycle prediction for user ${userId}`);
+    }
+
     return NextResponse.json({ success: true, prediction })
   } catch (error) {
     logger.error('Error predicting cycle:', error.message || error)
