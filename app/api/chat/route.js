@@ -154,51 +154,59 @@ async function callGroq(message, systemPrompt, history = []) {
   return data.choices[0].message.content;
 }
 
-/**
- * Orchestrates failover from Gemini to Groq.
- */
-async function getAIResponse(message, systemPrompt, history = []) {
-  try {
-    // 1. Try Gemini first (with timeout)
-    const responseText = await callGeminiWithRetry(message, systemPrompt, history);
-    return responseText;
-  } catch (error) {
-    logger.warn(`Gemini API failed (${error.message}). Switching to Groq fallback...`);
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    // 2. Try Groq as fallback (with timeout)
+async function runWithRetry(fn, label) {
+  const maxRetries = 3;
+  const backoffDelays = [1000, 2000, 4000]; // 1s, 2s, 4s
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      const fallbackText = await withTimeout(callGroq(message, systemPrompt, history), TIMEOUT_MS);
-      return fallbackText;
-    } catch (fallbackError) {
-      logger.error('Both Gemini and Groq APIs failed.', fallbackError.message);
-      throw new Error('All AI service proxies failed.');
+      return await withTimeout(fn(), TIMEOUT_MS);
+    } catch (error) {
+      if (attempt === maxRetries) {
+        logger.error(`${label} failed after all retries: ${error.message}`);
+        throw error;
+      }
+      const delayMs = backoffDelays[attempt];
+      logger.warn(`${label} attempt ${attempt + 1} failed (${error.message}). Retrying in ${delayMs}ms...`);
+      await delay(delayMs);
     }
   }
 }
 
 async function callGeminiWithRetry(message, systemPrompt, history = []) {
+  return runWithRetry(
+    () => callGemini(message, systemPrompt, history),
+    'Gemini API'
+  );
+}
+
+async function callGroqWithRetry(message, systemPrompt, history = []) {
+  return runWithRetry(
+    () => callGroq(message, systemPrompt, history),
+    'Groq API'
+  );
+}
+
+/**
+ * Orchestrates failover from Gemini to Groq.
+ */
+async function getAIResponse(message, systemPrompt, history = []) {
   try {
-    return await withTimeout(callGemini(message, systemPrompt, history), TIMEOUT_MS);
+    // 1. Try Gemini first (with retries and backoff)
+    const responseText = await callGeminiWithRetry(message, systemPrompt, history);
+    return responseText;
   } catch (error) {
+    logger.warn(`Gemini API failed after all retries (${error.message}). Switching to Groq fallback...`);
 
-    const errorMessage = error?.message || '';
-
-    const shouldRetry =
-      error.message.includes('timed out') ||
-      error.message.includes('503') ||
-      error.message.includes('429');
-
-    if (!shouldRetry) {
-      throw error;
-    }
-
-    logger.warn(`Gemini API attempt 1 failed (${error.message}). Retrying once...`);
-
+    // 2. Try Groq as fallback (with retries and backoff)
     try {
-      return await withTimeout(callGemini(message, systemPrompt, history), TIMEOUT_MS);
-    } catch (retryError) {
-      logger.warn(`Gemini retry failed (${retryError.message}).`);
-      throw retryError;
+      const fallbackText = await callGroqWithRetry(message, systemPrompt, history);
+      return fallbackText;
+    } catch (fallbackError) {
+      logger.error('Both Gemini and Groq APIs failed.', fallbackError.message);
+      throw new Error('All AI service proxies failed.');
     }
   }
 }
