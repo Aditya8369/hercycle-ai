@@ -146,7 +146,7 @@ export default function CycleCalendar({
                 }
               }}
               style={{
-                cursor: (isClickable && onDayClick) ? 'pointer' : undefined
+                cursor: isClickable ? 'pointer' : 'default'
               }}
             >
               {day.label}

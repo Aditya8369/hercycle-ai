@@ -886,7 +886,11 @@ nav ul li a.active {
   padding: 24px;
   transition: transform 0.22s, box-shadow 0.22s;
   position: relative;
-  cursor: pointer;
+  cursor: pointer !important;
+}
+
+.feat-card * {
+  cursor: pointer !important;
 }
 
 .feat-card:hover {
@@ -1364,7 +1368,7 @@ nav ul li a.active {
   margin-bottom: 12px;
 }
 
-/* Mobile horizontal scroll wrapper for logged symptoms (Fixes #329) */
+/* Mobile horizontal scroll wrapper for logged symptoms (Fixes #249, #329) */
 @media (max-width: 640px) {
   .symp-grid-scroll-wrapper,
   .symptoms-horizontal-scroll {
@@ -1820,6 +1824,42 @@ footer {
   text-align: center;
   position: relative;
   overflow: hidden;
+}
+
+.onboard-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-white);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.onboard-close-btn:hover {
+  background: rgba(232, 82, 126, 0.3);
+  transform: scale(1.08);
+}
+
+/* Mobile responsive margin adjustment for onboard close button (Fixes #240) */
+@media (max-width: 480px) {
+  .onboard-close-btn {
+    top: 14px;
+    right: 14px;
+    margin: 4px;
+    width: 28px;
+    height: 28px;
+    font-size: 1.1rem;
+  }
 }
 
 @keyframes cardPop {
@@ -2451,6 +2491,7 @@ nav ul li a.active::after {
 .mood-btn:hover,
 .flow-dot:hover,
 .chat-chip:hover {
+  cursor: pointer !important;
   transform: translateY(-3px) scale(1.02);
   box-shadow: 0 10px 26px rgba(80, 10, 60, 0.18);
   filter: brightness(1.06);

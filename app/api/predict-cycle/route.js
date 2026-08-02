@@ -8,9 +8,6 @@ import { logger } from '@/lib/logger'
 export async function POST(request) {
   // ============ RATE LIMITING ============
   try {
-    // Resolve the identifier explicitly (user → IP with proxy-header
-    // fallbacks) so unidentifiable clients are throttled securely instead of
-    // bypassing the limiter through a shared `unknown` bucket.
     const identifier = await getRateLimitIdentifier(request);
     await aiLimiter.check(5, identifier);
   } catch (rateLimitError) {
