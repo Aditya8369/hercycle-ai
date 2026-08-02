@@ -92,13 +92,12 @@ export default function OnboardingModal({ onComplete, onSkip }) {
       <div className="onboard-card" onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>
         <button
           type="button"
+          className="onboard-close-btn"
           onClick={handleSkip}
-          className="absolute top-4 right-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/10 text-white/70 transition-colors hover:!translate-y-0 hover:bg-white/20 hover:text-white active:!translate-y-0"
-          aria-label="Close onboarding"
+          aria-label="Close modal"
         >
-          <X className="h-5 w-5" aria-hidden="true" />
+          &times;
         </button>
-
         {/* Decorative top */}
         <div className="onboard-header-art">
           <span className="onboard-emoji">🌸</span>

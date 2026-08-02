@@ -77,20 +77,38 @@ export async function GET(request) {
           return [header, ...rows].join('\n')
         }
 
+        // Normalize date-like columns to YYYY-MM-DD so spreadsheets render them cleanly.
+        const formatCsvDateFields = (row) => {
+          const formattedRow = { ...row }
+
+          Object.entries(formattedRow).forEach(([key, value]) => {
+            if (value === null || value === undefined || value === '') return
+            if (typeof value === 'object' && !(value instanceof Date)) return
+
+            const normalizedKey = key.toLowerCase()
+            const isDateColumn =
+              normalizedKey === 'date' ||
+              normalizedKey.endsWith('_date') ||
+              normalizedKey.endsWith('_at') ||
+              normalizedKey.endsWith('at') ||
+              normalizedKey.endsWith('_timestamp') ||
+              normalizedKey.endsWith('timestamp')
+
+            if (isDateColumn) {
+              formattedRow[key] = formatDateForCSV(value)
+            }
+          })
+
+          return formattedRow
+        }
+
         // Append JSON files
         archive.append(JSON.stringify(cycles, null, 2), { name: 'cycles.json' })
         archive.append(JSON.stringify(dailyLogs, null, 2), { name: 'daily_logs.json' })
 
         // Format date fields before CSV generation (keep JSON exports as full ISO values)
-        const cyclesForCsv = cycles.map(c => ({
-          ...c,
-          start_date: formatDateForCSV(c.start_date),
-          end_date: formatDateForCSV(c.end_date),
-        }))
-        const dailyLogsForCsv = dailyLogs.map(l => ({
-          ...l,
-          date: formatDateForCSV(l.date),
-        }))
+        const cyclesForCsv = cycles.map(formatCsvDateFields)
+        const dailyLogsForCsv = dailyLogs.map(formatCsvDateFields)
 
         // Append CSV files
         archive.append(generateCsv(cyclesForCsv), { name: 'cycles.csv' })
