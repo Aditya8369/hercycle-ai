@@ -2491,6 +2491,7 @@ nav ul li a.active::after {
 .mood-btn:hover,
 .flow-dot:hover,
 .chat-chip:hover {
+  cursor: pointer !important;
   transform: translateY(-3px) scale(1.02);
   box-shadow: 0 10px 26px rgba(80, 10, 60, 0.18);
   filter: brightness(1.06);
