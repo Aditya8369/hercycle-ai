@@ -30,6 +30,7 @@ import { useOffline } from '@/lib/OfflineContext'
 import { useLocale, useTranslations } from 'next-intl'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
 import FeaturesSection from '@/components/dashboard/FeaturesSection'
+import PCOSMythFactCard from '@/components/dashboard/PCOSMythFactCard'
 import { isEncryptionFailure } from '@/lib/encryption-policy'
 import { getTodayISO, eachDayISO, addDaysISO } from '@/lib/date-utils'
 
@@ -498,6 +499,7 @@ const HerCycleApp = () => {
         <VibeCheckin />
         <PartnerLoveBanner />
         <FeaturesSection activeLang={activeLang} />
+        <PCOSMythFactCard />
 
         <h2 className="sec-head">{tHeadings('pcosAssessments')}</h2>
         <PcosSymptomProfileCard onClick={() => setShowPcosSymptomProfileQuiz(true)} />
