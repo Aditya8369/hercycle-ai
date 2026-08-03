@@ -62,7 +62,7 @@ export async function GET(request) {
       logger.error(`Database error fetching logs for user ${userId} PCOD risk:`, logsError.message);
     }
 
-    const risk = calculatePCODRisk(cycles || [], logs || [])
+    const risk = await calculatePCODRisk(cycles || [], logs || [])
 
     pcodRiskCache.set(cacheKey, risk);
 
