@@ -15,6 +15,13 @@ import {
 } from './sync-queue'
 import fetchWithTimeout, { TimeoutError } from './fetch-with-timeout'
 import toast from 'react-hot-toast'
+import {
+  toEncryptionFailure,
+  sealPayload,
+  notifyEncryptionLocked,
+  SENSITIVE_DAILY_LOG_FIELDS,
+  SENSITIVE_CYCLE_FIELDS
+} from './encryption-policy'
 
 const OfflineContext = createContext({
   isOffline: false,
