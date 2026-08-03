@@ -121,6 +121,29 @@ body {
   --shadow-plum: rgba(36, 26, 34, 0.40);
 }
 
+/* WCAG 2.1 AA (>= 4.5:1) subtext contrast in dark mode. The app's subtext
+   uses white-with-opacity utilities; the low-opacity variants drop below AA
+   on dark glass cards, so lift them in .dark only. */
+.dark .text-white\/40 {
+  color: rgba(255, 255, 255, 0.62) !important;
+}
+
+.dark .text-white\/50 {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.dark .text-white\/60 {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.dark .text-gray-400 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-gray-500 {
+  color: #b6c0d0 !important;
+}
+
 .hero-title,
 h1 {
   font-family: 'Playfair Display', Georgia, serif !important;
@@ -1402,6 +1425,10 @@ nav ul li a.active {
   justify-content: center;
   gap: 6px;
   line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
 }
 
 .symp-chip:hover,
@@ -2850,6 +2877,13 @@ nav ul li a.active {
   letter-spacing: 0.02em;
 }
 
+.nav-menu-btn,
+.lang-btn,
+.nav-action,
+.nav-mobile-link {
+  transition: var(--interaction-transition);
+}
+
 .nav-log-btn {
   background: linear-gradient(135deg, #a80f4e 0%, #e12a70 58%, #ff6aa2 100%) !important;
   border: 1px solid rgba(255, 255, 255, 0.32) !important;
@@ -3024,6 +3058,20 @@ nav ul li a:focus-visible,
     inset 0 1px 0 rgba(255, 255, 255, 0.36) !important;
 }
 
+.nav-mobile-menu {
+  background: rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  backdrop-filter: blur(18px) saturate(1.35);
+  border-radius: 0 0 18px 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  animation: slideDown 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.nav-mobile-menu .nav-mobile-link {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 /* ---- Start Tracking: pink hover shine only ---- */
 .start-tracking-shine::before {
   background: linear-gradient(90deg, transparent, rgba(236, 38, 116, 0.42), rgba(255, 183, 213, 0.48), transparent) !important;
@@ -3047,12 +3095,14 @@ nav ul li a:focus-visible,
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 44px;
+  min-height: 44px;
+  height: auto;
 }
 
 .chip-icon {
   font-size: 0.95rem;
   width: 18px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3293,6 +3343,30 @@ nav ul li a:focus-visible,
 
 .challenge-content {
   animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ──── LOG HISTORY SCROLL GUARD ──── */
+.log-history-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.log-history-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.log-history-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.log-history-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+}
+
+.log-history-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
 }
 
 /* ──── CHALLENGES ──── */
