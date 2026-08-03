@@ -162,63 +162,74 @@ export default function SignupPage() {
               elements: {
                 cardBox: {
                   borderRadius: '28px',
-                  boxShadow: '0 20px 50px rgba(233, 92, 150, 0.08)',
-                  border: '1px solid #fce8f0',
-                  background: '#ffffff',
+                  boxShadow: '0 20px 60px rgba(217, 71, 122, 0.15)',
+                  border: '1px solid rgba(255, 255, 255, 0.6)',
+                  background: 'rgba(255, 255, 255, 0.85)',
+                  backdropFilter: 'blur(24px)',
                 },
                 headerTitle: {
                   fontSize: 0,
+                  fontFamily: 'Playfair Display, Georgia, serif',
                   '&::after': {
-                    content: '"Create an account"',
-                    fontSize: '1.5rem',
+                    content: '"Create Your Account ✨"',
+                    fontSize: '1.65rem',
+                    fontWeight: '700',
+                    color: '#2f2f45',
                   }
                 },
                 headerSubtitle: {
                   fontSize: 0,
                   '&::after': {
-                    content: '"Sign up to start your wellness journey"',
-                    fontSize: '0.875rem',
+                    content: '"Sign up to start your personalized wellness journey"',
+                    fontSize: '0.88rem',
+                    color: '#6b7280',
                   }
                 },
                 socialButtonsBlockButton: {
-                  backgroundColor: '#ffffff',
-                  borderRadius: '12px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                  borderRadius: '14px',
                   border: '1px solid #fce8f0',
-                  transition: 'all 0.2s ease',
+                  transition: 'all 0.25s ease',
                   '&:hover': {
                     backgroundColor: '#fdf2f5',
-                    transform: 'translateY(-1px)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 6px 18px rgba(217, 71, 122, 0.12)',
                   }
                 },
                 formFieldInput: {
-                  borderRadius: '12px',
+                  borderRadius: '14px',
                   border: '1px solid #fce8f0',
-                  padding: '0.75rem 1rem',
-                  transition: 'all 0.2s ease',
+                  padding: '0.8rem 1rem',
+                  fontSize: '0.95rem',
+                  transition: 'all 0.25s ease',
                   '&:focus': {
-                    boxShadow: '0 0 0 2px rgba(255, 111, 165, 0.2)',
-                    borderColor: '#ff6fa5',
+                    boxShadow: '0 0 0 3px rgba(232, 82, 126, 0.25)',
+                    borderColor: '#e8527e',
                   }
                 },
                 formButtonPrimary: {
-                  background: 'linear-gradient(90deg, #f06595, #f78fb3)',
+                  background: 'linear-gradient(135deg, #e8527e 0%, #9d3f7a 100%)',
                   color: '#ffffff',
-                  borderRadius: '12px',
+                  borderRadius: '14px',
                   border: 'none',
+                  fontWeight: '600',
+                  padding: '0.75rem 1.25rem',
                   transition: 'all 0.25s ease',
+                  boxShadow: '0 4px 18px rgba(232, 82, 126, 0.35)',
                   '&:hover': {
-                    transform: 'translateY(-1px) scale(1.02)',
-                    boxShadow: '0 6px 20px rgba(240, 101, 149, 0.35)',
+                    transform: 'translateY(-2px) scale(1.01)',
+                    boxShadow: '0 8px 24px rgba(232, 82, 126, 0.5)',
                   }
                 },
                 dividerLine: {
-                  backgroundColor: '#e5e7eb',
+                  backgroundColor: '#f3d9e4',
                 },
                 footerActionLink: {
-                  color: '#ff6fa5',
+                  color: '#e8527e',
+                  fontWeight: '600',
                   transition: 'color 0.2s ease',
                   '&:hover': {
-                    color: '#ff8ab8',
+                    color: '#9d3f7a',
                   }
                 }
               }
