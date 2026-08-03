@@ -344,6 +344,7 @@ export default function PartnerPage() {
                 currentUserId={insights.currentUserId}
                 onRefresh={() => fetchInsights(true)}
                 title="Partner Support & Love Chat 💌"
+                partnerLastActiveAt={insights.primaryLastActiveAt}
               />
             </div>
 
