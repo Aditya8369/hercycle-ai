@@ -9,6 +9,7 @@ import ExerciseCard from '@/components/self-care/ExerciseCard';
 import SoundscapeCard from '@/components/self-care/SoundscapeCard';
 import HydrationTracker from '@/components/self-care/HydrationTracker';
 import CycleTipCard from '@/components/self-care/CycleTipCard';
+import NutritionGuideCard from '@/components/self-care/NutritionGuideCard';
 import Navbar from '@/components/layout/Navbar';
 import { useOffline } from '@/lib/OfflineContext';
 import { calculateCyclePhase, getLatestCycle } from '@/lib/calculateCyclePhase';
@@ -262,6 +263,8 @@ export default function SelfCarePage() {
 
         {/* Today's Cycle Tip Card */}
         <CycleTipCard phaseKey={phaseKey} />
+
+        <NutritionGuideCard phaseKey={phaseKey} />
 
         {/* Hydration & Cramp Relief Water Tracker */}
         <HydrationTracker phaseKey={phaseKey} />

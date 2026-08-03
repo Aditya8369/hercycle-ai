@@ -368,6 +368,57 @@
       "luteal": "Staying hydrated can reduce bloating and help stabilize mood before your period.",
       "default": "Staying hydrated helps relax muscles and reduce water retention."
     },
+    "nutritionGuideTitle": "Nutrition Guide",
+    "currentPhase": "Current Phase",
+    "foodsToEat": "🥗 Foods to Eat",
+    "foodsToLimit": "🚫 Foods to Limit",
+    "nutritionGuide": {
+      "menstrual": {
+        "label": "🩸 Menstrual Phase",
+        "eat1": "🥬 Spinach",
+        "eat2": "🥩 Iron-rich red meat or lentils",
+        "eat3": "🍫 Dark chocolate",
+        "eat4": "🍊 Vitamin C-rich fruits",
+        "limit1": "☕ Excess caffeine",
+        "limit2": "🧂 Salty processed foods"
+      },
+      "follicular": {
+        "label": "🌱 Follicular Phase",
+        "eat1": "🥚 Eggs",
+        "eat2": "🥦 Broccoli",
+        "eat3": "🌰 Nuts and seeds",
+        "eat4": "🐟 Fatty fish",
+        "limit1": "🍟 Fried foods",
+        "limit2": "🍬 Refined sugar"
+      },
+      "ovulation": {
+        "label": "🌼 Ovulation Phase",
+        "eat1": "🍓 Berries",
+        "eat2": "🥑 Avocado",
+        "eat3": "🌻 Sunflower seeds",
+        "eat4": "🥒 Fiber-rich vegetables",
+        "limit1": "🍷 Alcohol",
+        "limit2": "🥤 Sugary drinks"
+      },
+      "luteal": {
+        "label": "🌙 Luteal Phase",
+        "eat1": "🍌 Banana",
+        "eat2": "🥜 Almonds",
+        "eat3": "🍠 Sweet potato",
+        "eat4": "🌾 Whole grains",
+        "limit1": "☕ Caffeine",
+        "limit2": "🧂 High-sodium snacks"
+      },
+      "general": {
+        "label": "General Wellness",
+        "eat1": "🥬 Spinach",
+        "eat2": "🍎 Fresh fruits",
+        "eat3": "🌰 Nuts",
+        "eat4": "🌾 Whole grains",
+        "limit1": "🍟 Fried foods",
+        "limit2": "🥤 Sugary drinks"
+      }
+    },
     "cycleTipTitle": "Today's Cycle Tip",
     "cycleTips": {
       "menstrual": {
