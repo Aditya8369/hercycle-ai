@@ -96,6 +96,26 @@
     "lateIrregular": "Late / Irregular",
     "cycleDay": "Cycle Day {day} · {phase}"
   },
+  "pcosMythFact": {
+    "title": "PCOS Myth vs Fact",
+    "mythLabel": "Myth",
+    "factLabel": "Fact",
+    "disclaimer": "Educational information only — not personalized medical advice.",
+    "myth1": "You can't get pregnant with PCOS.",
+    "fact1": "Many people with PCOS can conceive naturally or with appropriate medical support.",
+    "myth2": "PCOS only affects your periods.",
+    "fact2": "PCOS can affect metabolism, skin, hair growth, mood, and long-term heart health too.",
+    "myth3": "You must be overweight to have PCOS.",
+    "fact3": "PCOS affects people of all body sizes; weight is not a requirement for diagnosis.",
+    "myth4": "Birth control cures PCOS.",
+    "fact4": "Birth control can manage symptoms, but it does not cure the underlying condition.",
+    "myth5": "PCOS is rare.",
+    "fact5": "PCOS is one of the most common hormonal conditions, affecting roughly 1 in 10 people with ovaries.",
+    "myth6": "Only adults get PCOS.",
+    "fact6": "PCOS symptoms can begin during adolescence, shortly after periods start.",
+    "myth7": "PCOS means you'll definitely develop diabetes.",
+    "fact7": "PCOS increases the risk of insulin resistance, but diet, exercise, and monitoring can help manage it."
+  },
   "log": {
     "title": "Log Your Day 💕",
     "symptoms": "Today's Symptoms",
@@ -348,6 +368,57 @@
       "luteal": "Staying hydrated can reduce bloating and help stabilize mood before your period.",
       "default": "Staying hydrated helps relax muscles and reduce water retention."
     },
+    "nutritionGuideTitle": "Nutrition Guide",
+    "currentPhase": "Current Phase",
+    "foodsToEat": "🥗 Foods to Eat",
+    "foodsToLimit": "🚫 Foods to Limit",
+    "nutritionGuide": {
+      "menstrual": {
+        "label": "🩸 Menstrual Phase",
+        "eat1": "🥬 Spinach",
+        "eat2": "🥩 Iron-rich red meat or lentils",
+        "eat3": "🍫 Dark chocolate",
+        "eat4": "🍊 Vitamin C-rich fruits",
+        "limit1": "☕ Excess caffeine",
+        "limit2": "🧂 Salty processed foods"
+      },
+      "follicular": {
+        "label": "🌱 Follicular Phase",
+        "eat1": "🥚 Eggs",
+        "eat2": "🥦 Broccoli",
+        "eat3": "🌰 Nuts and seeds",
+        "eat4": "🐟 Fatty fish",
+        "limit1": "🍟 Fried foods",
+        "limit2": "🍬 Refined sugar"
+      },
+      "ovulation": {
+        "label": "🌼 Ovulation Phase",
+        "eat1": "🍓 Berries",
+        "eat2": "🥑 Avocado",
+        "eat3": "🌻 Sunflower seeds",
+        "eat4": "🥒 Fiber-rich vegetables",
+        "limit1": "🍷 Alcohol",
+        "limit2": "🥤 Sugary drinks"
+      },
+      "luteal": {
+        "label": "🌙 Luteal Phase",
+        "eat1": "🍌 Banana",
+        "eat2": "🥜 Almonds",
+        "eat3": "🍠 Sweet potato",
+        "eat4": "🌾 Whole grains",
+        "limit1": "☕ Caffeine",
+        "limit2": "🧂 High-sodium snacks"
+      },
+      "general": {
+        "label": "General Wellness",
+        "eat1": "🥬 Spinach",
+        "eat2": "🍎 Fresh fruits",
+        "eat3": "🌰 Nuts",
+        "eat4": "🌾 Whole grains",
+        "limit1": "🍟 Fried foods",
+        "limit2": "🥤 Sugary drinks"
+      }
+    },
     "cycleTipTitle": "Today's Cycle Tip",
     "cycleTips": {
       "menstrual": {
@@ -460,5 +531,21 @@
         "step3": "Adopt a holistic lifestyle approach targeting both metabolic and hormonal health."
       }
     }
+  },
+  "HydrationReminder": {
+    "title": "Hydration Reminder 💧",
+    "subtitle": "Schedule automatic hydration reminders",
+    "statusLabel": "Enabled",
+    "statusDesc": "Send browser notifications on a set schedule",
+    "scheduleLabel": "Reminder Schedule",
+    "startTime": "Start Time",
+    "endTime": "End Time",
+    "repeatEvery": "Repeat Every",
+    "estimatedLabel": "Estimated Reminders Today",
+    "remindersUnit": "reminders",
+    "skipIfGoalReached": "Skip reminders after daily hydration goal is reached",
+    "saveBtn": "Save Changes",
+    "savedSuccess": "Hydration reminder schedule saved! 💧",
+    "savedError": "Failed to save reminder settings."
   }
 }
