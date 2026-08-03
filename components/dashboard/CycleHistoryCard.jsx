@@ -33,14 +33,15 @@ export default function CycleHistoryCard({ cycleData }) {
         style={{ 
           flex: 1, 
           overflowY: 'auto', 
+          overflowX: 'auto',
           paddingRight: '8px',
           scrollbarWidth: 'thin',
           scrollbarColor: 'rgba(255,255,255,0.2) transparent'
         }}
-        className="custom-scrollbar"
+        className="custom-scrollbar log-history-scroll"
       >
         {Object.keys(groupedCycles).sort((a, b) => b - a).map(year => (
-          <div key={year} style={{ marginBottom: '24px' }}>
+          <div key={year} style={{ marginBottom: '24px', minWidth: 320 }}>
             <h5 style={{ margin: '0 0 12px 0', fontSize: '1rem', opacity: 0.8, color: '#fff', fontWeight: 500 }}>{year}</h5>
             {groupedCycles[year].map(cycle => (
               <CycleHistoryItem key={cycle.id || cycle.start_date} cycle={cycle} filter={filter} />

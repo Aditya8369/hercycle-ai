@@ -391,7 +391,7 @@ export function OfflineProvider({ children }) {
             // One atomic clear+repopulate, no interleaved awaits.
             await cacheRecords('cycles', cycles);
 
-            const prediction = predictNextPeriod(sortByStartDateDesc(cycles));
+            const prediction = await predictNextPeriod(sortByStartDateDesc(cycles));
             return {
               success: true,
               data: {
@@ -409,7 +409,7 @@ export function OfflineProvider({ children }) {
 
       const cachedCycles = await getAllFromStore('cycles');
       const sortedCycles = sortByStartDateDesc(cachedCycles);
-      const prediction = predictNextPeriod(sortedCycles);
+      const prediction = await predictNextPeriod(sortedCycles);
 
       return {
         success: true,
@@ -503,7 +503,7 @@ export function OfflineProvider({ children }) {
         const allSymptoms = cachedLogs.flatMap(log => log.symptoms || []);
 
         if (cachedCycles.length > 0) {
-          const localRisk = calculatePCODRisk(cachedCycles, allSymptoms);
+          const localRisk = await calculatePCODRisk(cachedCycles, allSymptoms);
           return { success: true, data: localRisk };
         }
       } catch (e) {
