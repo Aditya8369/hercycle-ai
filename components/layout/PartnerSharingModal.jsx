@@ -21,7 +21,10 @@ export default function PartnerSharingModal({ isOpen, setIsOpen }) {
                 Manage your partner pairing and privacy settings.
               </Dialog.Description>
               <Dialog.Close asChild>
-                <button className="text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-white/50">
+                <button
+                  className="text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-white/50"
+                  aria-label="Close"
+                >
                   <X className="w-5 h-5" />
                 </button>
               </Dialog.Close>

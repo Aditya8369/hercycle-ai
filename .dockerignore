@@ -1,0 +1,28 @@
+# Dependency files
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js build directories
+.next
+out
+build
+
+# Local configuration and environment secrets
+.env*.local
+.env
+
+# Cache directories
+.npm
+.eslintcache
+.gemini
+
+# Git files
+.git
+.gitignore
+.github
+
+# OS metadata files
+.DS_Store
+Thumbs.db

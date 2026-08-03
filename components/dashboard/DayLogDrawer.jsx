@@ -7,6 +7,7 @@ import DailyLogPanel from './DailyLogPanel'
 import { useOffline } from '@/lib/OfflineContext'
 import { findCycleContainingDate } from '@/lib/cycle-helpers'
 import { isEncryptionFailure } from '@/lib/encryption-policy'
+import { toISODate } from '@/lib/date-utils'
 
 export default function DayLogDrawer({ isOpen, onClose, selectedDate, cycleData, onSaved }) {
   const tTrack = useTranslations('pages.track')
@@ -51,7 +52,7 @@ export default function DayLogDrawer({ isOpen, onClose, selectedDate, cycleData,
     if (!selectedDate) return
     const cycleDataObj = {
       start_date: toISODate(selectedDate),
-      end_date: addDaysISO(selectedDate, 5),
+      end_date: null,   // no end date on period start — user will log it when it ends
       cycle_length: cycleData?.averageCycleLength || 28,
     }
 

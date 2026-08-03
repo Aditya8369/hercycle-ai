@@ -2,7 +2,7 @@
 //
 // Responsibilities:
 //   1. Web Push notifications (unchanged from before).
-//   2. PWA installability + offline asset/page caching.
+//   2. PWA installability + offline asset/page caching (Addresses #269).
 //
 // Caching strategy:
 //   - Static build assets (_next/static, _next/image, /images, icons, fonts) -> Cache First
