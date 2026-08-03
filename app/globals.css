@@ -121,6 +121,29 @@ body {
   --shadow-plum: rgba(36, 26, 34, 0.40);
 }
 
+/* WCAG 2.1 AA (>= 4.5:1) subtext contrast in dark mode. The app's subtext
+   uses white-with-opacity utilities; the low-opacity variants drop below AA
+   on dark glass cards, so lift them in .dark only. */
+.dark .text-white\/40 {
+  color: rgba(255, 255, 255, 0.62) !important;
+}
+
+.dark .text-white\/50 {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.dark .text-white\/60 {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.dark .text-gray-400 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-gray-500 {
+  color: #b6c0d0 !important;
+}
+
 .hero-title,
 h1 {
   font-family: 'Playfair Display', Georgia, serif !important;
