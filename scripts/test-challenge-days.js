@@ -27,7 +27,7 @@ import {
 
 import { calculateBestStreak, calculateCurrentStreak } from '../lib/challenge-streaks.js'
 
-import { addDaysISO, getTodayISO } from '../lib/date-utils.js'
+import { getTodayISO } from '../lib/date-utils.js'
 
 const TIMEZONES = [
   'UTC',
