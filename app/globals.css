@@ -3345,6 +3345,30 @@ nav ul li a:focus-visible,
   animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* ──── LOG HISTORY SCROLL GUARD ──── */
+.log-history-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.log-history-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.log-history-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.log-history-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+}
+
+.log-history-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
 /* ──── CHALLENGES ──── */
 @keyframes popIn {
   0% {
