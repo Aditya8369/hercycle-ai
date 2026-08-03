@@ -13,20 +13,25 @@ const nextConfig = {
     minimumCacheTTL: 60,
   },
 
-  // turbopack: {
-  //   root: __dirname,
-  //   resolveAlias: {
-  //     '@clerk/nextjs/server': './lib/clerk-server-mock.js',
-  //     '@clerk/nextjs': './lib/clerk-mock.js'
-  //   }
-  // },
+  ...(process.env.NEXT_PUBLIC_MOCK_AUTH === 'true' ? {
+    turbopack: {
+      resolveAlias: {
+        '@clerk/nextjs/server': './lib/clerk-server-mock.js',
+        '@clerk/nextjs': './lib/clerk-mock.js',
+        '@supabase/supabase-js': './lib/supabase-mock.js'
+      }
+    }
+  } : {}),
 
-  // webpack: (config) => {
-  //   const path = require('path');
-  //   config.resolve.alias['@clerk/nextjs/server'] = path.resolve(__dirname, 'lib/clerk-server-mock.js');
-  //   config.resolve.alias['@clerk/nextjs'] = path.resolve(__dirname, 'lib/clerk-mock.js');
-  //   return config;
-  // },
+  webpack: (config) => {
+    if (process.env.NEXT_PUBLIC_MOCK_AUTH === 'true') {
+      const path = require('path');
+      config.resolve.alias['@clerk/nextjs/server'] = path.resolve(__dirname, 'lib/clerk-server-mock.js');
+      config.resolve.alias['@clerk/nextjs'] = path.resolve(__dirname, 'lib/clerk-mock.js');
+      config.resolve.alias['@supabase/supabase-js'] = path.resolve(__dirname, 'lib/supabase-mock.js');
+    }
+    return config;
+  },
 
 
   // Optimize heavy packages — tree-shake on import
@@ -42,7 +47,7 @@ const nextConfig = {
     ],
   },
 
-  // Security & CORS headers
+  // Security, CORS & Compression headers
   async headers() {
     return [
       {
@@ -57,17 +62,32 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         ],
       },
-      // Cache static API responses (cycle data, PCOD risk) for 60s
+      // Compression & Cache headers for API JSON responses (cycle history, daily logs, PCOD risk)
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Vary', value: 'Accept-Encoding' },
+        ],
+      },
       {
         source: '/api/cycles',
         headers: [
           { key: 'Cache-Control', value: 'private, max-age=60, stale-while-revalidate=30' },
+          { key: 'Vary', value: 'Accept-Encoding' },
+        ],
+      },
+      {
+        source: '/api/log-day/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'private, max-age=60, stale-while-revalidate=30' },
+          { key: 'Vary', value: 'Accept-Encoding' },
         ],
       },
       {
         source: '/api/pcod-risk',
         headers: [
           { key: 'Cache-Control', value: 'private, max-age=300, stale-while-revalidate=60' },
+          { key: 'Vary', value: 'Accept-Encoding' },
         ],
       },
     ]

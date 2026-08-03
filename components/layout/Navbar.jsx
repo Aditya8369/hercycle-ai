@@ -181,7 +181,7 @@ export default function Navbar() {
 
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden w-full flex flex-col gap-2 py-3 border-t border-white/20 mt-1 mb-2">
+        <div className="nav-mobile-menu md:hidden w-full flex flex-col gap-2 py-3 border-t border-white/20 mt-1 mb-2">
           {NAV_ITEMS.map(({ key, label, href }) => (
             <Link
               key={key}

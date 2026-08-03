@@ -105,21 +105,26 @@ export async function POST(request) {
     const { date, symptoms, mood, flow, cervical_discharge, encrypted_data } = result.data
 
     const supabaseAdmin = getSupabaseAdmin()
+
+    // Build the upsert payload — only include encrypted_data when the
+    // client actually sent it, so this route works whether or not the
+    // daily_logs table has been migrated to add the E2EE column yet.
+    const upsertPayload = {
+      user_id: userId,
+      date,
+      symptoms: symptoms || [],
+      mood: mood || null,
+      flow: flow || null,
+      cervical_discharge: cervical_discharge || null,
+      updated_at: new Date().toISOString()
+    }
+    if (encrypted_data !== undefined && encrypted_data !== null) {
+      upsertPayload.encrypted_data = encrypted_data
+    }
+
     const { error } = await supabaseAdmin
       .from('daily_logs')
-      .upsert(
-        { 
-          user_id: userId, 
-          date, 
-          symptoms: symptoms || [], 
-          mood: mood || null, 
-          flow: flow || null, 
-          cervical_discharge: cervical_discharge || null, 
-          encrypted_data: encrypted_data || null,
-          updated_at: new Date().toISOString() 
-        },
-        { onConflict: 'user_id,date' }
-      )
+      .upsert(upsertPayload, { onConflict: 'user_id,date' })
 
     if (error) {
       logger.error(`Database error upserting daily log for user ${userId}:`, error.message);
