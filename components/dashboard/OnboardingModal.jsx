@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
+import { X } from 'lucide-react'
 import { createClient } from "@/lib/supabase-client";
 import { addDaysISO, getTodayISO, toISODate } from "@/lib/date-utils";
 
@@ -81,7 +82,7 @@ export default function OnboardingModal({ onComplete, onSkip }) {
       className="onboard-overlay"
       role="dialog"
       aria-modal="true"
-      style={{ cursor: 'pointer' }}
+      style={{ cursor: 'pointer' /* Pointer cursor on overlay hover for interactive dismissal */ }}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           handleSkip()
@@ -89,6 +90,14 @@ export default function OnboardingModal({ onComplete, onSkip }) {
       }}
     >
       <div className="onboard-card" onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>
+        <button
+          type="button"
+          className="onboard-close-btn"
+          onClick={handleSkip}
+          aria-label="Close modal"
+        >
+          &times;
+        </button>
         {/* Decorative top */}
         <div className="onboard-header-art">
           <span className="onboard-emoji">🌸</span>

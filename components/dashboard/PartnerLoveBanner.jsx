@@ -20,7 +20,7 @@ function timeAgo(dateStr) {
 
 export default function PartnerLoveBanner() {
   const [mounted, setMounted] = useState(false)
-  const [data, setData] = useState({ connected: false, nudges: [], currentUserId: null })
+  const [data, setData] = useState({ connected: false, nudges: [], currentUserId: null, partnerLastActiveAt: null })
   const [loading, setLoading] = useState(true)
   const [isChatOpen, setIsChatOpen] = useState(false)
   const [lastSeenTime, setLastSeenTime] = useState(0)
@@ -190,6 +190,7 @@ export default function PartnerLoveBanner() {
               onRefresh={loadNudges}
               title="Partner Love & Care Chat 💌"
               showPresetChips={false}
+              partnerLastActiveAt={data.partnerLastActiveAt}
             />
           </div>
         </div>

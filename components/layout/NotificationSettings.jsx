@@ -6,6 +6,7 @@ import { useUser } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
 import { getPrimaryPartnerNudges, getSharedInsights } from '@/lib/actions/partner'
 import { requestNotificationPermission, getNotificationPermissionStatus, sendDeviceNotification } from '@/lib/utils/notifications'
+import NotificationPreferences from '@/components/settings/NotificationPreferences'
 
 export default function NotificationSettings() {
   const { user } = useUser()
@@ -386,6 +387,9 @@ export default function NotificationSettings() {
                 className="w-5 h-5 accent-rose-500 rounded cursor-pointer"
               />
             </div>
+
+            {/* Hydration Reminder Schedule — Issue #455 */}
+            <NotificationPreferences />
           </div>
         </div>
       )}
