@@ -48,7 +48,11 @@
     "noData": "No Data",
     "logTwoCycles": "Log at least 2 cycles to see your risk assessment.",
     "currentCycles": "You currently have {count} cycle(s) recorded.",
-    "noRiskFactors": "No risk factors identified."
+    "noRiskFactors": "No risk factors identified.",
+    "unavailableBadge": "Unavailable",
+    "unavailableBackend": "We couldn't run your risk assessment right now.",
+    "unavailableOffline": "Your risk assessment needs a connection, and there's nothing saved on this device yet.",
+    "unavailableSub": "This is not a result — please try again in a moment."
   },
   "Prediction": {
     "aiTitle": "AI Prediction",
