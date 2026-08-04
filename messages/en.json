@@ -11,7 +11,24 @@
     "syncPending": "Sync Pending",
     "syncing": "Syncing",
     "logToday": "Log Today",
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "syncFailed": "Not saved"
+  },
+  "SyncFailures": {
+    "title": "{count} change(s) could not be saved",
+    "subtitle": "These were logged on this device but never reached the server. Retry them, or discard them if you no longer need them.",
+    "retry": "Retry",
+    "retry_all": "Retry all {count}",
+    "discard": "Discard",
+    "discard_confirm": "Discard permanently?",
+    "discard_yes": "Yes, discard",
+    "discard_cancel": "Keep it",
+    "dismiss_panel": "Hide failed changes",
+    "edit_count": "{count} edits to the same entry",
+    "reason_rejected": "The server rejected this change, so retrying it as-is will not help",
+    "reason_gave_up": "We tried several times and could not reach the server",
+    "reason_unknown": "This change could not be saved",
+    "action_required_note": "{count} of these need a decision from you — a retry alone will not clear them."
   },
   "Hero": {
     "title1": "Listen to your",
