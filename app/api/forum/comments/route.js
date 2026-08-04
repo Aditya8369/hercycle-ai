@@ -57,6 +57,7 @@ export async function POST(req) {
       .from('forum_comments')
       .insert([
         {
+          user_id: userId,
           post_id: postId,
           author_alias: authorAlias,
           content: content,
