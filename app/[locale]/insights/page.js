@@ -15,6 +15,7 @@ import { useOffline } from '@/lib/OfflineContext'
 import { useTranslations } from 'next-intl'
 import WeightTrendChart from '@/components/dashboard/WeightTrendChart'
 import { formatDateForCSV } from '@/lib/utils'
+import { normaliseRiskResult } from '@/lib/pcod-risk-result'
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const PINK = '#e8527e'
 const MAUVE = '#9d3f7a'
@@ -221,10 +222,15 @@ export default function InsightsPage() {
     URL.revokeObjectURL(url)
   }
 
-  const riskTier = pcodRisk?.tier || pcodRisk?.label || 'LOW RISK'
+  // `null` when there is no assessment. This used to default to 'LOW RISK',
+  // which turned every missing or unrecognised payload into a reassuring
+  // reading — in the stat card, and in the summary users copy and share.
+  const riskResult = normaliseRiskResult(pcodRisk)
+  const riskTier = riskResult?.tier ?? null
   const riskLevelWord =
     riskTier === 'HIGH RISK' ? 'High' :
-      riskTier === 'MEDIUM RISK' ? 'Medium' : 'Low'
+      riskTier === 'MEDIUM RISK' ? 'Medium' :
+        riskTier === 'LOW RISK' ? 'Low' : 'Not available'
 
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -362,11 +368,12 @@ export default function InsightsPage() {
             <StatCard
               icon={<span style={{ fontSize: '1.75rem', lineHeight: 1 }}>🩺</span>}
               label={t('pcodRisk')}
-              value={loading ? '…' : `${pcodRisk?.score ?? 0}/100`}
+              value={loading ? '…' : riskResult ? `${riskResult.score}/100` : '—'}
               sub={
                 riskTier === 'HIGH RISK' ? tRisk('high')
                   : riskTier === 'MEDIUM RISK' ? tRisk('med')
-                    : tRisk('low')
+                    : riskTier === 'LOW RISK' ? tRisk('low')
+                      : tRisk('unavailableBadge')
               }
             />
           </div>
