@@ -253,7 +253,20 @@
     "cat_mental-health_desc": "भावनात्मक कल्याण और तनाव के बारे में बात करने के लिए एक सुरक्षित स्थान।",
     "cat_general-discussion_name": "सामान्य चर्चा",
     "cat_general-discussion_desc": "महिलाओं के स्वास्थ्य से संबंधित किसी भी अन्य विषय पर बात करें।",
-    "reply": "जवाब दें"
+    "reply": "जवाब दें",
+    "all_categories": "सभी चर्चाएँ",
+    "sort_label": "चर्चाएँ क्रमबद्ध करें",
+    "sort_newest": "नवीनतम पहले",
+    "sort_oldest": "सबसे पुराने पहले",
+    "clear_search": "खोज साफ़ करें",
+    "search_too_short": "खोजने के लिए कम से कम 2 अक्षर लिखें",
+    "searching": "खोज रहे हैं…",
+    "showing_results": "{count} मेल खाती चर्चाएँ दिखाई जा रही हैं",
+    "load_more": "और चर्चाएँ लोड करें",
+    "loading": "लोड हो रहा है…",
+    "load_failed": "चर्चाएँ लोड नहीं हो सकीं।",
+    "retry": "पुनः प्रयास करें",
+    "open_category_page": "इस श्रेणी को अलग पेज पर खोलें"
   },
   "PartnerSharing": {
     "title": "पार्टनर शेयरिंग",
