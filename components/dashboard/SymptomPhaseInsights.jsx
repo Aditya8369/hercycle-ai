@@ -29,8 +29,6 @@ import {
   analyseSymptomPhases,
 } from '@/lib/symptom-correlation'
 
-const PINK = '#e8527e'
-const MAUVE = '#9d3f7a'
 const TEXT_PRIMARY = '#ffffff'
 const TEXT_FAINT = 'rgba(255,255,255,0.65)'
 
