@@ -14,6 +14,7 @@ import Footer from '@/components/layout/Footer'
 import { useOffline } from '@/lib/OfflineContext'
 import { useTranslations } from 'next-intl'
 import WeightTrendChart from '@/components/dashboard/WeightTrendChart'
+import SymptomPhaseInsights from '@/components/dashboard/SymptomPhaseInsights'
 import { formatDateForCSV } from '@/lib/utils'
 import { normaliseRiskResult } from '@/lib/pcod-risk-result'
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -502,6 +503,17 @@ export default function InsightsPage() {
               </ResponsiveContainer>
             )}
           </SectionCard>
+
+          {/* ── Symptom patterns by cycle phase ──
+              Sits directly after the frequency chart on purpose: it answers the
+              question that chart raises. "Cramps: 34" is a count; this is where
+              in the cycle those 34 actually landed. */}
+          <SymptomPhaseInsights
+            dailyLogs={dailyLogs}
+            cycles={cycles}
+            averageCycleLength={avgCycle}
+            loading={loading}
+          />
 
           {/* ── Mood Distribution ── */}
           <SectionCard

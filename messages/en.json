@@ -551,5 +551,29 @@
     "saveBtn": "Save Changes",
     "savedSuccess": "Hydration reminder schedule saved! 💧",
     "savedError": "Failed to save reminder settings."
+  },
+  "SymptomPhases": {
+    "title": "Symptom Patterns by Cycle Phase",
+    "subtitle": "Where in your cycle each symptom actually shows up — adjusted for how many days you logged in each phase.",
+    "loading": "Analysing your logs…",
+    "needMoreTitle": "Not enough logged days yet",
+    "needMoreDays": "Log {count} more day(s) to start seeing phase patterns.",
+    "needMorePhases": "Keep logging across the whole cycle, not just during your period, so phases can be compared.",
+    "needMoreOccurrences": "{count} more log(s) of this symptom needed before a pattern can be shown.",
+    "noSymptoms": "No symptoms logged in this period yet.",
+    "none": "none",
+    "daysCount": "{count} days",
+    "loggedTimes": "logged {count} times",
+    "finding": "You logged {symptom} about {lift}× more often during your {phase} phase than across the rest of your cycle.",
+    "evenlySpread": "{symptom} is spread fairly evenly across your cycle — no clear phase pattern.",
+    "barLabel": "Distribution of {symptom} across cycle phases: {breakdown}",
+    "phase_menstrual": "menstrual",
+    "phase_follicular": "follicular",
+    "phase_ovulation": "ovulation",
+    "phase_luteal": "luteal",
+    "confidence_high": "Strong evidence",
+    "confidence_moderate": "Some evidence",
+    "confidence_low": "Early signal",
+    "disclaimer": "These are patterns in what you logged, not a medical finding. Share them with a clinician rather than acting on them alone."
   }
 }
