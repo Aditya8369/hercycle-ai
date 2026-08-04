@@ -21,6 +21,11 @@ export default function PinModal({ onPinSet }) {
     }
 
     const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setPinInput('')
+        setError('')
+      }
+
       if (e.key === 'Tab') {
         if (!modalRef.current) return
         const focusableElements = modalRef.current.querySelectorAll(
@@ -117,7 +122,7 @@ export default function PinModal({ onPinSet }) {
             autoFocus
           />
           
-          {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+          {error && <p className="text-red-400 text-sm text-center" aria-live="polite">{error}</p>}
           
           <button
             type="submit"
