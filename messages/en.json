@@ -378,6 +378,18 @@
     "addGlass": "Add a glass of water",
     "removeGlass": "Remove a glass of water",
     "hydrationGoalReached": "🎉 Daily goal reached! Great job staying hydrated.",
+    "hydrationSettings": "Hydration Settings",
+    "hydrationSettingsClose": "Save & Close",
+    "dailyGoalLabel": "Daily Goal",
+    "cupCapacityLabel": "Cup Capacity",
+    "cupStyleLabel": "Cup Style",
+    "cupStyleGlass": "Glass",
+    "cupStyleTumbler": "Tumbler",
+    "cupStyleBottle": "Bottle",
+    "hydrationProgress": "{current} / {total} ml",
+    "glassAriaFilled": "Glass {n} — {ml} ml — filled. Click to unfill.",
+    "glassAriaEmpty": "Glass {n} — {ml} ml — empty. Click to fill up to here.",
+    "openHydrationSettings": "Open hydration settings",
     "hydrationTips": {
       "menstrual": "Drinking warm water during your period helps relax uterine muscles and reduce cramp severity.",
       "follicular": "Steady hydration supports your rising energy levels during this phase.",
@@ -468,6 +480,22 @@
         "tip2": "Stay hydrated and get enough rest.",
         "tip3": "Gentle movement supports your body every day."
       }
+    },
+    "checklistTitle": "Daily Checklist",
+    "checklistProgress": "{done} / {total} Completed",
+    "checklistAllDone": "🎉 All tasks done! Take a moment to celebrate yourself.",
+    "checklistAddPlaceholder": "Add a custom task...",
+    "checklistAdd": "Add",
+    "checklistEdit": "Edit task",
+    "checklistSave": "Save",
+    "checklistCancel": "Cancel",
+    "checklistDelete": "Delete task",
+    "checklistToggle": "Toggle {label}",
+    "checklistTask": {
+      "drinkWater": "💧 Drink Water",
+      "stretch": "🧘 Stretch",
+      "healthyMeal": "🥗 Eat a Healthy Meal",
+      "sleep": "😴 Get Enough Sleep"
     }
   },
   "Challenges": {
