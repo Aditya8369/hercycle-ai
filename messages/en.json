@@ -253,7 +253,20 @@
     "cat_mental-health_desc": "A safe space to talk about emotional well-being and stress.",
     "cat_general-discussion_name": "General Discussion",
     "cat_general-discussion_desc": "Talk about anything else related to women's health.",
-    "reply": "Reply"
+    "reply": "Reply",
+    "all_categories": "All discussions",
+    "sort_label": "Sort discussions",
+    "sort_newest": "Newest first",
+    "sort_oldest": "Oldest first",
+    "clear_search": "Clear search",
+    "search_too_short": "Type at least 2 characters to search",
+    "searching": "Searching…",
+    "showing_results": "Showing {count} matching discussions",
+    "load_more": "Load more discussions",
+    "loading": "Loading…",
+    "load_failed": "Could not load discussions.",
+    "retry": "Try again",
+    "open_category_page": "Open this category as its own page"
   },
   "PartnerSharing": {
     "title": "Partner Sharing",
