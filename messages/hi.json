@@ -467,6 +467,22 @@
         "tip2": "हाइड्रेटेड रहें और पर्याप्त आराम करें।",
         "tip3": "हल्की गतिविधि हर दिन आपके शरीर की मदद करती है।"
       }
+    },
+    "checklistTitle": "दैनिक चेकलिस्ट",
+    "checklistProgress": "{done} / {total} पूर्ण",
+    "checklistAllDone": "🎉 सभी कार्य पूरे! आज अपने लिए शाबाशी दें।",
+    "checklistAddPlaceholder": "कस्टम कार्य जोड़ें...",
+    "checklistAdd": "जोड़ें",
+    "checklistEdit": "कार्य संपादित करें",
+    "checklistSave": "सहेजें",
+    "checklistCancel": "रद्द करें",
+    "checklistDelete": "कार्य हटाएं",
+    "checklistToggle": "{label} टॉगल करें",
+    "checklistTask": {
+      "drinkWater": "💧 पानी पियें",
+      "stretch": "🧘 स्ट्रेचिंग करें",
+      "healthyMeal": "🥗 स्वस्थ भोजन खाएं",
+      "sleep": "😴 पर्याप्त नींद लें"
     }
   },
   "Challenges": {
