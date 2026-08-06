@@ -1,5 +1,5 @@
 /**
- * Regression suite for lib/security-headers.js.
+ * Regression suite for lib/security-headers.mjs.
  *
  * Two bugs, both from writing policy as literals inside next.config.js where
  * nothing could read it as a whole:
@@ -34,7 +34,7 @@ import {
   resolveCorsHeaders,
   staticSecurityHeaders,
   supabaseOrigins,
-} from '../lib/security-headers.js'
+} from '../lib/security-headers.mjs'
 
 let passed = 0
 let failed = 0

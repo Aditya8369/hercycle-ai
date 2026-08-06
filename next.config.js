@@ -49,7 +49,7 @@ const nextConfig = {
 
   // Security & cache headers.
   //
-  // The policy itself lives in lib/security-headers.js so that it can be read
+  // The policy itself lives in lib/security-headers.mjs so that it can be read
   // as a whole and tested (scripts/test-security-headers.js). It used to be
   // written out as literals here, which is how the CSP came to consist of a
   // single `frame-ancestors` directive — duplicating the X-Frame-Options above
@@ -64,7 +64,9 @@ const nextConfig = {
   // actually be inspected.
   //
   // `headers()` is async, so the ESM policy module is loaded with a dynamic
-  // import — this file is CommonJS and cannot `require` it.
+  // import — this file is CommonJS and cannot `require` it. The module carries
+  // an .mjs extension so Node reads it as ESM without having to parse it as
+  // CommonJS first and warn about the reparse on every build.
   async headers() {
     const {
       SENSITIVE_API_PREFIXES,
@@ -73,7 +75,7 @@ const nextConfig = {
       cspHeaderName,
       isReportOnly,
       staticSecurityHeaders,
-    } = await import('./lib/security-headers.js')
+    } = await import('./lib/security-headers.mjs')
 
     const isDev = process.env.NODE_ENV !== 'production'
 

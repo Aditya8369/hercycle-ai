@@ -7,7 +7,7 @@ import {
   isSensitiveApiPath,
   parseAllowedOrigins,
   resolveCorsHeaders,
-} from '@/lib/security-headers';
+} from '@/lib/security-headers.mjs';
 
 const isPublicRoute = createRouteMatcher([
   '/',
