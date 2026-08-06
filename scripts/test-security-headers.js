@@ -77,6 +77,40 @@ function directive(csp, name) {
   return match ? match.slice(name.length + 1).trim() : null
 }
 
+/**
+ * A directive's source list as exact tokens.
+ *
+ * Membership rather than `String.includes`: a CSP directive is a
+ * space-separated token list, and a substring test both over-matches
+ * (`'self'` inside `'unsafe-inline'`… no, but `https://a.com` inside
+ * `https://a.com.evil.test` yes) and under-states what the assertion means.
+ * The exact-token form is what these tests are actually claiming.
+ */
+function sources(csp, name) {
+  const value = directive(csp, name)
+  return value === null ? [] : value.split(/\s+/).filter(Boolean)
+}
+
+/** Whether a source list contains a host — checked as a whole token. */
+function allows(csp, name, source) {
+  return sources(csp, name).includes(source)
+}
+
+/**
+ * The host part of a CSP source expression, or '' for a keyword like `'self'`.
+ *
+ * Lets the "this vendor must not be here" assertions match on the host rather
+ * than on a substring of the whole token.
+ */
+function hostOf(source) {
+  if (source.startsWith("'")) return ''
+  try {
+    return new URL(source.replace(/^wss:/, 'https:')).host
+  } catch {
+    return source.replace(/^[a-z]+:\/\//, '').split('/')[0]
+  }
+}
+
 const SUPABASE_URL = 'https://abcdefgh.supabase.co'
 
 // ---------------------------------------------------------------------------
@@ -153,17 +187,34 @@ checkTruthy(csp.includes('upgrade-insecure-requests'), 'sub-resources are upgrad
 
 section('connect-src is an allow-list, not a wildcard')
 
-const connect = directive(csp, 'connect-src')
-checkTruthy(connect.includes("'self'"), 'the app can call itself')
-checkTruthy(connect.includes(SUPABASE_URL), 'the configured Supabase project is allowed')
-checkTruthy(connect.includes('wss://abcdefgh.supabase.co'), 'and its realtime WebSocket, which is a separate scheme')
-checkTruthy(TRUSTED_ORIGINS.clerk.every((origin) => connect.includes(origin)), 'Clerk is allowed')
-checkTruthy(!connect.includes('*') || !connect.includes(' *'), 'connect-src is not a bare wildcard')
+const connectSources = sources(csp, 'connect-src')
+checkTruthy(allows(csp, 'connect-src', "'self'"), 'the app can call itself')
+checkTruthy(allows(csp, 'connect-src', SUPABASE_URL), 'the configured Supabase project is allowed')
+checkTruthy(
+  allows(csp, 'connect-src', 'wss://abcdefgh.supabase.co'),
+  'and its realtime WebSocket, which is a separate scheme'
+)
+checkTruthy(
+  TRUSTED_ORIGINS.clerk.every((origin) => connectSources.includes(origin)),
+  'Clerk is allowed'
+)
+checkTruthy(!connectSources.includes('*'), 'connect-src is not a bare wildcard')
+checkTruthy(!connectSources.includes('https:'), 'nor a bare https: scheme source, which is nearly as wide')
 
 // Gemini and Groq are called from Route Handlers, never the browser. Listing
 // them would widen the policy for nothing.
-checkTruthy(!connect.includes('googleapis.com'), 'Gemini is not in connect-src — it is a server-side call')
-checkTruthy(!connect.includes('groq.com'), 'Groq is not in connect-src — it is a server-side call')
+//
+// Checked host by host rather than by substring: a source list entry is a whole
+// token, and `connect.includes('groq.com')` would also be satisfied by
+// `https://groq.com.evil.test`, which is the opposite of what this asserts.
+checkTruthy(
+  !connectSources.some((source) => /(^|\.)googleapis\.com$/.test(hostOf(source))),
+  'Gemini is not in connect-src — it is a server-side call'
+)
+checkTruthy(
+  !connectSources.some((source) => /(^|\.)groq\.com$/.test(hostOf(source))),
+  'Groq is not in connect-src — it is a server-side call'
+)
 
 section('supabaseOrigins')
 
@@ -186,7 +237,10 @@ checkTruthy(
   !withoutNonce.includes("'strict-dynamic'"),
   "and 'strict-dynamic' is absent — it would make the browser ignore both 'unsafe-inline' and the host list"
 )
-checkTruthy(TRUSTED_ORIGINS.clerk.every((o) => withoutNonce.includes(o)), 'the host allow-list is what carries the policy')
+checkTruthy(
+  TRUSTED_ORIGINS.clerk.every((o) => withoutNonce.split(/\s+/).includes(o)),
+  'the host allow-list is what carries the policy'
+)
 
 // The stronger mode, available once a nonce can be propagated to the request.
 const withNonce = directive(buildContentSecurityPolicy({ nonce: 'abc123' }), 'script-src')
@@ -201,8 +255,11 @@ const prod = buildContentSecurityPolicy({ isDev: false, supabaseUrl: SUPABASE_UR
 
 checkTruthy(directive(dev, 'script-src').includes("'unsafe-eval'"), 'React Refresh gets eval in development')
 checkTruthy(!directive(prod, 'script-src').includes("'unsafe-eval'"), "and production does not — that is most of what script-src buys")
-checkTruthy(directive(dev, 'connect-src').includes('ws://localhost:*'), 'the dev server websocket is allowed in development')
-checkTruthy(!directive(prod, 'connect-src').includes('localhost'), 'and never in production')
+checkTruthy(allows(dev, 'connect-src', 'ws://localhost:*'), 'the dev server websocket is allowed in development')
+checkTruthy(
+  !sources(prod, 'connect-src').some((source) => hostOf(source).startsWith('localhost')),
+  'and never in production'
+)
 checkTruthy(!dev.includes('upgrade-insecure-requests'), 'http://localhost is not upgraded, which would break the dev server')
 
 section('report-only')
