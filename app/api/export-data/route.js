@@ -3,11 +3,24 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { logger } from '@/lib/logger'
 import { formatDateForCSV } from '@/lib/utils'
 import { toCsv } from '@/lib/csv'
+import { crudLimiter } from '@/lib/rateLimiter'
 const archiver = require('archiver')
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request) {
+  // ============ RATE LIMITING ============
+  try {
+    await crudLimiter.check(request)
+  } catch (rateLimitError) {
+    logger.warn(`[Rate Limit] Data export endpoint: ${rateLimitError.message}`)
+    return new Response(JSON.stringify({ error: 'Too many requests, please slow down.' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+  // =======================================
+
   try {
     const userId = await getAuthUserId()
     if (!userId) {
