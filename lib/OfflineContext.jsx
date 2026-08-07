@@ -509,10 +509,9 @@ export function OfflineProvider({ children }) {
       try {
         const cachedCycles = await getAllFromStore('cycles');
         const cachedLogs = await getAllFromStore('daily_logs');
-        const allSymptoms = cachedLogs.flatMap(log => log.symptoms || []);
 
         if (cachedCycles.length > 0) {
-          const localRisk = normaliseRiskResult(await calculatePCODRisk(cachedCycles, allSymptoms));
+          const localRisk = normaliseRiskResult(await calculatePCODRisk(cachedCycles, cachedLogs));
           if (localRisk) return { success: true, data: localRisk };
         }
       } catch (e) {
