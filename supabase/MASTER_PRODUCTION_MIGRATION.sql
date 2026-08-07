@@ -1,0 +1,205 @@
+-- HerCycle AI — Master Production Database Setup Script
+-- Run this script in your Supabase SQL Editor to set up all tables, indexes, RLS policies, and RPC functions.
+
+-- ========================================================
+-- 1. Rate Limiting Table & Stored Procedures
+-- ========================================================
+
+CREATE TABLE IF NOT EXISTS public.rate_limits (
+    identifier TEXT PRIMARY KEY,
+    count INTEGER NOT NULL DEFAULT 1,
+    reset_at TIMESTAMPTZ NOT NULL
+);
+
+ALTER TABLE public.rate_limits ENABLE ROW LEVEL SECURITY;
+
+-- 2. Define the enforce_rate_limit RPC function
+CREATE OR REPLACE FUNCTION public.enforce_rate_limit(
+    p_identifier TEXT,
+    p_limit INTEGER,
+    p_interval INTEGER
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_now TIMESTAMPTZ := clock_timestamp();
+    v_record RECORD;
+    v_allowed BOOLEAN;
+    v_interval_dur INTERVAL;
+BEGIN
+    v_interval_dur := (p_interval || ' milliseconds')::interval;
+    DELETE FROM public.rate_limits WHERE reset_at < v_now;
+
+    INSERT INTO public.rate_limits (identifier, count, reset_at)
+    VALUES (p_identifier, 1, v_now + v_interval_dur)
+    ON CONFLICT (identifier) DO UPDATE
+    SET count = CASE 
+                  WHEN public.rate_limits.reset_at < v_now THEN 1
+                  ELSE public.rate_limits.count + 1
+                END,
+        reset_at = CASE 
+                     WHEN public.rate_limits.reset_at < v_now THEN v_now + v_interval_dur
+                     ELSE public.rate_limits.reset_at
+                   END
+    RETURNING count, reset_at INTO v_record;
+
+    IF v_record.count <= p_limit THEN
+        v_allowed := TRUE;
+    ELSE
+        v_allowed := FALSE;
+    END IF;
+
+    RETURN jsonb_build_object(
+        'allowed', v_allowed,
+        'count', v_record.count,
+        'reset_at', v_record.reset_at
+    );
+END;
+$$;
+
+
+-- ========================================================
+-- 2. Partner Connection & Companion Tables
+-- ========================================================
+
+CREATE TABLE IF NOT EXISTS public.pairing_attempts (
+    user_id TEXT PRIMARY KEY,
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    window_start TIMESTAMPTZ NOT NULL DEFAULT now(),
+    consecutive_failures INTEGER NOT NULL DEFAULT 0,
+    locked_until TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.pairing_attempts ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.partner_connections (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    primary_user_id TEXT NOT NULL,
+    partner_user_id TEXT,
+    pairing_code TEXT UNIQUE NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active')),
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_partner_conn_primary ON public.partner_connections(primary_user_id);
+CREATE INDEX IF NOT EXISTS idx_partner_conn_partner ON public.partner_connections(partner_user_id);
+ALTER TABLE public.partner_connections ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.partner_permissions (
+    connection_id UUID PRIMARY KEY REFERENCES public.partner_connections(id) ON DELETE CASCADE,
+    show_mood BOOLEAN DEFAULT false,
+    show_symptoms BOOLEAN DEFAULT false,
+    show_fertile_window BOOLEAN DEFAULT true,
+    show_notes BOOLEAN DEFAULT false,
+    show_care_tips BOOLEAN DEFAULT true,
+    show_energy_battery BOOLEAN DEFAULT true,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.partner_permissions ENABLE ROW LEVEL SECURITY;
+
+-- ========================================================
+-- 3. Partner Nudges, Quests & Care Tracker
+-- ========================================================
+
+CREATE TABLE IF NOT EXISTS public.partner_nudges (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    connection_id UUID REFERENCES public.partner_connections(id) ON DELETE CASCADE,
+    nudge_type TEXT NOT NULL,
+    message TEXT,
+    sender_id TEXT,
+    read_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_nudges_read ON public.partner_nudges(connection_id, read_at);
+ALTER TABLE public.partner_nudges ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.partner_quests (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    connection_id UUID REFERENCES public.partner_connections(id) ON DELETE CASCADE,
+    quest_title TEXT NOT NULL,
+    completed BOOLEAN DEFAULT false,
+    completed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_quests_conn ON public.partner_quests(connection_id);
+ALTER TABLE public.partner_quests ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.partner_vibes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    connection_id UUID REFERENCES public.partner_connections(id) ON DELETE CASCADE,
+    vibe_type TEXT NOT NULL,
+    vibe_note TEXT,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_vibes_conn ON public.partner_vibes(connection_id);
+ALTER TABLE public.partner_vibes ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.user_push_subscriptions (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    subscription JSONB NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_sub_user ON public.user_push_subscriptions(user_id);
+ALTER TABLE public.user_push_subscriptions ENABLE ROW LEVEL SECURITY;
+
+
+-- ========================================================
+-- 4. Weight Tracker & BMI metrics
+-- ========================================================
+
+CREATE TABLE IF NOT EXISTS public.weight_entries (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  recorded_date DATE NOT NULL,
+  weight_kg NUMERIC(5,2) NOT NULL CHECK (weight_kg >= 20 AND weight_kg <= 350),
+  waist_cm NUMERIC(5,2) CHECK (waist_cm IS NULL OR (waist_cm >= 30 AND waist_cm <= 250)),
+  height_cm NUMERIC(5,2) NOT NULL CHECK (height_cm >= 100 AND height_cm <= 250),
+  bmi NUMERIC(5,2) NOT NULL CHECK (bmi >= 5 AND bmi <= 100),
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  CONSTRAINT weight_entries_user_date_unique UNIQUE (user_id, recorded_date)
+);
+
+CREATE INDEX IF NOT EXISTS weight_entries_user_date_idx ON public.weight_entries(user_id, recorded_date DESC);
+ALTER TABLE public.weight_entries ENABLE ROW LEVEL SECURITY;
+
+
+-- ========================================================
+-- 5. Daily Challenges & Badges
+-- ========================================================
+
+CREATE TABLE IF NOT EXISTS public.challenge_progress (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id TEXT NOT NULL,
+    date DATE NOT NULL,
+    challenge_type TEXT NOT NULL CHECK (challenge_type IN ('water', 'stretch', 'mood', 'sleep', 'iron')),
+    progress_value INTEGER DEFAULT 0,
+    completed BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(user_id, date, challenge_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_challenge_progress_user_date ON public.challenge_progress(user_id, date);
+ALTER TABLE public.challenge_progress ENABLE ROW LEVEL SECURITY;
+
+CREATE TABLE IF NOT EXISTS public.user_badges (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id TEXT NOT NULL,
+    badge_key TEXT NOT NULL,
+    earned_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(user_id, badge_key)
+);
+
+ALTER TABLE public.user_badges ENABLE ROW LEVEL SECURITY;

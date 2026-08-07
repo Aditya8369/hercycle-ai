@@ -121,6 +121,29 @@ body {
   --shadow-plum: rgba(36, 26, 34, 0.40);
 }
 
+/* WCAG 2.1 AA (>= 4.5:1) subtext contrast in dark mode. The app's subtext
+   uses white-with-opacity utilities; the low-opacity variants drop below AA
+   on dark glass cards, so lift them in .dark only. */
+.dark .text-white\/40 {
+  color: rgba(255, 255, 255, 0.62) !important;
+}
+
+.dark .text-white\/50 {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.dark .text-white\/60 {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.dark .text-gray-400 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-gray-500 {
+  color: #b6c0d0 !important;
+}
+
 .hero-title,
 h1 {
   font-family: 'Playfair Display', Georgia, serif !important;
@@ -895,7 +918,11 @@ nav ul li a.active {
   padding: 24px;
   transition: transform 0.22s, box-shadow 0.22s;
   position: relative;
-  cursor: pointer;
+  cursor: pointer !important;
+}
+
+.feat-card * {
+  cursor: pointer !important;
 }
 
 .feat-card:hover {
@@ -1373,6 +1400,25 @@ nav ul li a.active {
   margin-bottom: 12px;
 }
 
+/* Mobile horizontal scroll wrapper for logged symptoms (Fixes #249, #329) */
+@media (max-width: 640px) {
+  .symp-grid-scroll-wrapper,
+  .symptoms-horizontal-scroll {
+    display: flex !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    padding-bottom: 8px !important;
+    gap: 8px !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .symp-grid-scroll-wrapper .symp-chip,
+  .symptoms-horizontal-scroll .symp-chip {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+  }
+}
+
 .symp-chip {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -1388,6 +1434,10 @@ nav ul li a.active {
   justify-content: center;
   gap: 6px;
   line-height: 1.4;
+  text-align: center;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
 }
 
 .symp-chip:hover,
@@ -1810,6 +1860,42 @@ footer {
   text-align: center;
   position: relative;
   overflow: hidden;
+}
+
+.onboard-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-white);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+}
+
+.onboard-close-btn:hover {
+  background: rgba(232, 82, 126, 0.3);
+  transform: scale(1.08);
+}
+
+/* Mobile responsive margin adjustment for onboard close button (Fixes #240) */
+@media (max-width: 480px) {
+  .onboard-close-btn {
+    top: 14px;
+    right: 14px;
+    margin: 4px;
+    width: 28px;
+    height: 28px;
+    font-size: 1.1rem;
+  }
 }
 
 @keyframes cardPop {
@@ -2441,6 +2527,7 @@ nav ul li a.active::after {
 .mood-btn:hover,
 .flow-dot:hover,
 .chat-chip:hover {
+  cursor: pointer !important;
   transform: translateY(-3px) scale(1.02);
   box-shadow: 0 10px 26px rgba(80, 10, 60, 0.18);
   filter: brightness(1.06);
@@ -2799,6 +2886,13 @@ nav ul li a.active {
   letter-spacing: 0.02em;
 }
 
+.nav-menu-btn,
+.lang-btn,
+.nav-action,
+.nav-mobile-link {
+  transition: var(--interaction-transition);
+}
+
 .nav-log-btn {
   background: linear-gradient(135deg, #a80f4e 0%, #e12a70 58%, #ff6aa2 100%) !important;
   border: 1px solid rgba(255, 255, 255, 0.32) !important;
@@ -2973,6 +3067,20 @@ nav ul li a:focus-visible,
     inset 0 1px 0 rgba(255, 255, 255, 0.36) !important;
 }
 
+.nav-mobile-menu {
+  background: rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  backdrop-filter: blur(18px) saturate(1.35);
+  border-radius: 0 0 18px 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  animation: slideDown 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.nav-mobile-menu .nav-mobile-link {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 /* ---- Start Tracking: pink hover shine only ---- */
 .start-tracking-shine::before {
   background: linear-gradient(90deg, transparent, rgba(236, 38, 116, 0.42), rgba(255, 183, 213, 0.48), transparent) !important;
@@ -2996,12 +3104,14 @@ nav ul li a:focus-visible,
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 44px;
+  min-height: 44px;
+  height: auto;
 }
 
 .chip-icon {
   font-size: 0.95rem;
   width: 18px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3167,6 +3277,105 @@ nav ul li a:focus-visible,
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 10px !important;
   }
+
+  /* #363: page-level alignment audit */
+  .page {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  nav {
+    padding: 12px 16px;
+    margin-bottom: 20px;
+  }
+
+  .sec-head {
+    font-size: 1.6rem;
+    margin-bottom: 18px;
+  }
+
+  .hero-left h1 {
+    font-size: 2.4rem;
+  }
+
+  .hero-btns {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-btns > * {
+    width: 100%;
+    text-align: center;
+  }
+
+  .feat-card {
+    padding: 20px 18px;
+  }
+}
+
+/* ──── COMPACT HANDSETS (≤479px) ──── */
+@media (max-width: 479px) {
+  .page {
+    padding: 18px 12px 40px;
+  }
+
+  nav {
+    padding: 10px 12px;
+  }
+
+  .hero-left h1 {
+    font-size: 2rem;
+  }
+
+  .hero-left p {
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+  }
+
+  .sec-head {
+    font-size: 1.45rem;
+  }
+
+  .feat-card h4 {
+    font-size: 1rem;
+  }
+
+  .feat-card p {
+    font-size: 0.82rem;
+  }
+
+  .status-badge {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+.challenge-content {
+  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ──── LOG HISTORY SCROLL GUARD ──── */
+.log-history-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.log-history-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.log-history-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.log-history-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+}
+
+.log-history-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
 }
 
 /* ──── CHALLENGES ──── */
@@ -3291,4 +3500,28 @@ nav ul li a:focus-visible,
   .logo {
     font-size: 1.1rem;
   }
+}
+
+/* ──── SELF-CARE OPACITY & TRANSITION GLITCH FIX (Fixes #330) ──── */
+.self-care-step-img,
+.self-care-card img,
+.group-hover\:scale-110 {
+  will-change: opacity, transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform-style: preserve-3d;
+}
+
+/* ──── LOGS HISTORY SCROLL CONTAINER MARGIN ADJUSTMENT (Fixes #327) ──── */
+.logs-history-container,
+.logs-history-scroll,
+.logs-scroll-wrapper,
+.track-logs-history {
+  margin-left: -4px;
+  margin-right: -4px;
+  padding-left: 4px;
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
