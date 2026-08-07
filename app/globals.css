@@ -3504,6 +3504,7 @@ nav ul li a:focus-visible,
   }
 }
 
+<<<<<<< HEAD
 @media (max-width: 479px) {
   .logo {
     font-size: 1.1rem;
@@ -3547,6 +3548,39 @@ nav ul li a:focus-visible,
   }
 }
 
+/* ──── HEATMAP RESPONSIVE GUARD ──── */
+.heatmap-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.heatmap-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.heatmap-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.heatmap-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+}
+
+.heatmap-grid {
+  min-width: 360px;
+}
+
+.heatmap-grid > * {
+  min-width: 20px;
+  min-height: 20px;
+  cursor: pointer;
+}
+
 /* ──── SELF-CARE OPACITY & TRANSITION GLITCH FIX (Fixes #330) ──── */
 .self-care-step-img,
 .self-care-card img,
@@ -3566,5 +3600,10 @@ nav ul li a:focus-visible,
   margin-right: -4px;
   box-sizing: border-box;
   padding-left: 4px;
+<<<<<<< HEAD
+=======
+  padding-right: 4px;
+  scrollbar-gutter: stable;
+>>>>>>> resolve-423
   overflow-y: auto;
 }
