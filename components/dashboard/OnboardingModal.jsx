@@ -110,7 +110,7 @@ export default function OnboardingModal({ onComplete, onSkip }) {
           data-modal-close=""
           aria-label={t('skip')}
         >
-          <span aria-hidden="true">&times;</span>
+          <X className="w-5 h-5" />
         </button>
         {/* Decorative top */}
         <div className="onboard-header-art">
