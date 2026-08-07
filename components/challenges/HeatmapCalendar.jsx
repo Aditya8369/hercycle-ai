@@ -50,12 +50,15 @@ export default function HeatmapCalendar() {
           {Object.values(counts).filter((c) => c > 0).length} active days
         </span>
       </div>
-      <div className="grid grid-cols-10 gap-1.5 heatmap-grid">
+      <div className="grid grid-cols-10 gap-1.5 heatmap-grid" role="grid" aria-label="Activity heatmap last 30 days">
         {days.map((day) => (
           <div
             key={day.key}
+            role="gridcell"
+            tabIndex={0}
+            aria-label={`${day.label}: ${day.count} completion${day.count === 1 ? '' : 's'}`}
             title={`${day.label} — ${day.count} completion${day.count === 1 ? '' : 's'}`}
-            className="aspect-square rounded-md transition-transform hover:scale-110"
+            className="aspect-square rounded-md transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[var(--rose-bright)]"
             style={{ background: getIntensity(day.count) }}
           />
         ))}
