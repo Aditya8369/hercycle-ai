@@ -1679,10 +1679,18 @@ nav ul li a.active {
 
 footer {
   text-align: center;
-  padding: 24px;
+  padding: 24px 20px;
   color: var(--text-faint);
   font-size: 0.85rem;
   margin-top: 48px;
+  overflow-wrap: anywhere;
+}
+
+.footer-logo {
+  font-family: var(--serif);
+  font-weight: 700;
+  color: var(--rose-bright);
+  white-space: nowrap;
 }
 
 @keyframes fillAnim {
@@ -3499,6 +3507,11 @@ nav ul li a:focus-visible,
 @media (max-width: 479px) {
   .logo {
     font-size: 1.1rem;
+  }
+
+  footer {
+    padding: 20px 16px 32px;
+    font-size: 0.8rem;
   }
 }
 
