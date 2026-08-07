@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
+import { X } from 'lucide-react'
 import { createClient } from "@/lib/supabase-client";
 import { addDaysISO, getTodayISO, toISODate } from "@/lib/date-utils";
-import { X } from 'lucide-react'
+import useModalA11y from '@/lib/a11y/useModalA11y';
 
 export default function OnboardingModal({ onComplete, onSkip }) {
   const { userId } = useAuth()
@@ -74,31 +75,43 @@ export default function OnboardingModal({ onComplete, onSkip }) {
     onSkip()
   }
 
+  // `role="dialog"` sat on the overlay rather than on the card, so the dialog
+  // wrapped the backdrop and the content was announced outside it. It also had
+  // no accessible name, no focus trap, no Escape handling and no scroll lock.
+  const { containerRef, backdropRef, onBackdropMouseDown, onBackdropClick } = useModalA11y({
+    onClose: handleSkip,
+  })
+
   // Today's date as max for input
   const today = getTodayISO()
 
   return (
     <div
+      ref={backdropRef}
       className="onboard-overlay"
-      role="dialog"
-      aria-modal="true"
-      style={{ cursor: 'pointer' }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          handleSkip()
-        }
-      }}
+      style={{ cursor: 'pointer' /* Pointer cursor on overlay hover for interactive dismissal */ }}
+      onMouseDown={onBackdropMouseDown}
+      onClick={onBackdropClick}
     >
-      <div className="onboard-card" onClick={(e) => e.stopPropagation()} style={{ cursor: 'default' }}>
-        {/* Close button */}
+      <div
+        ref={containerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-title"
+        aria-describedby="onboarding-subtitle"
+        tabIndex={-1}
+        className="onboard-card"
+        style={{ cursor: 'default', outline: 'none' }}
+      >
         <button
+          type="button"
           className="onboard-close-btn"
           onClick={handleSkip}
+          data-modal-close=""
           aria-label={t('skip')}
         >
           <X className="w-5 h-5" />
         </button>
-
         {/* Decorative top */}
         <div className="onboard-header-art">
           <span className="onboard-emoji">🌸</span>
@@ -109,10 +122,10 @@ export default function OnboardingModal({ onComplete, onSkip }) {
           </div>
         </div>
 
-        <h2 className="onboard-title">
+        <h2 id="onboarding-title" className="onboard-title">
           {t('welcome')}
         </h2>
-        <p className="onboard-subtitle">
+        <p id="onboarding-subtitle" className="onboard-subtitle">
           {t('subtitle')}
         </p>
 
@@ -181,11 +194,13 @@ export default function OnboardingModal({ onComplete, onSkip }) {
             </div>
 
             <div className="onboard-btn-row">
-              {saveError && (
-                <div style={{ color: '#ff4d4f', fontSize: '0.85rem', marginBottom: '1rem', width: '100%', textAlign: 'center' }}>
-                  Error: {saveError}
-                </div>
-              )}
+              <div role="alert" style={{ width: '100%' }}>
+                {saveError && (
+                  <div style={{ color: '#ff4d4f', fontSize: '0.85rem', marginBottom: '1rem', width: '100%', textAlign: 'center' }}>
+                    Error: {saveError}
+                  </div>
+                )}
+              </div>
               <button className="onboard-back-btn" onClick={() => setStep(1)}>
                 ← {t('back')}
               </button>

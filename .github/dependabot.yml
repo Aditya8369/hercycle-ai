@@ -1,6 +1,26 @@
+# GitHub Dependabot Configuration File
+# Documentation: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
 version: 2
 updates:
+  # 1. Update npm dependencies in package.json
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "weekly" # Check for updates weekly to avoid PR noise
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5 # Limit total open Dependabot PRs to prevent clutter
+    labels:
+      - "dependencies"
+      - "ECSoC26"
+
+  # 2. Update GitHub Actions workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly" # Actions updates are less frequent
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
