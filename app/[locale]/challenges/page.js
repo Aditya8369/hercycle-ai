@@ -16,6 +16,39 @@ import HeatmapCalendar from '@/components/challenges/HeatmapCalendar'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
 
 
+function SkeletonBlock({ className = '' }) {
+  return <div className={`rounded-2xl bg-white/10 animate-pulse ${className}`} aria-hidden="true" />
+}
+
+function ChallengeCardSkeleton() {
+  return (
+    <div className="glass rounded-3xl p-5 space-y-4" aria-hidden="true">
+      <div className="flex items-center gap-3">
+        <SkeletonBlock className="w-12 h-12 rounded-full" />
+        <div className="flex-1 space-y-2">
+          <SkeletonBlock className="h-4 w-1/2" />
+          <SkeletonBlock className="h-3 w-3/4" />
+        </div>
+      </div>
+      <SkeletonBlock className="h-3 w-1/4" />
+      <SkeletonBlock className="h-2 w-full" />
+      <div className="flex gap-2 pt-2">
+        <SkeletonBlock className="h-10 w-24 rounded-full" />
+        <SkeletonBlock className="h-10 w-24 rounded-full" />
+      </div>
+    </div>
+  )
+}
+
+function ChallengesSkeleton() {
+  return (
+    <div className="space-y-4">
+      {[0, 1, 2, 3, 4].map((i) => <ChallengeCardSkeleton key={i} />)}
+    </div>
+  )
+}
+
+
 export default function ChallengesPage() {
   const t = useTranslations('Challenges')
   const [data, setData] = useState(null)
@@ -42,12 +75,30 @@ export default function ChallengesPage() {
     .reduce((sum, p) => sum + (CHALLENGES[p.challenge_type]?.points || 0), 0) || 0
   const allDone = completedToday === 5
 
-  if (!data) return <div className="page"><Navbar /><main className="pt-10 text-center" style={{ color: 'var(--text-soft)' }}>{t('loading')}</main></div>
+  if (!data) {
+    return (
+      <div className="page">
+        <Navbar />
+        <main className="pb-24 pt-6 px-4 max-w-3xl mx-auto w-full space-y-8" aria-busy="true">
+          <div className="space-y-1">
+            <SkeletonBlock className="h-8 w-2/3" />
+            <SkeletonBlock className="h-4 w-1/3" />
+          </div>
+          <div className="flex gap-3 overflow-hidden">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <SkeletonBlock key={i} className="w-16 h-16 rounded-full shrink-0" />
+            ))}
+          </div>
+          <ChallengesSkeleton />
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="page">
       <Navbar />
-      <main className="pb-24 pt-6 px-4 max-w-3xl mx-auto w-full space-y-8">
+      <main className="challenge-content pb-24 pt-6 px-4 max-w-3xl mx-auto w-full space-y-8">
         <header className="space-y-1">
           <h1 className="text-3xl sm:text-4xl font-bold drop-shadow-md" style={{ fontFamily: 'var(--serif)', color: 'var(--text-white)' }}>
             🌸 {t('title')}

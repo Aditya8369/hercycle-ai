@@ -50,28 +50,22 @@
 ![Dashboard](screenshots/dashboard.png)
 
 <table>
-<tr>
-<td width="50%">
-
-### 🗓️ Cycle Tracker
-![Cycle Tracker](screenshots/track.png)
-
-</td>
-<td width="50%">
-
-### 📊 Insights & Analytics
-![Insights](screenshots/insights.png)
-
-</td>
-</tr>
-<tr>
-<td colspan="2">
-
-### 🤖 AI Health Assistant
-![AI Chat](screenshots/chat.png)
-
-</td>
-</tr>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <h3>🗓️ Cycle Tracker</h3>
+      <img src="screenshots/track.png" alt="Cycle Tracker" width="100%">
+    </td>
+    <td width="50%" align="center" valign="top">
+      <h3>📊 Insights &amp; Analytics</h3>
+      <img src="screenshots/insights.png" alt="Insights and Analytics" width="100%">
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">
+      <h3>🤖 AI Health Assistant</h3>
+      <img src="screenshots/chat.png" alt="AI Health Assistant" width="100%">
+    </td>
+  </tr>
 </table>
 
 ---
@@ -580,6 +574,13 @@ Please make sure your code:
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
+## 🤝 Contributors
+
+Thanks to everyone who has contributed to HerCycle AI! 💖
+
+<a href="https://github.com/khushi897920-lang/hercycle-ai/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=khushi897920-lang/hercycle-ai" alt="HerCycle AI Contributors" />
+</a>
 
 ## 📈 Repository Activity
 
