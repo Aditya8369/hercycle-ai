@@ -48,6 +48,7 @@ function SkeletonRow({ width = '100%' }) {
 export default function PCODRiskCard({ pcodRisk, unavailableReason = null, loading, cycleCount = 0, cycles = [], recentSymptoms = [] }) {
   // Animate gauge width on mount / data change
   const [gaugeWidth, setGaugeWidth] = useState(0)
+  const [exporting, setExporting] = useState(false)
   const { user } = useUser()
   const t = useTranslations('Risk')
   const tFactors = useTranslations('factors')
@@ -72,6 +73,30 @@ export default function PCODRiskCard({ pcodRisk, unavailableReason = null, loadi
     }
     setGaugeWidth(0)
   }, [loading, result, score])
+
+  // generateReport awaits the Devanagari font before it draws anything, so the
+  // click handler has to await it too. Firing and forgetting meant a font
+  // fetch or a jsPDF failure surfaced as an unhandled rejection and a button
+  // that appeared to do nothing at all.
+  const handleExport = async () => {
+    if (exporting) return
+    setExporting(true)
+    try {
+      await generateReport({
+        userName: user?.fullName || user?.firstName || 'User',
+        email: user?.primaryEmailAddress?.emailAddress || '',
+        cycles,
+        pcod: result,
+        recentSymptoms,
+        locale,
+        currentPhase: label,
+      })
+    } catch (error) {
+      console.error('Failed to generate the doctor report', error)
+    } finally {
+      setExporting(false)
+    }
+  }
 
   // ── Loading skeleton ────────────────────────────────────────────────────────
   if (loading) {
@@ -261,15 +286,8 @@ export default function PCODRiskCard({ pcodRisk, unavailableReason = null, loadi
 
       <button
         className="export-btn"
-        onClick={() => generateReport({
-          userName: user?.fullName || user?.firstName || 'User',
-          email: user?.primaryEmailAddress?.emailAddress || '',
-          cycles,
-          pcod: result,
-          recentSymptoms,
-          locale,
-          currentPhase: label,
-        })}
+        disabled={exporting}
+        onClick={handleExport}
       >
         {t('exportDoc')}
       </button>
