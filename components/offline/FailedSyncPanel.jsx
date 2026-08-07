@@ -102,12 +102,16 @@ export default function FailedSyncPanel({ isOpen = true, onClose }) {
     }
   }
 
+  const panelRef = useRef(null)
+
   const isCritical = summary.severity === SEVERITY.ACTION_REQUIRED
 
   return (
     <section
+      ref={panelRef}
+      tabIndex={-1}
       aria-labelledby="failed-sync-title"
-      className="rounded-2xl border p-4 sm:p-5"
+      className="rounded-2xl border p-4 sm:p-5 focus:outline-none"
       style={{
         background: isCritical ? 'rgba(244,63,94,0.10)' : 'rgba(251,191,36,0.10)',
         borderColor: isCritical ? 'rgba(244,63,94,0.35)' : 'rgba(251,191,36,0.35)',
