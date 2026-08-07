@@ -3537,7 +3537,6 @@ nav ul li a:focus-visible,
   }
 }
 
-<<<<<<< HEAD
 @media (max-width: 479px) {
   .logo {
     font-size: 1.1rem;
@@ -3633,10 +3632,7 @@ nav ul li a:focus-visible,
   margin-right: -4px;
   box-sizing: border-box;
   padding-left: 4px;
-<<<<<<< HEAD
-=======
   padding-right: 4px;
   scrollbar-gutter: stable;
->>>>>>> resolve-423
   overflow-y: auto;
 }
