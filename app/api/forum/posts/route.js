@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/clerk-server';
-import { moderateContent } from '@/lib/ai-moderation';
+import { moderateContent, OUTCOMES } from '@/lib/ai-moderation';
 import { generateAlias } from '@/lib/alias-generator';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { crudLimiter } from '@/lib/rateLimiter';
 import { logger } from '@/lib/logger';
+import { validateSubmissionLength } from '@/lib/forum-limits';
 import {
   buildCursorFilter,
   buildFeedPage,
@@ -135,13 +136,35 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Length is checked here, before anything is sent to a provider. The route
+    // previously validated only that the fields were truthy, so a
+    // multi-megabyte body was forwarded verbatim to Gemini and then again to
+    // Groq on fallback — a slow, expensive request per attempt, reachable by
+    // anyone with an account at the ordinary crudLimiter rate.
+    const lengthError = validateSubmissionLength({ title, content });
+    if (lengthError) {
+      return NextResponse.json({ error: lengthError }, { status: 400 });
+    }
+
     // 1. Moderate content (both title and content)
     const moderationResult = await moderateContent(`${title}\n\n${content}`);
-    
+
     if (!moderationResult.isAppropriate) {
+      // A refusal and an outage are no longer the same response. The old code
+      // answered both with 403 and "your post violates our community
+      // guidelines", so a user whose ordinary post was blocked by a provider
+      // timeout was told she had broken the rules.
+      const isRefusal = moderationResult.outcome === OUTCOMES.REJECTED;
+
       return NextResponse.json(
-        { error: 'Your post violates our community guidelines.', reason: moderationResult.reason },
-        { status: 403 }
+        {
+          error: isRefusal
+            ? 'Your post violates our community guidelines.'
+            : moderationResult.reason,
+          reason: moderationResult.reason,
+          retryable: moderationResult.retryable,
+        },
+        { status: moderationResult.status }
       );
     }
 

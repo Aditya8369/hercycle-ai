@@ -205,6 +205,8 @@ export default function SymptomPhaseInsights({
             return (
               <li
                 key={entry.symptom}
+                tabIndex={0}
+                aria-label={`${label}, ${t('loggedTimes', { count: entry.occurrences })}`}
                 style={{
                   background: 'rgba(255,255,255,0.05)',
                   border: '1px solid rgba(255,255,255,0.1)',
@@ -240,14 +242,15 @@ export default function SymptomPhaseInsights({
                     background: 'rgba(255,255,255,0.08)', marginBottom: '0.6rem',
                   }}
                 >
-                  {entry.distribution.map((slice) => (
-                    slice.share > 0 ? (
+                  {entry.distribution.map((slice) => {
+                    const safeShare = Number.isFinite(slice.share) && slice.share > 0 ? slice.share : 0
+                    return safeShare > 0 ? (
                       <div
                         key={slice.phase}
-                        style={{ width: `${slice.share}%`, background: PHASE_COLORS[slice.phase] }}
+                        style={{ width: `${safeShare}%`, background: PHASE_COLORS[slice.phase] }}
                       />
                     ) : null
-                  ))}
+                  })}
                 </div>
 
                 {entry.isReportable ? (

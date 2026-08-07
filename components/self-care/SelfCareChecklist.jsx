@@ -168,7 +168,7 @@ export default function SelfCareChecklist() {
       {/* Progress bar */}
       {mounted && (
         <div className="space-y-2">
-          <p className="text-white/70 text-sm">
+          <p className="text-white/70 text-sm" aria-live="polite">
             {t('checklistProgress', { done: doneCount, total: totalCount })}
           </p>
           <div

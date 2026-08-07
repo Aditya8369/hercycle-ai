@@ -32,6 +32,7 @@ export default function DayLogDrawer({ isOpen, onClose, selectedDate, cycleData,
   useEffect(() => {
     if (!isOpen || !selectedDate) return
 
+    let isCurrent = true
     setSymptoms([])
     setMood(null)
     setFlow(null)
@@ -39,16 +40,23 @@ export default function DayLogDrawer({ isOpen, onClose, selectedDate, cycleData,
     const fetchLog = async () => {
       try {
         const data = await offlineClient.fetchTodayLog(selectedDate)
+        if (!isCurrent) return
         if (data.success && data.data) {
           if (data.data.symptoms) setSymptoms(data.data.symptoms)
           if (data.data.mood) setMood(data.data.mood)
           if (data.data.flow) setFlow(data.data.flow)
         }
       } catch (err) {
-        console.error('Error fetching log for date:', err)
+        if (isCurrent) {
+          console.error('Error fetching log for date:', err)
+        }
       }
     }
     fetchLog()
+
+    return () => {
+      isCurrent = false
+    }
   }, [isOpen, selectedDate, offlineClient])
 
   if (!isOpen || !selectedDate) return null
