@@ -126,6 +126,15 @@ const CustomTooltip = ({ active, payload, label }) => {
 const axisProps = { tick: { fill: 'rgba(255,255,255,0.75)', fontSize: 12 } }
 const gridProps = { strokeDasharray: '3 3', stroke: 'rgba(255,255,255,0.1)' }
 
+// Formats a YYYY-MM-DD cycle start date into a compact "day month" label,
+// e.g. "2026-07-03" -> "3 Jul". Parsing is anchored to local midnight to avoid
+// the UTC offset shift that `new Date("YYYY-MM-DD")` introduces.
+function formatStartDate(value) {
+  const d = new Date(`${value}T00:00:00`)
+  if (isNaN(d.getTime())) return value || ''
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function InsightsPage() {
   const t = useTranslations('pages.insights')
@@ -176,10 +185,15 @@ export default function InsightsPage() {
     }
   }
 
+// Last 12 cycles, rendered oldest -> newest. The x-axis uses each cycle's
+  // start date so users can spot how cycle length varies over time.
   const cycleLengthData = cycles
-    .slice(0, 6)
+    .slice(0, 12)
     .reverse()
-    .map((c, i) => ({ name: `C${i + 1}`, days: c.cycle_length || 28 }))
+    .map(c => ({
+      name: formatStartDate(c.start_date),
+      days: c.cycle_length || 28,
+    }))
 
   const symptomCounts = {}
   SYMPTOM_LIST.forEach(s => { symptomCounts[s] = 0 })
