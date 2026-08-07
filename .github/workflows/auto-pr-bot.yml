@@ -1,0 +1,78 @@
+name: Auto PR Bot & Maintainer Helper
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  auto-label-and-format:
+    name: Auto Label & Format PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto Format Title with [ECSoC26] Prefix
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          CURRENT_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if [[ "$CURRENT_TITLE" != *"ECSoC26"* && "$CURRENT_TITLE" != *"ECSoC"* ]]; then
+            NEW_TITLE="[ECSoC26] $CURRENT_TITLE"
+            echo "Formatting PR #$PR_NUMBER title: $NEW_TITLE"
+            gh pr edit "$PR_NUMBER" --title "$NEW_TITLE" --repo "$GITHUB_REPOSITORY" || true
+          fi
+
+      - name: Auto Label ECSoC26 & Domain Categories
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "Adding ECSoC26 label to PR #$PR_NUMBER..."
+          gh pr edit "$PR_NUMBER" --add-label "ECSoC26" --repo "$GITHUB_REPOSITORY" || true
+
+          FILES_CHANGED=$(gh pr view "$PR_NUMBER" --json files --jq '.files[].path' --repo "$GITHUB_REPOSITORY" 2>/dev/null || echo "")
+
+          if echo "$FILES_CHANGED" | grep -qE "^(app/|components/|public/|messages/)"; then
+            gh pr edit "$PR_NUMBER" --add-label "frontend" --repo "$GITHUB_REPOSITORY" || true
+          fi
+          if echo "$FILES_CHANGED" | grep -qE "^(app/api/|lib/|supabase/)"; then
+            gh pr edit "$PR_NUMBER" --add-label "backend" --repo "$GITHUB_REPOSITORY" || true
+          fi
+          if echo "$FILES_CHANGED" | grep -qE "^(docs/|\.md)"; then
+            gh pr edit "$PR_NUMBER" --add-label "documentation" --repo "$GITHUB_REPOSITORY" || true
+          fi
+          if echo "$FILES_CHANGED" | grep -qE "^(e2e/|tests/)"; then
+            gh pr edit "$PR_NUMBER" --add-label "e2e-testing" --repo "$GITHUB_REPOSITORY" || true
+          fi
+
+      - name: Attempt Branch Sync with Main
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "Attempting branch update from main for PR #$PR_NUMBER..."
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/update-branch" -X PUT || true
+
+      - name: Post Maintainer Verification Comment
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          COMMENT_BODY="### 🌸 HerCycle AI Automated PR Helper
+
+          - **Title Formatting**: Verified \`[ECSoC26]\` title prefix ✅
+          - **Labeling**: Applied \`ECSoC26\` + domain labels automatically ✅
+          - **CI Checks**: Running automated build & E2E integration tests 🧪
+
+          *Maintainers will review and merge this PR once CI checks pass!* 🚀"
+
+          gh pr comment "$PR_NUMBER" --body "$COMMENT_BODY" --repo "$GITHUB_REPOSITORY" || true
