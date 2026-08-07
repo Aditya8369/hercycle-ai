@@ -242,14 +242,15 @@ export default function SymptomPhaseInsights({
                     background: 'rgba(255,255,255,0.08)', marginBottom: '0.6rem',
                   }}
                 >
-                  {entry.distribution.map((slice) => (
-                    slice.share > 0 ? (
+                  {entry.distribution.map((slice) => {
+                    const safeShare = Number.isFinite(slice.share) && slice.share > 0 ? slice.share : 0
+                    return safeShare > 0 ? (
                       <div
                         key={slice.phase}
-                        style={{ width: `${slice.share}%`, background: PHASE_COLORS[slice.phase] }}
+                        style={{ width: `${safeShare}%`, background: PHASE_COLORS[slice.phase] }}
                       />
                     ) : null
-                  ))}
+                  })}
                 </div>
 
                 {entry.isReportable ? (
