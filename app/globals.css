@@ -3362,6 +3362,39 @@ nav ul li a:focus-visible,
   animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* ──── MOBILE QUICK-LOG FAB ──── */
+.quick-log-fab {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 900;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: linear-gradient(135deg, var(--rose-mid), var(--lavender));
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: var(--sans);
+  box-shadow: 0 8px 24px rgba(232, 82, 126, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: var(--interaction-transition);
+}
+
+.quick-log-fab:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 12px 30px rgba(232, 82, 126, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.quick-log-fab:active {
+  transform: scale(0.96);
+}
+
 /* ──── LOG HISTORY SCROLL GUARD ──── */
 .log-history-scroll {
   -webkit-overflow-scrolling: touch;
