@@ -100,7 +100,7 @@ export default function PcosQuizModal({ onClose }) {
   }
 
   const currentQuestion = step >= 1 && step <= 7 ? QUESTIONS[step - 1] : null
-  const progressPercent = step >= 1 && step <= 7 ? (step / QUESTIONS.length) * 100 : 0
+  const progressPercent = step >= 1 && step <= 7 ? (step / (QUESTIONS.length + 1)) * 100 : step === 8 ? 100 : 0
   const isAnswered = currentQuestion ? answers[currentQuestion.id] !== undefined : false
 
   // The heading changes with the step, so the accessible name is taken from
