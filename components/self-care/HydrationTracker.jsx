@@ -215,10 +215,9 @@ function SettingsModal({ settings, onSave, onClose, t }) {
     onClose();
   }
 
-  const numGlasses = Math.round(
-    clamp(Number(draft.dailyGoal) || DEFAULT_SETTINGS.dailyGoal, 500, 5000) /
-    clamp(Number(draft.cupCapacity) || DEFAULT_SETTINGS.cupCapacity, 50, 1000)
-  );
+  const safeGoal = clamp(Number(draft.dailyGoal) || DEFAULT_SETTINGS.dailyGoal, 500, 5000);
+  const safeCapacity = clamp(Number(draft.cupCapacity) || DEFAULT_SETTINGS.cupCapacity, 50, 1000);
+  const numGlasses = Math.max(1, Math.round(safeGoal / safeCapacity));
 
   return (
     <div
