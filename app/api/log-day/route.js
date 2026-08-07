@@ -5,9 +5,13 @@ import { crudLimiter } from '@/lib/rateLimiter'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { eventBus } from '@/lib/events'
+import { isoCalendarDate } from '@/lib/date-schemas'
 
 const logPostSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD'),
+  // Shape alone is not enough: the old `/^\d{4}-\d{2}-\d{2}$/` accepted
+  // "2026-02-31" and "2026-13-45", and this route answered 200 for a day that
+  // does not exist.
+  date: isoCalendarDate({ label: 'date' }),
   symptoms: z.array(z.string()).optional(),
   mood: z.string().nullable().optional(),
   flow: z.string().nullable().optional(),
@@ -105,21 +109,26 @@ export async function POST(request) {
     const { date, symptoms, mood, flow, cervical_discharge, encrypted_data } = result.data
 
     const supabaseAdmin = getSupabaseAdmin()
+
+    // Build the upsert payload — only include encrypted_data when the
+    // client actually sent it, so this route works whether or not the
+    // daily_logs table has been migrated to add the E2EE column yet.
+    const upsertPayload = {
+      user_id: userId,
+      date,
+      symptoms: symptoms || [],
+      mood: mood || null,
+      flow: flow || null,
+      cervical_discharge: cervical_discharge || null,
+      updated_at: new Date().toISOString()
+    }
+    if (encrypted_data !== undefined && encrypted_data !== null) {
+      upsertPayload.encrypted_data = encrypted_data
+    }
+
     const { error } = await supabaseAdmin
       .from('daily_logs')
-      .upsert(
-        { 
-          user_id: userId, 
-          date, 
-          symptoms: symptoms || [], 
-          mood: mood || null, 
-          flow: flow || null, 
-          cervical_discharge: cervical_discharge || null, 
-          encrypted_data: encrypted_data || null,
-          updated_at: new Date().toISOString() 
-        },
-        { onConflict: 'user_id,date' }
-      )
+      .upsert(upsertPayload, { onConflict: 'user_id,date' })
 
     if (error) {
       logger.error(`Database error upserting daily log for user ${userId}:`, error.message);
