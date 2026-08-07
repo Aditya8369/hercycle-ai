@@ -8,9 +8,6 @@ import { logger } from '@/lib/logger'
 export async function POST(request) {
   // ============ RATE LIMITING ============
   try {
-    // Resolve the identifier explicitly (user → IP with proxy-header
-    // fallbacks) so unidentifiable clients are throttled securely instead of
-    // bypassing the limiter through a shared `unknown` bucket.
     const identifier = await getRateLimitIdentifier(request);
     await aiLimiter.check(5, identifier);
   } catch (rateLimitError) {
@@ -47,7 +44,7 @@ export async function POST(request) {
 
     // Gracefully handle new users / empty cycle history using default prediction baseline
     const cycleHistory = Array.isArray(cycles) ? cycles : []
-    const prediction = predictNextPeriod(cycleHistory)
+    const prediction = await predictNextPeriod(cycleHistory)
 
     if (!cycleHistory.length) {
       logger.info(`New user or empty cycle history for user ${userId}; returned default baseline prediction`);

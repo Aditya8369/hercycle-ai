@@ -12,6 +12,8 @@ import NotificationSettings from './NotificationSettings'
 import SupportSettings from './SupportSettings'
 import LanguageSettings from '../settings/LanguageSettings'
 import PartnerSharing from '../settings/PartnerSharing'
+import FailedSyncPanel from '@/components/offline/FailedSyncPanel'
+import { summariseFailures, groupFailures } from '@/lib/sync-failure-view'
 
 function PartnerLogoutContent() {
   const { signOut } = useClerk()
@@ -44,7 +46,13 @@ export default function Navbar() {
   const pathname = usePathname()
   const { user } = useUser()
   const { signOut } = useClerk()
-  const { isOffline, pendingSyncCount, isSyncing } = useOffline()
+  const { isOffline, pendingSyncCount, isSyncing, failedSyncItems } = useOffline()
+  const [showFailedSync, setShowFailedSync] = useState(false)
+
+  // Dead-lettered changes previously had no surface at all: the recovery API
+  // on OfflineContext had zero consumers, so a permanently-failed health log
+  // vanished into IndexedDB behind one transient toast.
+  const failedSummary = summariseFailures(groupFailures(failedSyncItems, { now: 0 }))
 
   const [mounted, setMounted] = useState(false)
   const [theme, setTheme] = useState('light')
@@ -137,6 +145,18 @@ export default function Navbar() {
               {t('syncPending')} ({pendingSyncCount})
             </span>
           )}
+          {failedSummary.total > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowFailedSync((open) => !open)}
+              aria-expanded={showFailedSync}
+              aria-controls="failed-sync-region"
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30 whitespace-nowrap transition-colors hover:bg-rose-500/30"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+              {t('syncFailed')} ({failedSummary.total})
+            </button>
+          )}
           {!isOffline && isSyncing && (
             <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30 whitespace-nowrap">
               <svg className="animate-spin h-2.5 w-2.5 text-blue-300" fill="none" viewBox="0 0 24 24">
@@ -181,7 +201,7 @@ export default function Navbar() {
 
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden w-full flex flex-col gap-2 py-3 border-t border-white/20 mt-1 mb-2">
+        <div className="nav-mobile-menu md:hidden w-full flex flex-col gap-2 py-3 border-t border-white/20 mt-1 mb-2">
           {NAV_ITEMS.map(({ key, label, href }) => (
             <Link
               key={key}
@@ -358,6 +378,15 @@ export default function Navbar() {
 
             <NotificationSettings />
           </div>
+        </div>
+      )}
+
+      {/* Expands in place under the nav rather than in an overlay: these are
+          changes the user needs to read and decide about, not an interruption
+          to dismiss. */}
+      {showFailedSync && (
+        <div id="failed-sync-region" className="w-full">
+          <FailedSyncPanel onClose={() => setShowFailedSync(false)} />
         </div>
       )}
     </nav>
