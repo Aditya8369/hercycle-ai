@@ -3489,6 +3489,7 @@ nav ul li a:focus-visible,
 
 .heatmap-grid > * {
   cursor: pointer;
+}
 /* ──── SELF-CARE OPACITY & TRANSITION GLITCH FIX (Fixes #330) ──── */
 .self-care-step-img,
 .self-care-card img,
