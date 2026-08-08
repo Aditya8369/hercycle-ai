@@ -44,7 +44,7 @@ async function runTests() {
       { start_date: 'invalid-date' },
       { start_date: '2026-07-01', cycle_length: 30 },
       { start_date: 'garbage-date-again' }
-    ]);
+    ], new Date('2026-07-05T00:00:00Z'));
     assert(res.averageCycleLength === 30, 'Expected averageCycleLength to be 30');
     assert(res.confidence === '75%', 'Expected confidence to be 75%');
     assert(res.nextPeriodDate.startsWith('Jul 31'), 'Expected next period: Jul 31');
