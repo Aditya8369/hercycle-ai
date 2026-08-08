@@ -119,71 +119,84 @@ export default function WeightTrendChart({ refreshKey = 0 }) {
       </div>
 
       {loading ? (
-        <p style={{ color: 'rgba(255,255,255,0.65)' }}>{t('loading')}</p>
-      ) : chartData.length === 0 ? (
-        <div style={{
-          minHeight: 180,
-          display: 'grid',
-          placeItems: 'center',
-          textAlign: 'center',
-          color: 'rgba(255,255,255,0.62)',
-        }}>
-          <div>
-            <Activity size={30} style={{ marginBottom: 8 }} />
-            <p style={{ margin: 0 }}>
-              {t('noMeasurements')}
-            </p>
+        <div style={{ width: '100%', height: 260, display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'center' }}>
+          <div className="chart-skeleton-box" style={{ width: '100%', height: 180, borderRadius: 12 }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 10px' }}>
+            <div className="chart-skeleton-box" style={{ width: 45, height: 12 }} />
+            <div className="chart-skeleton-box" style={{ width: 45, height: 12 }} />
+            <div className="chart-skeleton-box" style={{ width: 45, height: 12 }} />
+            <div className="chart-skeleton-box" style={{ width: 45, height: 12 }} />
+            <div className="chart-skeleton-box" style={{ width: 45, height: 12 }} />
           </div>
         </div>
       ) : (
-        <div style={{ width: '100%', height: 300 }}>
-          <ResponsiveContainer>
-            <LineChart data={chartData} margin={{ top: 8, right: 12, left: -8, bottom: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-              <XAxis
-                dataKey="label"
-                tick={{ fill: 'rgba(255,255,255,0.72)', fontSize: 12 }}
-              />
-              <YAxis
-                yAxisId="weight"
-                tick={{ fill: 'rgba(255,255,255,0.72)', fontSize: 12 }}
-                domain={['dataMin - 3', 'dataMax + 3']}
-              />
-              <YAxis
-                yAxisId="waist"
-                orientation="right"
-                tick={{ fill: 'rgba(255,255,255,0.72)', fontSize: 12 }}
-                domain={['dataMin - 5', 'dataMax + 5']}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: 'rgba(30,12,40,0.96)',
-                  border: '1px solid rgba(232,82,126,0.5)',
-                  borderRadius: 10,
-                }}
-                labelStyle={{ color: '#fff' }}
-              />
-              <Legend />
-              <Line
-                yAxisId="weight"
-                type="monotone"
-                dataKey="weight"
-                name={t('weight')}
-                stroke="#e8527e"
-                strokeWidth={3}
-                activeDot={{ r: 6 }}
-              />
-              <Line
-                yAxisId="waist"
-                type="monotone"
-                dataKey="waist"
-                name={t('waist')}
-                stroke="#a98bff"
-                strokeWidth={2}
-                connectNulls
-              />
-            </LineChart>
-          </ResponsiveContainer>
+        <div className="insights-fade-in">
+          {chartData.length === 0 ? (
+            <div style={{
+              minHeight: 180,
+              display: 'grid',
+              placeItems: 'center',
+              textAlign: 'center',
+              color: 'rgba(255,255,255,0.62)',
+            }}>
+              <div>
+                <Activity size={30} style={{ marginBottom: 8 }} />
+                <p style={{ margin: 0 }}>
+                  {t('noMeasurements')}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div style={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer>
+                <LineChart data={chartData} margin={{ top: 8, right: 12, left: -8, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fill: 'rgba(255,255,255,0.72)', fontSize: 12 }}
+                  />
+                  <YAxis
+                    yAxisId="weight"
+                    tick={{ fill: 'rgba(255,255,255,0.72)', fontSize: 12 }}
+                    domain={['dataMin - 3', 'dataMax + 3']}
+                  />
+                  <YAxis
+                    yAxisId="waist"
+                    orientation="right"
+                    tick={{ fill: 'rgba(255,255,255,0.72)', fontSize: 12 }}
+                    domain={['dataMin - 5', 'dataMax + 5']}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'rgba(30,12,40,0.96)',
+                      border: '1px solid rgba(232,82,126,0.5)',
+                      borderRadius: 10,
+                    }}
+                    labelStyle={{ color: '#fff' }}
+                  />
+                  <Legend />
+                  <Line
+                    yAxisId="weight"
+                    type="monotone"
+                    dataKey="weight"
+                    name={t('weight')}
+                    stroke="#e8527e"
+                    strokeWidth={3}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line
+                    yAxisId="waist"
+                    type="monotone"
+                    dataKey="waist"
+                    name={t('waist')}
+                    stroke="#a98bff"
+                    strokeWidth={2}
+                    connectNulls
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       )}
     </section>
