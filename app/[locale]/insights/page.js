@@ -49,7 +49,7 @@ function IconBadge({ children, size = 'lg' }) {
 }
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ icon, label, value, sub }) {
+function StatCard({ icon, label, value, sub, loading }) {
   return (
     <div className="insight-card interactive-card" style={{
       textAlign: 'center',
@@ -62,13 +62,17 @@ function StatCard({ icon, label, value, sub }) {
       <div style={{ marginBottom: '0.5rem' }}>
         <IconBadge size="lg">{icon}</IconBadge>
       </div>
-      <div style={{
-        fontSize: '2rem', fontWeight: 700,
-        background: `linear-gradient(135deg, ${PINK}, ${MAUVE})`,
-        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-      }}>
-        {value}
-      </div>
+      {loading ? (
+        <div className="chart-skeleton-box" style={{ width: '60%', height: '2rem', margin: '4px auto 4px auto' }} />
+      ) : (
+        <div style={{
+          fontSize: '2rem', fontWeight: 700,
+          background: `linear-gradient(135deg, ${PINK}, ${MAUVE})`,
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+        }}>
+          {value}
+        </div>
+      )}
       <div style={{ fontSize: '0.88rem', fontWeight: 600, color: TEXT_PRIMARY, marginTop: 4 }}>
         {label}
       </div>
@@ -367,29 +371,33 @@ export default function InsightsPage() {
               label={t('avgCycle')}
               value={`${avgCycle}d`}
               sub="days"
+              loading={loading}
             />
             <StatCard
               icon={<Calendar size={28} color={ACCENT} strokeWidth={1.5} />}
               label={recordedLabel}
-              value={loading ? '…' : recordedValue}
+              value={recordedValue}
               sub={recordedSub}
+              loading={loading}
             />
             <StatCard
               icon={<span style={{ fontSize: '1.75rem', lineHeight: 1 }}>🌸</span>}
               label={t('nextPeriod')}
-              value={loading ? '…' : nextDate}
+              value={nextDate}
               sub={t('predicted')}
+              loading={loading}
             />
             <StatCard
               icon={<span style={{ fontSize: '1.75rem', lineHeight: 1 }}>🩺</span>}
               label={t('pcodRisk')}
-              value={loading ? '…' : riskResult ? `${riskResult.score}/100` : '—'}
+              value={riskResult ? `${riskResult.score}/100` : '—'}
               sub={
                 riskTier === 'HIGH RISK' ? tRisk('high')
                   : riskTier === 'MEDIUM RISK' ? tRisk('med')
                     : riskTier === 'LOW RISK' ? tRisk('low')
                       : tRisk('unavailableBadge')
               }
+              loading={loading}
             />
           </div>
 
@@ -418,75 +426,90 @@ export default function InsightsPage() {
             icon={<TrendingUp size={18} color={ACCENT} strokeWidth={1.5} />}
             title={t('trendTitle')}
           >
-            {cycleLengthData.length < 1 ? (
-              <p style={{ color: TEXT_FAINT, textAlign: 'center', padding: '2rem 0' }}>
-                {t('trendEmpty')}
-              </p>
+            {loading ? (
+              <div style={{ width: '100%', height: 220, display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'center' }}>
+                <div className="chart-skeleton-box" style={{ width: '100%', height: 160, borderRadius: 12 }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 10px' }}>
+                  <div className="chart-skeleton-box" style={{ width: 40, height: 12 }} />
+                  <div className="chart-skeleton-box" style={{ width: 40, height: 12 }} />
+                  <div className="chart-skeleton-box" style={{ width: 40, height: 12 }} />
+                  <div className="chart-skeleton-box" style={{ width: 40, height: 12 }} />
+                  <div className="chart-skeleton-box" style={{ width: 40, height: 12 }} />
+                </div>
+              </div>
             ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart
-                  data={cycleLengthData}
-                  margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
-                >
-                  <defs>
-                    <filter
-                      id="cycleGlow"
-                      x="-50%"
-                      y="-50%"
-                      width="200%"
-                      height="200%"
+              <div className="insights-fade-in">
+                {cycleLengthData.length < 1 ? (
+                  <p style={{ color: TEXT_FAINT, textAlign: 'center', padding: '2rem 0' }}>
+                    {t('trendEmpty')}
+                  </p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart
+                      data={cycleLengthData}
+                      margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
                     >
-                      <feGaussianBlur
-                        in="SourceGraphic"
-                        stdDeviation="4"
-                        result="blur"
+                      <defs>
+                        <filter
+                          id="cycleGlow"
+                          x="-50%"
+                          y="-50%"
+                          width="200%"
+                          height="200%"
+                        >
+                          <feGaussianBlur
+                            in="SourceGraphic"
+                            stdDeviation="4"
+                            result="blur"
+                          />
+                          <feMerge>
+                            <feMergeNode in="blur" />
+                            <feMergeNode in="SourceGraphic" />
+                          </feMerge>
+                        </filter>
+                      </defs>
+
+                      <CartesianGrid
+                        vertical={false}
+                        stroke="rgba(255,255,255,0.05)"
                       />
-                      <feMerge>
-                        <feMergeNode in="blur" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                  </defs>
 
-                  <CartesianGrid
-                    vertical={false}
-                    stroke="rgba(255,255,255,0.05)"
-                  />
+                      <XAxis
+                        dataKey="name"
+                        {...axisProps}
+                      />
 
-                  <XAxis
-                    dataKey="name"
-                    {...axisProps}
-                  />
+                      <YAxis
+                        domain={[20, 40]}
+                        {...axisProps}
+                      />
 
-                  <YAxis
-                    domain={[20, 40]}
-                    {...axisProps}
-                  />
+                      <Tooltip content={<CustomTooltip />} />
 
-                  <Tooltip content={<CustomTooltip />} />
-
-                  <Line
-                    type="monotone"
-                    dataKey="days"
-                    name="days"
-                    stroke={PINK}
-                    strokeWidth={2.5}
-                    filter="url(#cycleGlow)"
-                    dot={{
-                      fill: PINK,
-                      stroke: PINK,
-                      strokeWidth: 2,
-                      r: 5,
-                    }}
-                    activeDot={{
-                      r: 8,
-                      fill: MAUVE,
-                      stroke: PINK,
-                      strokeWidth: 3,
-                    }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+                      <Line
+                        type="monotone"
+                        dataKey="days"
+                        name="days"
+                        stroke={PINK}
+                        strokeWidth={2.5}
+                        filter="url(#cycleGlow)"
+                        dot={{
+                          fill: PINK,
+                          stroke: PINK,
+                          strokeWidth: 2,
+                          r: 5,
+                        }}
+                        activeDot={{
+                          r: 8,
+                          fill: MAUVE,
+                          stroke: PINK,
+                          strokeWidth: 3,
+                        }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
             )}
           </SectionCard>
 
@@ -497,24 +520,37 @@ export default function InsightsPage() {
             icon={<Activity size={18} color={ACCENT} strokeWidth={1.5} />}
             title={t('symptomTitle')}
           >
-            {totalLogs === 0 ? (
-              <p style={{ color: TEXT_FAINT, textAlign: 'center', padding: '2rem 0' }}>
-                {t('symptomEmpty')}
-              </p>
+            {loading ? (
+              <div style={{ width: '100%', height: 200, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', padding: '10px 20px 20px 20px' }}>
+                <div className="chart-skeleton-box" style={{ width: '12%', height: '40%', borderRadius: '6px 6px 0 0' }} />
+                <div className="chart-skeleton-box" style={{ width: '12%', height: '75%', borderRadius: '6px 6px 0 0' }} />
+                <div className="chart-skeleton-box" style={{ width: '12%', height: '30%', borderRadius: '6px 6px 0 0' }} />
+                <div className="chart-skeleton-box" style={{ width: '12%', height: '60%', borderRadius: '6px 6px 0 0' }} />
+                <div className="chart-skeleton-box" style={{ width: '12%', height: '85%', borderRadius: '6px 6px 0 0' }} />
+                <div className="chart-skeleton-box" style={{ width: '12%', height: '50%', borderRadius: '6px 6px 0 0' }} />
+              </div>
             ) : (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={symptomFreq} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                  <CartesianGrid {...gridProps} />
-                  <XAxis dataKey="name" {...axisProps} />
-                  <YAxis allowDecimals={false} {...axisProps} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="count" name="occurrences" radius={[6, 6, 0, 0]}>
-                    {symptomFreq.map((_, i) => (
-                      <Cell key={i} fill={i % 2 === 0 ? PINK : MAUVE} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="insights-fade-in">
+                {totalLogs === 0 ? (
+                  <p style={{ color: TEXT_FAINT, textAlign: 'center', padding: '2rem 0' }}>
+                    {t('symptomEmpty')}
+                  </p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={symptomFreq} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                      <CartesianGrid {...gridProps} />
+                      <XAxis dataKey="name" {...axisProps} />
+                      <YAxis allowDecimals={false} {...axisProps} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="count" name="occurrences" radius={[6, 6, 0, 0]}>
+                        {symptomFreq.map((_, i) => (
+                          <Cell key={i} fill={i % 2 === 0 ? PINK : MAUVE} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
             )}
           </SectionCard>
 
@@ -534,39 +570,59 @@ export default function InsightsPage() {
             icon={null}
             title={t('moodTitle')}
           >
-            {totalLogs === 0 ? (
-              <p style={{ color: TEXT_FAINT, textAlign: 'center', padding: '1rem 0' }}>
-                {t('moodEmpty')}
-              </p>
+            {loading ? (
+              <div className="mood-distribution-grid">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} style={{
+                    textAlign: 'center', padding: '1rem 0.5rem',
+                    background: 'rgba(255,255,255,0.06)',
+                    borderRadius: 12,
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6
+                  }}>
+                    <div className="chart-skeleton-box" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                    <div className="chart-skeleton-box" style={{ width: 48, height: 24 }} />
+                    <div className="chart-skeleton-box" style={{ width: 40, height: 12 }} />
+                  </div>
+                ))}
+              </div>
             ) : (
-              <>
-                <div className="mood-distribution-grid">
-                  {moodData.map(({ emoji, label, pct }) => (
-                    <div key={label} className="mood-summary-card interactive-card" style={{
-                      textAlign: 'center', padding: '1rem 0.5rem',
-                      background: 'rgba(255,255,255,0.06)',
-                      borderRadius: 12,
-                      border: '1px solid rgba(255,255,255,0.1)',
-                    }}>
-                      <div style={{ fontSize: '1.8rem' }}>{emoji}</div>
-                      <div style={{
-                        fontSize: '1.2rem', fontWeight: 700,
-                        background: `linear-gradient(135deg, ${PINK}, ${MAUVE})`,
-                        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                        marginTop: 4,
-                      }}>
-                        {pct}%
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: TEXT_PRIMARY, marginTop: 2 }}>
-                        {label}
-                      </div>
+              <div className="insights-fade-in">
+                {totalLogs === 0 ? (
+                  <p style={{ color: TEXT_FAINT, textAlign: 'center', padding: '1rem 0' }}>
+                    {t('moodEmpty')}
+                  </p>
+                ) : (
+                  <>
+                    <div className="mood-distribution-grid">
+                      {moodData.map(({ emoji, label, pct }) => (
+                        <div key={label} className="mood-summary-card interactive-card" style={{
+                          textAlign: 'center', padding: '1rem 0.5rem',
+                          background: 'rgba(255,255,255,0.06)',
+                          borderRadius: 12,
+                          border: '1px solid rgba(255,255,255,0.1)',
+                        }}>
+                          <div style={{ fontSize: '1.8rem' }}>{emoji}</div>
+                          <div style={{
+                            fontSize: '1.2rem', fontWeight: 700,
+                            background: `linear-gradient(135deg, ${PINK}, ${MAUVE})`,
+                            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                            marginTop: 4,
+                          }}>
+                            {pct}%
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: TEXT_PRIMARY, marginTop: 2 }}>
+                            {label}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                <p style={{ fontSize: '0.72rem', color: TEXT_FAINT, marginTop: '0.75rem' }}>
-                  {t('moodBasedOn', { count: totalLogs, entryLabel: totalLogs === 1 ? t('entry') : t('entries') })}
-                </p>
-              </>
+                    <p style={{ fontSize: '0.72rem', color: TEXT_FAINT, marginTop: '0.75rem' }}>
+                      {t('moodBasedOn', { count: totalLogs, entryLabel: totalLogs === 1 ? t('entry') : t('entries') })}
+                    </p>
+                  </>
+                )}
+              </div>
             )}
           </SectionCard>
 
