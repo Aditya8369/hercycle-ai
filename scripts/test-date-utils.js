@@ -259,12 +259,14 @@ async function testPredictNextPeriod() {
     { start_date: '2026-05-01', cycle_length: 28 },
     { start_date: '2026-05-29', cycle_length: 28 },
   ]
-  const result = await predictNextPeriod(history)
+  const todayMay = new Date(2026, 5, 1)
+  const todayJul = new Date(2026, 6, 5)
+  const result = await predictNextPeriod(history, todayMay)
   check(result.nextPeriodDate, 'Jun 26, 2026', 'prediction lands on 29 May + 28 days')
   check(result.averageCycleLength, 28, 'prediction reports a 28-day average')
 
   // Single-entry path.
-  const single = await predictNextPeriod([{ start_date: '2026-07-01', cycle_length: 30 }])
+  const single = await predictNextPeriod([{ start_date: '2026-07-01', cycle_length: 30 }], todayJul)
   check(single.nextPeriodDate, 'Jul 31, 2026', 'single-entry prediction adds the stored cycle length')
   check(single.averageCycleLength, 30, 'single-entry prediction keeps a valid cycle length')
 
@@ -272,7 +274,7 @@ async function testPredictNextPeriod() {
   const fromTimestamps = await predictNextPeriod([
     { start_date: '2026-05-01T00:00:00+00:00', cycle_length: 28 },
     { start_date: '2026-05-29T00:00:00+00:00', cycle_length: 28 },
-  ])
+  ], todayMay)
   check(fromTimestamps.nextPeriodDate, 'Jun 26, 2026', 'timestamptz history predicts the same day')
 
   // Empty / unusable history still returns a well-formed shape.
