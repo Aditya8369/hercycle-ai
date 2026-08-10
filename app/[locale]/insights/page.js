@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
-import { RefreshCw, Calendar, CalendarRange, TrendingUp, Activity, BarChart2 } from 'lucide-react'
+import { RefreshCw, Calendar, CalendarRange, TrendingUp, Activity, BarChart2, Download } from 'lucide-react'
+import toast from 'react-hot-toast'
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, Tooltip, CartesianGrid,
@@ -84,7 +85,7 @@ function StatCard({ icon, label, value, sub, loading }) {
 }
 
 // ─── Section card ─────────────────────────────────────────────────────────────
-function SectionCard({ icon, title, children }) {
+function SectionCard({ icon, title, headerAction, children }) {
   return (
     <div className="insight-card interactive-card" style={{
       background: CARD_BG,
@@ -94,11 +95,14 @@ function SectionCard({ icon, title, children }) {
       padding: '1.5rem',
       marginBottom: '1.5rem',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
-        {icon && <IconBadge size="sm">{icon}</IconBadge>}
-        <h3 style={{ color: TEXT_PRIMARY, fontSize: '1.05rem', fontWeight: 600, margin: 0 }}>
-          {title}
-        </h3>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.6rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          {icon && <IconBadge size="sm">{icon}</IconBadge>}
+          <h3 style={{ color: TEXT_PRIMARY, fontSize: '1.05rem', fontWeight: 600, margin: 0 }}>
+            {title}
+          </h3>
+        </div>
+        {headerAction}
       </div>
       {children}
     </div>
@@ -227,7 +231,10 @@ export default function InsightsPage() {
   const recordedSub = totalCycles > 0 ? t('cycles') : t('entries')
 
   const handleCSVExport = () => {
-    if (!cycles.length) return
+    if (!cycles || cycles.length === 0) {
+      toast.error(t('trendEmpty') || 'No cycle records available to export')
+      return
+    }
     const header = 'start_date,end_date,cycle_length'
     const rows = cycles.map(c =>
       `${formatDateForCSV(c.start_date)},${formatDateForCSV(c.end_date)},${c.cycle_length || ''}`
@@ -239,6 +246,7 @@ export default function InsightsPage() {
     a.download = 'hercycle-cycles.csv'
     a.click()
     URL.revokeObjectURL(url)
+    toast.success('Cycle records exported to CSV! 📊')
   }
 
   // `null` when there is no assessment. This used to default to 'LOW RISK',
@@ -410,21 +418,47 @@ export default function InsightsPage() {
             >
               {copied ? `✅ ${t('copiedSummary')}` : `📋 ${t('copySummary')}`}
             </button>
-            {cycles.length > 0 && (
-              <button
-                onClick={handleCSVExport}
-                className="export-btn"
-                style={{ width: 'auto', padding: '10px 20px' }}
-              >
-                ⬇️ {t('exportCsv')}
-              </button>
-            )}
+            <button
+              onClick={handleCSVExport}
+              className="export-btn"
+              style={{
+                width: 'auto',
+                padding: '10px 20px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                opacity: cycles.length === 0 ? 0.75 : 1,
+              }}
+              title={cycles.length === 0 ? 'No cycle records available to export' : 'Export cycle history as CSV'}
+            >
+              <Download size={16} />
+              <span>{t('exportCsv')}</span>
+            </button>
           </div>
 
           {/* ── Cycle Length Trend ── */}
           <SectionCard
             icon={<TrendingUp size={18} color={ACCENT} strokeWidth={1.5} />}
             title={t('trendTitle')}
+            headerAction={
+              <button
+                onClick={handleCSVExport}
+                className="export-btn"
+                style={{
+                  width: 'auto',
+                  padding: '6px 14px',
+                  fontSize: '0.82rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  opacity: cycles.length === 0 ? 0.75 : 1,
+                }}
+                title={cycles.length === 0 ? 'No cycle records available to export' : 'Export cycle history as CSV'}
+              >
+                <Download size={14} />
+                <span>{t('exportCsv')}</span>
+              </button>
+            }
           >
             {loading ? (
               <div style={{ width: '100%', height: 220, display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'center' }}>
