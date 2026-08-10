@@ -169,9 +169,14 @@ export default function DayLogDrawer({ isOpen, onClose, selectedDate, cycleData,
         style={{ outline: 'none' }}
       >
         <div className="drawer-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <h3 id="day-log-drawer-title" style={{ margin: 0, fontSize: '1.25rem', color: '#fff' }}>
-            {dateStr}
-          </h3>
+          <div>
+            <h3 id="day-log-drawer-title" style={{ margin: 0, fontSize: '1.25rem', color: '#fff' }}>
+              {dateStr}
+            </h3>
+            <span style={{ fontSize: '0.8rem', color: openCycleCurrent ? '#f43f5e' : 'rgba(255,255,255,0.7)', fontWeight: 600, display: 'inline-block', marginTop: '2px' }}>
+              {openCycleCurrent ? '🩸 Period Active on this Date' : '🌸 Regular Day'}
+            </span>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -186,11 +191,11 @@ export default function DayLogDrawer({ isOpen, onClose, selectedDate, cycleData,
         <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
           {!openCycleCurrent ? (
             <button className="btn-white" onClick={handleStartPeriod} style={{ flex: 1, padding: '0.75rem', fontWeight: 600 }}>
-              {tTrack('startPeriod')}
+              🔴 {tTrack('startPeriod')}
             </button>
           ) : (
             <button className="btn-outline" onClick={handleEndPeriod} style={{ flex: 1, padding: '0.75rem', fontWeight: 600 }}>
-              {tTrack('endPeriod')}
+              ✅ {tTrack('endPeriod')}
             </button>
           )}
         </div>

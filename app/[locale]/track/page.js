@@ -300,6 +300,7 @@ export default function TrackPage() {
               daysUntilNext={daysUntilNext}
               activeLang="EN"
               onDayClick={handleDayClick}
+              selectedDate={selectedDate}
             />
           </div>
 
