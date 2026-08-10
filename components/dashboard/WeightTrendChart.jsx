@@ -67,7 +67,7 @@ export default function WeightTrendChart({ refreshKey = 0 }) {
       weight: Number(entry.weight_kg),
       waist: entry.waist_cm == null ? null : Number(entry.waist_cm),
       bmi: Number(entry.bmi),
-    })),
+    })).filter(entry => Number.isFinite(entry.weight) && entry.weight > 0),
     [entries]
   )
 
