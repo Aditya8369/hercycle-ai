@@ -34,7 +34,8 @@ export default function CycleCalendar({
   onNextMonth,
   averageCycleLength,
   daysUntilNext,
-  onDayClick
+  onDayClick,
+  selectedDate
 }) {
   const t = useTranslations('cycle')
   const locale = useLocale()
@@ -121,6 +122,7 @@ export default function CycleCalendar({
       <div className="mini-cal" role="grid">
         {(calendarDays || []).map((day, i) => {
           const isClickable = day.type !== 'header' && day.type !== 'empty';
+          const isSelected = Boolean(selectedDate && day.iso === selectedDate);
           return (
             <div
               key={i}
@@ -138,6 +140,7 @@ export default function CycleCalendar({
                 day.type === 'ovulation' ? 'ovulation' : '',
                 day.type === 'today' ? 'today' : '',
                 day.isToday && day.type !== 'today' ? 'today-ring' : '',
+                isSelected ? 'selected-day' : '',
               ].join(' ').trim()}
               onClick={(e) => {
                 if (isClickable && onDayClick && day.iso) {
@@ -148,6 +151,8 @@ export default function CycleCalendar({
               style={{
                 cursor: isClickable ? 'pointer' : 'default'
               }}
+              title={isClickable ? `Click to log or edit ${day.iso}` : undefined}
+              data-date={day.iso}
             >
               {day.label}
             </div>
