@@ -30,7 +30,7 @@ export async function POST(request) {
 
     // Handle Clerk version differences (v4 vs v5/v6)
     const client = typeof clerkClient === 'function' ? await clerkClient() : clerkClient
-    
+
     // Deleting the user from Clerk's backend will automatically trigger the user.deleted webhook
     await client.users.deleteUser(userId)
 
@@ -40,7 +40,7 @@ export async function POST(request) {
       headers: { 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    logger.error(`Error deleting account: ${error.message}`, error.stack)
+    logger.error(`Error deleting account for user ${userId}: ${error.message}`, error.stack)
     return new Response(JSON.stringify({ error: 'Failed to delete account' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
