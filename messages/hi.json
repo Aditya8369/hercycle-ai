@@ -12,6 +12,12 @@
     "syncing": "सिंक हो रहा है",
     "logToday": "आज लॉग करें",
     "signOut": "साइन आउट",
+    "notification": "सूचना",
+    "language": "भाषा",
+    "partnerSharing": "साथी साझाकरण",
+    "dataPrivacy": "डेटा और गोपनीयता",
+    "healthProfile": "स्वास्थ्य प्रोफाइल",
+    "helpSupport": "सहायता और समर्थन",
     "syncFailed": "सहेजा नहीं गया"
   },
   "SyncFailures": {

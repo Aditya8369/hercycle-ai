@@ -314,7 +314,7 @@ export default function Navbar() {
               />
             )}
             <UserButton.Action
-              label="Notification"
+              label={t('notification')}
               labelIcon={<BellIcon className="w-4 h-4 text-rose-400" />}
               open="notifications"
             />
