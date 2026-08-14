@@ -324,7 +324,12 @@
     "deleteDesc": "Permanently delete your account and all associated data from our servers. This will immediately trigger a hard wipe of your cycles, logs, and profile. This action is irreversible.",
     "deleteBtn": "Delete My Account",
     "deleting": "Deleting Account...",
-    "deleteConfirm": "WARNING: This will permanently delete your account, including all cycle logs, predictions, and profile data. This action CANNOT be undone. Are you sure you want to proceed?"
+    "deleteConfirm": "WARNING: This will permanently delete your account, including all cycle logs, predictions, and profile data. This action CANNOT be undone. Are you sure you want to proceed?",
+    "deleteModalTitle": "Confirm Account Deletion",
+    "deleteModalDesc": "WARNING: This will permanently delete your account, including all cycle logs, predictions, and profile data. This action CANNOT be undone.",
+    "deleteModalKeyword": "DELETE",
+    "deleteModalPlaceholder": "Type DELETE to confirm",
+    "cancelBtn": "Cancel"
   },
   "CycleEducation": {
     "eyebrow": "Cycle education",

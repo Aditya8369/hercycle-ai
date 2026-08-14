@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useClerk, useUser } from '@clerk/nextjs'
 import Navbar from '@/components/layout/Navbar'
+import ConfirmationModal from '@/components/modals/ConfirmationModal'
 import toast from 'react-hot-toast'
 import { Download, AlertTriangle, Trash2, Shield } from 'lucide-react'
 import PartnerSharing from '@/components/settings/PartnerSharing'
@@ -16,20 +17,47 @@ export default function SettingsPage() {
   const { user } = useUser()
   const { signOut } = useClerk()
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
-
-  const handleDeleteAccount = async () => {
-    if (!confirm(t('deleteConfirm'))) {
-      return
+  const handleExportData = async () => {
+    setIsExporting(true)
+    const toastId = toast.loading('Preparing your export...')
+    try {
+      const res = await fetch('/api/user/export')
+      if (!res.ok) throw new Error('Export failed')
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'hercycle-health-data.json'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      window.URL.revokeObjectURL(url)
+      toast.success('Data exported successfully!', { id: toastId })
+    } catch (error) {
+      console.error(error)
+      toast.error('Failed to export data. Please try again.', { id: toastId })
+    } finally {
+      setIsExporting(false)
     }
+  }
 
+  const handleConfirmDelete = async () => {
     setIsDeleting(true)
     const toastId = toast.loading('Deleting account...')
     try {
-      // Clerk's user.delete() deletes the user and triggers the user.deleted webhook
-      await user.delete()
+      // Delete user via Clerk client / backend API
+      if (user?.delete) {
+        await user.delete()
+      } else {
+        const res = await fetch('/api/delete-account', { method: 'POST' })
+        if (!res.ok) throw new Error('Failed to delete account via API')
+      }
       await signOut()
       toast.success('Account deleted successfully.', { id: toastId })
+      setIsDeleteModalOpen(false)
       router.push('/')
     } catch (error) {
       console.error(error)
@@ -87,7 +115,7 @@ export default function SettingsPage() {
                     {t('deleteDesc')}
                   </p>
                   <button 
-                    onClick={handleDeleteAccount}
+                    onClick={() => setIsDeleteModalOpen(true)}
                     disabled={isDeleting}
                     className="flex items-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 px-5 py-2.5 rounded-xl transition-colors font-medium border border-red-500/30 mt-2 disabled:opacity-50"
                   >
@@ -101,7 +129,23 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title={t('deleteModalTitle')}
+        description={t('deleteModalDesc')}
+        keyword={t('deleteModalKeyword')}
+        confirmText={t('deleteBtn')}
+        cancelText={t('cancelBtn')}
+        inputPlaceholder={t('deleteModalPlaceholder')}
+        isLoading={isDeleting}
+        isDanger={true}
+      />
     </div>
   )
 }
+
 
