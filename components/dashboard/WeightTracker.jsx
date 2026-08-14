@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, Ruler, Scale, Save } from 'lucide-react'
+import { Activity, Ruler, Scale, Save, Loader2, CheckCircle2 } from 'lucide-react'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
 import toast from 'react-hot-toast'
 import { useTranslations } from 'next-intl'
@@ -46,6 +46,7 @@ export default function WeightTracker({ onSaved }) {
     height_cm: '',
   })
   const [saving, setSaving] = useState(false)
+  const [pendingEntry, setPendingEntry] = useState(null)
 
   useEffect(() => {
     try {
@@ -71,6 +72,39 @@ export default function WeightTracker({ onSaved }) {
 
   const handleSubmit = async event => {
     event.preventDefault()
+
+    const weightNum = Number(form.weight_kg)
+    const heightNum = Number(form.height_cm)
+    const waistNum = form.waist_cm ? Number(form.waist_cm) : null
+    const dateVal = form.recorded_date
+
+    if (!weightNum || !heightNum) return
+
+    // Snapshot current form for potential rollback
+    const previousForm = { ...form }
+
+    // Construct optimistic record
+    const optimisticRecord = {
+      id: `temp-${Date.now()}`,
+      recorded_date: dateVal,
+      weight_kg: weightNum,
+      waist_cm: waistNum,
+      height_cm: heightNum,
+      bmi: bmi,
+      isPending: true,
+      status: 'syncing',
+    }
+
+    // 1. Optimistic state update
+    setPendingEntry(optimisticRecord)
+    onSaved?.(optimisticRecord, { isOptimistic: true })
+
+    // Reset inputs immediately for responsive UX
+    setForm(current => ({
+      ...current,
+      weight_kg: '',
+      waist_cm: '',
+    }))
     setSaving(true)
 
     try {
@@ -78,10 +112,10 @@ export default function WeightTracker({ onSaved }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          recorded_date: form.recorded_date,
-          weight_kg: Number(form.weight_kg),
-          waist_cm: form.waist_cm ? Number(form.waist_cm) : null,
-          height_cm: Number(form.height_cm),
+          recorded_date: dateVal,
+          weight_kg: weightNum,
+          waist_cm: waistNum,
+          height_cm: heightNum,
         }),
       })
 
@@ -90,15 +124,22 @@ export default function WeightTracker({ onSaved }) {
         throw new Error(result.error || 'Unable to save the measurement.')
       }
 
-      localStorage.setItem('hercycle-height-cm', form.height_cm)
+      localStorage.setItem('hercycle-height-cm', String(heightNum))
+
+      // 2. Server confirmation update
+      const confirmedEntry = { ...result.data, isPending: false, status: 'saved' }
+      setPendingEntry(confirmedEntry)
       toast.success('Measurement saved successfully')
-      setForm(current => ({
-        ...current,
-        weight_kg: '',
-        waist_cm: '',
-      }))
-      onSaved?.(result.data)
+      onSaved?.(confirmedEntry, { isOptimistic: false })
+
+      // Clear badge after brief success display
+      setTimeout(() => {
+        setPendingEntry(null)
+      }, 2500)
     } catch (error) {
+      // 3. Rollback on failure
+      setPendingEntry(null)
+      setForm(previousForm)
       toast.error(error.message || 'Unable to save the measurement.')
     } finally {
       setSaving(false)
@@ -231,6 +272,55 @@ export default function WeightTracker({ onSaved }) {
         </div>
       </form>
 
+      {/* Optimistic Pending / Confirmation Badge Card */}
+      {pendingEntry && (
+        <div style={{
+          marginTop: 18,
+          padding: '1rem 1.25rem',
+          borderRadius: 12,
+          background: pendingEntry.status === 'syncing'
+            ? 'rgba(233, 30, 140, 0.12)'
+            : 'rgba(34, 197, 94, 0.12)',
+          border: pendingEntry.status === 'syncing'
+            ? '1px solid rgba(233, 30, 140, 0.4)'
+            : '1px solid rgba(34, 197, 94, 0.4)',
+          transition: 'all 0.3s ease',
+          boxShadow: pendingEntry.status === 'syncing'
+            ? '0 0 15px rgba(233, 30, 140, 0.25)'
+            : '0 0 15px rgba(34, 197, 94, 0.25)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {pendingEntry.status === 'syncing' ? (
+                <>
+                  <Loader2 size={16} color="#e91e8c" className="animate-spin" />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#e91e8c' }}>
+                    Syncing measurement...
+                  </span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={16} color="#22c55e" />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#22c55e' }}>
+                    Measurement saved
+                  </span>
+                </>
+              )}
+            </div>
+            <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.6)', fontFamily: 'monospace' }}>
+              {pendingEntry.recorded_date}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: 16, fontSize: '0.9rem', color: '#fff', flexWrap: 'wrap' }}>
+            <span>Weight: <strong>{pendingEntry.weight_kg} kg</strong></span>
+            {pendingEntry.waist_cm && <span>Waist: <strong>{pendingEntry.waist_cm} cm</strong></span>}
+            {pendingEntry.height_cm && <span>Height: <strong>{pendingEntry.height_cm} cm</strong></span>}
+            {pendingEntry.bmi && <span>BMI: <strong>{pendingEntry.bmi}</strong></span>}
+          </div>
+        </div>
+      )}
+
       <p style={{
         color: 'rgba(255,255,255,0.52)',
         fontSize: '0.78rem',
@@ -243,3 +333,4 @@ export default function WeightTracker({ onSaved }) {
     </section>
   )
 }
+
