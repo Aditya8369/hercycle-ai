@@ -5,17 +5,20 @@ import { useRouter } from 'next/navigation'
 import { useClerk, useUser } from '@clerk/nextjs'
 import Navbar from '@/components/layout/Navbar'
 import toast from 'react-hot-toast'
-import { Download, AlertTriangle, Trash2, Shield } from 'lucide-react'
+import { Download, AlertTriangle, Trash2, Shield, Sun, Moon } from 'lucide-react'
 import PartnerSharing from '@/components/settings/PartnerSharing'
 import NotificationSettings from '@/components/layout/NotificationSettings'
 import { useTranslations } from 'next-intl'
+import { useTheme } from '@/lib/ThemeContext'
 
 export default function SettingsPage() {
   const t = useTranslations('PrivacyData')
   const router = useRouter()
   const { user } = useUser()
   const { signOut } = useClerk()
+  const { theme, setTheme, toggleTheme } = useTheme()
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
 
   const handleDeleteAccount = async () => {
@@ -56,6 +59,39 @@ export default function SettingsPage() {
             <div className="absolute top-[-50%] right-[-50%] w-[100%] h-[100%] bg-white/5 blur-3xl rounded-full pointer-events-none"></div>
 
             <PartnerSharing />
+            <hr className="border-white/10 relative z-10" />
+
+            {/* Appearance & Theme Section */}
+            <section className="space-y-4 relative z-10">
+              <h2 className="text-xl font-semibold text-white">Appearance & Theme</h2>
+              <p className="text-white/70 text-sm">
+                Choose your preferred visual theme for HerCycle AI with smooth color transitions.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setTheme('light')}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all border ${
+                    theme === 'light'
+                      ? 'bg-pink-500 text-white border-pink-400 shadow-lg'
+                      : 'bg-white/10 hover:bg-white/20 text-white/80 border-white/10'
+                  }`}
+                >
+                  <Sun className="w-4 h-4" />
+                  <span>Light Mode</span>
+                </button>
+                <button
+                  onClick={() => setTheme('dark')}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all border ${
+                    theme === 'dark'
+                      ? 'bg-pink-500 text-white border-pink-400 shadow-lg'
+                      : 'bg-white/10 hover:bg-white/20 text-white/80 border-white/10'
+                  }`}
+                >
+                  <Moon className="w-4 h-4" />
+                  <span>Dark Mode</span>
+                </button>
+              </div>
+            </section>
             <hr className="border-white/10 relative z-10" />
 
             {/* Privacy & Data Settings Trigger */}
