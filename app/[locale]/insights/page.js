@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@clerk/nextjs'
+import { useAuth, useUser } from '@clerk/nextjs'
 import { RefreshCw, Calendar, CalendarRange, TrendingUp, Activity, BarChart2, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
 import {
@@ -151,6 +151,7 @@ export default function InsightsPage() {
   const tRisk = useTranslations('Risk')
   const router = useRouter()
   const { isLoaded, isSignedIn } = useAuth()
+  const { user } = useUser()
   const { offlineClient } = useOffline()
 
   const [cycleData, setCycleData] = useState(null)
@@ -235,11 +236,28 @@ export default function InsightsPage() {
       toast.error(t('trendEmpty') || 'No cycle records available to export')
       return
     }
+
+    // Branding, metadata, and user context
+    const brand = 'HerCycle AI - Cycle Export'
+    const exportDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+    const userEmail = user?.primaryEmailAddress?.emailAddress || user?.id || 'Guest'
+
+    // Computed Summary Statistics
+    const metadata = [
+      `${brand},,`,
+      `Exported On,"${exportDate}",`,
+      `User Context,"${userEmail}",`,
+      `Average Cycle Length,${avgCycle} days,`,
+      `Total Cycles Tracked,${totalCycles},`,
+      ',,'
+    ]
+
     const header = 'start_date,end_date,cycle_length'
     const rows = cycles.map(c =>
       `${formatDateForCSV(c.start_date)},${formatDateForCSV(c.end_date)},${c.cycle_length || ''}`
     )
-    const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' })
+    const csvContent = [...metadata, header, ...rows].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
