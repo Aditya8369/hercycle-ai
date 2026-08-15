@@ -4,9 +4,13 @@ import { NextResponse } from 'next/server';
 
 import {
   NO_STORE,
+  buildContentSecurityPolicy,
+  cspHeaderName,
+  isReportOnly,
   isSensitiveApiPath,
   parseAllowedOrigins,
   resolveCorsHeaders,
+  staticSecurityHeaders,
 } from '@/lib/security-headers.mjs';
 
 const isPublicRoute = createRouteMatcher([
@@ -66,6 +70,24 @@ function applyRequestHeaders(response, req) {
 
   const pathname = req.nextUrl.pathname;
 
+  const isDev = process.env.NODE_ENV === 'development';
+  const staticHeaders = staticSecurityHeaders({ isDev });
+  for (const { key, value } of staticHeaders) {
+    if (!response.headers.has(key)) {
+      response.headers.set(key, value);
+    }
+  }
+
+  const cspReportOnly = isReportOnly(process.env.CSP_REPORT_ONLY);
+  const cspName = cspHeaderName(cspReportOnly);
+  if (!response.headers.has(cspName)) {
+    const cspValue = buildContentSecurityPolicy({
+      isDev,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    });
+    response.headers.set(cspName, cspValue);
+  }
+
   if (pathname.startsWith('/api')) {
     const cors = resolveCorsHeaders({
       origin: req.headers.get('origin'),
@@ -78,10 +100,6 @@ function applyRequestHeaders(response, req) {
     }
   }
 
-  // Cycle history, daily symptom logs and the PCOD risk assessment were
-  // previously served with `private, max-age=60` (300 for the risk score),
-  // which permits the browser to write them to its on-disk cache. Signing out
-  // does not clear that cache.
   if (isSensitiveApiPath(pathname)) {
     response.headers.set('Cache-Control', NO_STORE);
     response.headers.set('Pragma', 'no-cache');
