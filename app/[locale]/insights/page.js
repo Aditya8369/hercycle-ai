@@ -496,11 +496,15 @@ export default function InsightsPage() {
                     {t('trendEmpty')}
                   </p>
                 ) : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <LineChart
-                      data={cycleLengthData}
-                      margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
-                    >
+                  <div
+                    role="img"
+                    aria-label={`Line chart showing cycle length trend across your last ${cycleLengthData.length} tracked cycles, averaging ${avgCycle} days`}
+                  >
+                    <ResponsiveContainer width="100%" height={220} aria-hidden="true">
+                      <LineChart
+                        data={cycleLengthData}
+                        margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
+                      >
                       <defs>
                         <filter
                           id="cycleGlow"
@@ -559,7 +563,8 @@ export default function InsightsPage() {
                         }}
                       />
                     </LineChart>
-                  </ResponsiveContainer>
+                    </ResponsiveContainer>
+                  </div>
                 )}
               </div>
             )}
@@ -588,8 +593,12 @@ export default function InsightsPage() {
                     {t('symptomEmpty')}
                   </p>
                 ) : (
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={symptomFreq} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                <div
+                    role="img"
+                    aria-label={`Bar chart showing frequency of logged symptoms across ${totalLogs} entries`}
+                  >
+                    <ResponsiveContainer width="100%" height={200} aria-hidden="true">
+                      <BarChart data={symptomFreq} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
                       <CartesianGrid {...gridProps} />
                       <XAxis dataKey="name" {...axisProps} />
                       <YAxis allowDecimals={false} {...axisProps} />
@@ -600,7 +609,8 @@ export default function InsightsPage() {
                         ))}
                       </Bar>
                     </BarChart>
-                  </ResponsiveContainer>
+                    </ResponsiveContainer>
+                  </div>
                 )}
               </div>
             )}
