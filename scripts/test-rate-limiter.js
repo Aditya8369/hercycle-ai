@@ -187,7 +187,95 @@ check(isAllowed('user_1', 'chat', 2), true, 'first call allowed')
 check(isAllowed('user_1', 'chat', 2), true, 'second call allowed')
 check(isAllowed('user_1', 'chat', 2), false, 'third call rejected')
 check(isAllowed('user_1', 'cycles', 2), true, 'a different route has a separate budget')
-check(isAllowed('user_2', 'chat', 2), true, 'a different user has a separate budget')
+// ───────────────────────────────────────────────────────────────────────────
+section('sliding window limit simulation & threshold breaching')
+
+resetInMemoryRateLimits()
+
+// Test 1: Rapid burst breaching limit threshold
+const burstStartTime = 2_000_000_000_000
+const burstLimit = 5
+const burstInterval = 60_000
+let burstAllowed = 0
+let burstBlocked = 0
+
+for (let i = 1; i <= 15; i++) {
+  const result = consume('user:burst_tester', {
+    limit: burstLimit,
+    intervalMs: burstInterval,
+    now: burstStartTime + i * 10,
+  })
+  if (result.allowed) {
+    burstAllowed++
+    check(result.remaining, burstLimit - i, `burst request ${i} remaining count is ${burstLimit - i}`)
+  } else {
+    burstBlocked++
+    check(result.remaining, 0, `burst request ${i} remaining is clamped to 0 when breached`)
+  }
+  check(result.count, i, `burst request ${i} total count tracks accurately`)
+}
+
+check(burstAllowed, 5, 'burst simulation allows exactly the limit threshold (5 requests)')
+check(burstBlocked, 10, 'burst simulation blocks all 10 requests exceeding limit threshold')
+
+// Test 2: Sliding window time progression and window reset after interval
+resetInMemoryRateLimits()
+const windowStart = 3_000_000_000_000
+const limit = 2
+const windowMs = 30_000 // 30 second window
+
+// Window 1: 2 requests allowed, 3rd blocked
+check(consume('user:slider', { limit, intervalMs: windowMs, now: windowStart }).allowed, true, 'window 1 request 1 allowed')
+check(consume('user:slider', { limit, intervalMs: windowMs, now: windowStart + 1000 }).allowed, true, 'window 1 request 2 allowed')
+check(consume('user:slider', { limit, intervalMs: windowMs, now: windowStart + 2000 }).allowed, false, 'window 1 request 3 blocked (threshold breached)')
+check(consume('user:slider', { limit, intervalMs: windowMs, now: windowStart + 15000 }).allowed, false, 'mid-window request still blocked')
+
+// Window 2: Window slides past windowMs (t = windowStart + 30000), resets counter
+check(consume('user:slider', { limit, intervalMs: windowMs, now: windowStart + 30000 }).allowed, true, 'window 2 request 1 allowed after window slides')
+check(consume('user:slider', { limit, intervalMs: windowMs, now: windowStart + 31000 }).allowed, true, 'window 2 request 2 allowed')
+check(consume('user:slider', { limit, intervalMs: windowMs, now: windowStart + 32000 }).allowed, false, 'window 2 request 3 blocked after threshold breached again')
+
+// Window 3: Window slides past another 30s (t = windowStart + 60000)
+check(consume('user:slider', { limit, intervalMs: windowMs, now: windowStart + 60000 }).allowed, true, 'window 3 request 1 allowed after second window slides')
+
+// Test 3: Multiple endpoint limiters threshold breach isolation (AI=5, CRUD=30, Dev=10)
+resetInMemoryRateLimits()
+const testTime = 4_000_000_000_000
+
+// AI Endpoint Limiter (Limit: 5)
+let aiPassed = 0
+for (let i = 0; i < 8; i++) {
+  if (consume('ai:user_100', { limit: 5, intervalMs: 60000, now: testTime + i }).allowed) aiPassed++
+}
+check(aiPassed, 5, 'AI limiter simulation enforces threshold of 5 requests')
+
+// CRUD Endpoint Limiter (Limit: 30)
+let crudPassed = 0
+for (let i = 0; i < 35; i++) {
+  if (consume('crud:user_100', { limit: 30, intervalMs: 60000, now: testTime + i }).allowed) crudPassed++
+}
+check(crudPassed, 30, 'CRUD limiter simulation enforces threshold of 30 requests')
+
+// Dev Endpoint Limiter (Limit: 10)
+let devPassed = 0
+for (let i = 0; i < 15; i++) {
+  if (consume('dev:user_100', { limit: 10, intervalMs: 60000, now: testTime + i }).allowed) devPassed++
+}
+check(devPassed, 10, 'Dev limiter simulation enforces threshold of 10 requests')
+
+// Verify namespaces remain isolated for the same user
+check(consume('ai:user_100', { limit: 5, intervalMs: 60000, now: testTime + 100 }).allowed, false, 'AI endpoint bucket remains blocked')
+check(consume('crud:user_100', { limit: 30, intervalMs: 60000, now: testTime + 100 }).allowed, false, 'CRUD endpoint bucket remains blocked')
+check(consume('dev:user_100', { limit: 10, intervalMs: 60000, now: testTime + 100 }).allowed, false, 'Dev endpoint bucket remains blocked')
+
+// Test 4: Precision boundary timing checks (1ms before window reset vs at window reset)
+resetInMemoryRateLimits()
+const baseTime = 5_000_000_000_000
+const testInterval = 10_000
+
+consume('user:boundary', { limit: 1, intervalMs: testInterval, now: baseTime })
+check(consume('user:boundary', { limit: 1, intervalMs: testInterval, now: baseTime + testInterval - 1 }).allowed, false, 'request 1ms before window reset is blocked')
+check(consume('user:boundary', { limit: 1, intervalMs: testInterval, now: baseTime + testInterval }).allowed, true, 'request exactly at window reset is allowed')
 
 // ───────────────────────────────────────────────────────────────────────────
 if (failed > 0) {

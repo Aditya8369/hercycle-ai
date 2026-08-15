@@ -818,6 +818,13 @@ nav ul li a.active {
   box-shadow: 0 0 0 2px rgba(194, 24, 91, 0.5);
 }
 
+.cal-d.selected-day {
+  border: 2px solid #ffb3d9 !important;
+  box-shadow: 0 0 14px rgba(255, 179, 217, 0.8) !important;
+  transform: scale(1.1);
+  z-index: 2;
+}
+
 .cal-d.ovulation {
   background: rgba(192, 132, 252, 0.28);
   color: white;
@@ -1123,6 +1130,32 @@ nav ul li a.active {
 
   100% {
     background-position: -200% 0;
+  }
+}
+
+/* ── Insights & Chart Skeleton Loaders & Fade In ── */
+.chart-skeleton-box {
+  border-radius: 8px;
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.14) 40%,
+      rgba(255, 255, 255, 0.06) 80%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+}
+
+.insights-fade-in {
+  animation: chartFadeIn 0.4s ease-out forwards;
+}
+
+@keyframes chartFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

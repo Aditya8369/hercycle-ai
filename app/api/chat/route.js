@@ -7,45 +7,9 @@ import { logger } from '@/lib/logger'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { z } from 'zod'
 
+import { pruneMessageHistory } from '@/lib/chat-utils';
+
 const TIMEOUT_MS = 8000; // 8 seconds timeout to prevent long hangs
-
-// Maximum number of conversation messages forwarded to the LLM. Sending a full
-// transcript costs tokens and risks context-length errors on long threads.
-const MAX_CONTEXT_MESSAGES = 15;
-
-const MAX_CONTEXT_CHARS = 12000; // Safe character limit for prompt optimization
-
-/**
- * Truncates a conversation history using a sliding window token estimator.
- * Keeps recent message payloads up to a safe character limit before calling AI models.
- *
- * @param {Array<{role: string, ...}>} messages
- * @param {number} [maxMessages=MAX_CONTEXT_MESSAGES]
- * @param {number} [maxChars=MAX_CONTEXT_CHARS]
- * @returns {Array<{role: string, ...}>}
- */
-function pruneMessageHistory(messages, maxMessages = MAX_CONTEXT_MESSAGES, maxChars = MAX_CONTEXT_CHARS) {
-  if (!Array.isArray(messages) || messages.length === 0) return messages;
-
-  const systemPrompt = messages[0];
-  let currentChars = JSON.stringify(systemPrompt).length;
-
-  const recentMessages = [];
-
-  // Iterate backwards to prioritize most recent conversation turns
-  for (let i = messages.length - 1; i > 0; i--) {
-    const msg = messages[i];
-    const msgChars = JSON.stringify(msg).length;
-
-    if (recentMessages.length >= maxMessages - 1) break;
-    if (currentChars + msgChars > maxChars) break;
-
-    recentMessages.unshift(msg);
-    currentChars += msgChars;
-  }
-
-  return [systemPrompt, ...recentMessages];
-}
 
 const chatPayloadSchema = z.object({
   language: z.string().max(10).optional(),

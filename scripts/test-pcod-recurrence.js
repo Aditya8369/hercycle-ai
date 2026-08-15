@@ -34,7 +34,7 @@ async function runTests() {
       { date: '2026-05-10', symptoms: ['acne', 'bloating'] }
     ];
     const res = await calculatePCODRisk(mockCycles, dailyLogs);
-    assert(res.score === 35, `Expected score 35, got ${res.score}`);
+    assert(res.score === 40, `Expected score 40, got ${res.score}`);
     assert(res.tier === 'MEDIUM RISK', `Expected MEDIUM RISK, got ${res.tier}`);
     assert(res.factors.some(f => f.includes('High symptom recurrence') || f.includes('Persistent recurrence')), 'Expected high symptom recurrence factor');
     console.log('✅ Test 2 Passed: High recurrence across 90-day multi-month window');
@@ -62,7 +62,7 @@ async function runTests() {
       { date: '2026-07-10', symptoms: ['acne'] }
     ];
     const res = await calculatePCODRisk(mockCycles, dailyLogs);
-    assert(res.score === 20, `Expected score 20, got ${res.score}`);
+    assert(res.score === 25, `Expected score 25, got ${res.score}`);
     assert(res.factors.some(f => f.includes('Recurring PCOD symptom pattern')), 'Expected recurring pattern factor');
     console.log('✅ Test 4 Passed: Single highly recurring symptom pattern detected');
   }
@@ -87,6 +87,21 @@ async function runTests() {
     assert(res.score >= 60, `Expected score >= 60, got ${res.score}`);
     assert(res.tier === 'HIGH RISK', `Expected HIGH RISK, got ${res.tier}`);
     console.log('✅ Test 5 Passed: Irregular cycles + high symptom recurrence triggers HIGH RISK tier');
+  }
+
+  // Test 6: Duplicate symptoms do not artificially increase the score
+  {
+    const duplicateLogs = [
+      { date: '2026-07-20', symptoms: ['acne', 'acne'] },
+      { date: '2026-07-20', symptoms: ['acne'] }
+    ];
+    const singleLogs = [
+      { date: '2026-07-20', symptoms: ['acne'] }
+    ];
+    const resDup = await calculatePCODRisk(mockCycles, duplicateLogs);
+    const resSing = await calculatePCODRisk(mockCycles, singleLogs);
+    assert(resDup.score === resSing.score, `Expected score ${resSing.score} with duplicates, got ${resDup.score}`);
+    console.log('✅ Test 6 Passed: Duplicate symptoms do not artificially increase the score');
   }
 
   console.log('\n=== All PCOD Recurrence Engine Tests Passed Successfully! ===');

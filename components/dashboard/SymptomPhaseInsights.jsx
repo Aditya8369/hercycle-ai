@@ -126,7 +126,17 @@ export default function SymptomPhaseInsights({
     return (
       <div className="insight-card" style={card}>
         {header}
-        <p style={{ color: TEXT_FAINT, textAlign: 'center', padding: '2rem 0' }}>{t('loading')}</p>
+        <div className="chart-skeleton-box" style={{ width: '50%', height: 14, marginBottom: '1.25rem' }} />
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+          <div className="chart-skeleton-box" style={{ width: 90, height: 24, borderRadius: 999 }} />
+          <div className="chart-skeleton-box" style={{ width: 90, height: 24, borderRadius: 999 }} />
+          <div className="chart-skeleton-box" style={{ width: 90, height: 24, borderRadius: 999 }} />
+          <div className="chart-skeleton-box" style={{ width: 90, height: 24, borderRadius: 999 }} />
+        </div>
+        <div style={{ display: 'grid', gap: '1rem' }}>
+          <div className="chart-skeleton-box" style={{ width: '100%', height: 75, borderRadius: 12 }} />
+          <div className="chart-skeleton-box" style={{ width: '100%', height: 75, borderRadius: 12 }} />
+        </div>
       </div>
     )
   }
@@ -135,7 +145,7 @@ export default function SymptomPhaseInsights({
   // showing an empty chart — a number the user can act on beats "no data".
   if (!analysis.hasEnoughData) {
     return (
-      <div className="insight-card" style={card}>
+      <div className="insight-card insights-fade-in" style={card}>
         {header}
         <p style={{ color: TEXT_FAINT, fontSize: '0.85rem', marginBottom: '1rem' }}>{t('subtitle')}</p>
         <div style={{
@@ -157,7 +167,7 @@ export default function SymptomPhaseInsights({
   }
 
   return (
-    <div className="insight-card" style={card}>
+    <div className="insight-card insights-fade-in" style={card}>
       {header}
       <p style={{ color: TEXT_FAINT, fontSize: '0.85rem', marginBottom: '1.25rem' }}>
         {t('subtitle')}

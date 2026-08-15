@@ -1,0 +1,40 @@
+/* Theme Design Tokens and Transition System */
+
+:root {
+  --color-bg-primary: linear-gradient(155deg, #fce4ec 0%, #f5a8d0 25%, #e065b5 50%, #b83da0 72%, #7c2d90 90%, #4a1580 100%);
+  --color-bg-surface: rgba(255, 255, 255, 0.16);
+  --color-bg-surface-secondary: rgba(255, 255, 255, 0.10);
+  --color-border: rgba(255, 255, 255, 0.25);
+  --color-text-primary: rgba(255, 255, 255, 0.95);
+  --color-text-secondary: rgba(255, 255, 255, 0.70);
+  --color-text-muted: rgba(255, 255, 255, 0.45);
+  --color-accent: #e8527e;
+  --color-accent-hover: #c9375f;
+  --color-shadow: rgba(201, 55, 95, 0.22);
+}
+
+[data-theme='dark'],
+.dark {
+  --color-bg-primary: linear-gradient(155deg, #1c141a 0%, #241A22 25%, #2E1F2A 60%, #150f14 100%);
+  --color-bg-surface: rgba(58, 40, 53, 0.75);
+  --color-bg-surface-secondary: rgba(74, 50, 67, 0.55);
+  --color-border: rgba(107, 76, 96, 0.45);
+  --color-text-primary: #FFF7FB;
+  --color-text-secondary: #D9C7D2;
+  --color-text-muted: #B89EAE;
+  --color-accent: #D86C9A;
+  --color-accent-hover: #C25C8B;
+  --color-shadow: rgba(36, 26, 34, 0.60);
+}
+
+/* Global Smooth Transitions for Theme Changes */
+html,
+body,
+.page,
+.glass,
+.card,
+nav,
+button,
+section {
+  transition: background-color 0.3s ease, background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
+}
