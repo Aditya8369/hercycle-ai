@@ -13,6 +13,8 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import HeroSection from '@/components/dashboard/HeroSection'
 import CycleCalendar from '@/components/dashboard/CycleCalendar'
+import CycleCalendarSkeleton from '@/components/dashboard/CycleCalendarSkeleton'
+import DayLogDrawer from '@/components/dashboard/DayLogDrawer'
 import PartnerLoveBanner from '@/components/dashboard/PartnerLoveBanner'
 import VibeCheckin from '@/components/dashboard/VibeCheckin'
 import PCODRiskCard from '@/components/dashboard/PCODRiskCard'
@@ -27,6 +29,7 @@ import PcosQuizModal from '@/components/dashboard/PcosQuizModal'
 import PcosSymptomProfileCard from '@/components/dashboard/PcosSymptomProfileCard'
 import PcosSymptomProfileModal from '@/components/dashboard/PcosSymptomProfileModal'
 import { useOffline } from '@/lib/OfflineContext'
+import { RISK_UNAVAILABLE_REASONS } from '@/lib/pcod-risk-result'
 import { useLocale, useTranslations } from 'next-intl'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
 import FeaturesSection from '@/components/dashboard/FeaturesSection'
@@ -148,11 +151,21 @@ const HerCycleApp = () => {
   const [cycleData, setCycleData] = useState(null)
   const [pcodRisk, setPcodRisk] = useState(null)
   const [pcodRiskLoading, setPcodRiskLoading] = useState(true)
+  // Why the assessment is missing, when it is. Kept separate from `pcodRisk`
+  // so "we could not check" is never conflated with "we checked, you're fine".
+  const [pcodRiskReason, setPcodRiskReason] = useState(null)
   const [isLogOpen, setIsLogOpen] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [dataLoaded, setDataLoaded] = useState(false)
   const [showPcosQuiz, setShowPcosQuiz] = useState(false)
   const [showPcosSymptomProfileQuiz, setShowPcosSymptomProfileQuiz] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(null)
+
+  const handleDayClick = (iso) => {
+    setSelectedDate(iso)
+    setDrawerOpen(true)
+  }
 
   const openLogDrawer = () => setIsLogOpen(true)
   const closeLogDrawer = () => setIsLogOpen(false)
@@ -238,9 +251,17 @@ const HerCycleApp = () => {
       const data = await offlineClient.fetchPCODRisk() // PCOD risk calculates locally now if offline, maybe we need to pass encryptionKey there too if it fetches? Wait, fetchPCODRisk just reads IndexedDB which has decrypted data.
       if (data.success) {
         setPcodRisk(data.data)
+        setPcodRiskReason(null)
+      } else {
+        // Clear any assessment already on screen. Leaving the previous one up
+        // would present a stale reading as though it were current.
+        setPcodRisk(null)
+        setPcodRiskReason(data.reason || RISK_UNAVAILABLE_REASONS.BACKEND)
       }
     } catch (error) {
       console.error('Error fetching PCOD risk:', error)
+      setPcodRisk(null)
+      setPcodRiskReason(RISK_UNAVAILABLE_REASONS.BACKEND)
     } finally {
       setPcodRiskLoading(false)
     }
@@ -476,16 +497,33 @@ const HerCycleApp = () => {
 
         <div className="hero">
           <HeroSection activeLang={activeLang} cycleDayInfo={cycleDayInfo} />
-          <CycleCalendar
-            calendarDays={calendarDays}
-            currentMonth={`${new Intl.DateTimeFormat(locale === 'hi' ? 'hi-IN' : 'en-US', { month: 'long' }).format(new Date(viewYear, viewMonth))} ${viewYear}`}
-            onPrevMonth={goToPrevMonth}
-            onNextMonth={goToNextMonth}
-            averageCycleLength={cycleData?.averageCycleLength || 28}
-            daysUntilNext={daysUntilNext}
-            activeLang={activeLang}
-          />
+          {dataLoaded ? (
+            <CycleCalendar
+              calendarDays={calendarDays}
+              currentMonth={`${new Intl.DateTimeFormat(locale === 'hi' ? 'hi-IN' : 'en-US', { month: 'long' }).format(new Date(viewYear, viewMonth))} ${viewYear}`}
+              onPrevMonth={goToPrevMonth}
+              onNextMonth={goToNextMonth}
+              averageCycleLength={cycleData?.averageCycleLength || 28}
+              daysUntilNext={daysUntilNext}
+              activeLang={activeLang}
+              onDayClick={handleDayClick}
+              selectedDate={selectedDate}
+            />
+          ) : (
+            <CycleCalendarSkeleton />
+          )}
         </div>
+
+        <DayLogDrawer
+          isOpen={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          selectedDate={selectedDate}
+          cycleData={cycleData}
+          onSaved={() => {
+            fetchCycleData()
+            fetchTodayLog()
+          }}
+        />
 
         <div style={{ marginTop: '1.5rem' }}>
           <CyclePhaseCard
@@ -509,6 +547,7 @@ const HerCycleApp = () => {
         <div className="dual-row">
           <PCODRiskCard
             pcodRisk={pcodRisk}
+            unavailableReason={pcodRiskReason}
             loading={pcodRiskLoading}
             cycleCount={cycleData?.cycles?.length ?? 0}
             cycles={cycleData?.cycles ?? []}

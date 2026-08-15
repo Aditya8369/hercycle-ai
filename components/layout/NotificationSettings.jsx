@@ -5,8 +5,36 @@ import { Bell, Heart, Mail, Sparkles, Check, CheckCheck, Clock, ShieldAlert, Dro
 import { useUser } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
 import { getPrimaryPartnerNudges, getSharedInsights } from '@/lib/actions/partner'
-import { requestNotificationPermission, getNotificationPermissionStatus, sendDeviceNotification } from '@/lib/utils/notifications'
+import { requestNotificationPermission, getNotificationPermissionStatus, sendDeviceNotification, PUSH_STATES } from '@/lib/utils/notifications'
 import NotificationPreferences from '@/components/settings/NotificationPreferences'
+
+const PREFERENCE_ITEMS = [
+  {
+    key: 'partnerNotes',
+    title: 'Partner Love Notes & Care Alerts 💌',
+    description: 'Get notified when a love note or reply is sent',
+  },
+  {
+    key: 'prePeriodAlerts',
+    title: 'Pre-Period 48-Hour Advance Warning 🩸',
+    description: 'Receive automatic alerts 2 days before cycle start',
+  },
+  {
+    key: 'vibeCheckins',
+    title: 'Daily Comfort Vibe Check-ins 💕',
+    description: 'Get updates when comfort vibe status changes',
+  },
+  {
+    key: 'careQuests',
+    title: 'Daily Care Quest Completions 🍫',
+    description: 'Alerts when partner completes daily care actions',
+  },
+  {
+    key: 'selfCareReminders',
+    title: 'Hydration & Self-Care Reminders 💧',
+    description: 'Daily health & wellness check-in prompts',
+  },
+]
 
 export default function NotificationSettings() {
   const { user } = useUser()
@@ -40,14 +68,19 @@ export default function NotificationSettings() {
   }, [])
 
   const handleEnableDevicePush = async () => {
-    const status = await requestNotificationPermission()
-    setDevicePermission(status)
-    if (status === 'granted') {
+    const { state, permission, message } = await requestNotificationPermission()
+    setDevicePermission(permission)
+
+    if (state === PUSH_STATES.ENABLED) {
       toast.success('Device push notifications enabled! 🔔')
-      sendDeviceNotification('HerCycle AI Notifications Active 🌸', 'You will now receive instant lock screen & push alerts for love notes & period updates!')
-    } else if (status === 'denied') {
-      toast.error('Notification permission was blocked in browser settings.')
+      sendDeviceNotification(
+        'HerCycle AI Notifications Active 🌸',
+        'You will now receive instant lock screen & push alerts for love notes & period updates!'
+      )
+      return
     }
+
+    toast.error(message)
   }
 
   const loadNotificationsFeed = async () => {
@@ -167,43 +200,45 @@ export default function NotificationSettings() {
   const unreadCount = notifications.filter((n) => !n.read).length
 
   return (
-    <div className="p-4 sm:p-6 w-full max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300">
+    <div className="p-4 sm:p-6 w-full max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300 font-sans">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/10 pb-4 flex-wrap gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/15 pb-4 gap-3 sm:gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-400/40 flex items-center justify-center shrink-0 shadow-sm">
             <Bell className="w-5 h-5 text-rose-300" />
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
               Notifications & Alerts
               {unreadCount > 0 && (
-                <span className="text-xs bg-rose-500 text-white font-mono px-2 py-0.5 rounded-full">
+                <span className="text-xs bg-rose-500 text-white font-mono font-bold px-2.5 py-0.5 rounded-full shadow-sm">
                   {unreadCount} new
                 </span>
               )}
             </h1>
-            <p className="text-white/70 text-xs sm:text-sm">Auto-deletes read alerts after 24h</p>
+            <p className="text-slate-200 text-xs sm:text-sm font-normal">Auto-deletes read alerts after 24h</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-start sm:justify-end">
           {unreadCount > 0 && (
             <button
+              type="button"
               onClick={handleMarkAllRead}
-              className="text-xs text-rose-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5"
+              className="flex-1 sm:flex-none text-xs font-semibold text-rose-200 hover:text-white bg-white/10 hover:bg-white/20 border border-white/15 px-3 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
             >
-              <CheckCheck className="w-3.5 h-3.5" />
+              <CheckCheck className="w-3.5 h-3.5 text-rose-300" />
               <span>Mark read</span>
             </button>
           )}
 
           {notifications.length > 0 && (
             <button
+              type="button"
               onClick={handleClearAllNotifications}
-              className="text-xs text-red-300 hover:text-white bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5"
+              className="flex-1 sm:flex-none text-xs font-semibold text-red-200 hover:text-white bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 px-3 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
             >
-              <Trash2 className="w-3.5 h-3.5" />
+              <Trash2 className="w-3.5 h-3.5 text-red-300" />
               <span>Clear All</span>
             </button>
           )}
@@ -211,14 +246,17 @@ export default function NotificationSettings() {
       </div>
 
       {/* Device Push Permission Card */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-950/80 via-purple-950/80 to-slate-900/90 border border-rose-400/30 flex items-center justify-between gap-3 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-400/40 flex items-center justify-center text-xl shrink-0">
+      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-rose-950/90 via-purple-950/80 to-slate-900/90 border border-rose-400/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+        <div className="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-400/40 flex items-center justify-center text-xl shrink-0 shadow-sm">
             📲
           </div>
-          <div>
-            <h4 className="text-sm font-bold text-white">Device System Push Banners 🔔</h4>
-            <p className="text-xs text-slate-300">
+          <div className="space-y-0.5 min-w-0">
+            <h4 className="text-sm sm:text-base font-bold text-white tracking-tight flex items-center gap-1.5 flex-wrap">
+              <span>Device System Push Banners</span>
+              <span className="text-sm">🔔</span>
+            </h4>
+            <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
               {devicePermission === 'granted'
                 ? 'Active: System banners & lock screen alerts enabled'
                 : 'Enable phone/desktop notifications like WhatsApp & Instagram'}
@@ -226,45 +264,50 @@ export default function NotificationSettings() {
           </div>
         </div>
 
-        {devicePermission === 'granted' ? (
-          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 shrink-0">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            Active 🟢
-          </span>
-        ) : (
-          <button
-            onClick={handleEnableDevicePush}
-            className="text-xs px-3.5 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-bold shadow-md transition-all shrink-0"
-          >
-            Enable Alerts 🔔
-          </button>
-        )}
+        <div className="w-full sm:w-auto flex justify-end shrink-0">
+          {devicePermission === 'granted' ? (
+            <span className="w-full sm:w-auto text-xs font-semibold px-3.5 py-2 rounded-xl bg-emerald-500/20 text-emerald-200 border border-emerald-500/40 flex items-center justify-center gap-2 shrink-0 shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
+              Active 🟢
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={handleEnableDevicePush}
+              className="w-full sm:w-auto text-xs px-4 py-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-bold shadow-md transition-all shrink-0 cursor-pointer active:scale-95 text-center"
+            >
+              Enable Alerts 🔔
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tabs Switcher */}
-      <div className="flex bg-black/40 p-1 rounded-2xl border border-white/10">
+      <div className="flex bg-black/50 p-1.5 rounded-2xl border border-white/15 gap-1.5 shadow-inner">
         <button
+          type="button"
           onClick={() => setActiveTab('feed')}
-          className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer ${
             activeTab === 'feed'
-              ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-lg'
-              : 'text-white/60 hover:text-white'
+              ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-md font-bold'
+              : 'text-slate-300 hover:text-white hover:bg-white/5'
           }`}
         >
-          <Bell className="w-4 h-4" />
-          <span>Activity Inbox ({notifications.length})</span>
+          <Bell className="w-4 h-4 shrink-0" />
+          <span className="truncate">Activity Inbox ({notifications.length})</span>
         </button>
 
         <button
+          type="button"
           onClick={() => setActiveTab('settings')}
-          className={`flex-1 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
+          className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer ${
             activeTab === 'settings'
-              ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-lg'
-              : 'text-white/60 hover:text-white'
+              ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-md font-bold'
+              : 'text-slate-300 hover:text-white hover:bg-white/5'
           }`}
         >
-          <Sparkles className="w-4 h-4" />
-          <span>Alert Preferences</span>
+          <Sparkles className="w-4 h-4 shrink-0" />
+          <span className="truncate">Alert Preferences</span>
         </button>
       </div>
 
@@ -272,11 +315,11 @@ export default function NotificationSettings() {
       {activeTab === 'feed' && (
         <div className="space-y-3">
           {loading ? (
-            <div className="glass p-8 rounded-2xl text-center text-white/50 text-sm animate-pulse">
+            <div className="glass p-8 rounded-2xl text-center text-slate-300 text-sm font-sans animate-pulse border border-white/10">
               Loading activity notifications...
             </div>
           ) : notifications.length === 0 ? (
-            <div className="glass p-8 rounded-2xl text-center text-white/50 text-sm">
+            <div className="glass p-8 rounded-2xl text-center text-slate-300 text-sm font-sans border border-white/10">
               No notifications remaining!
             </div>
           ) : (
@@ -285,24 +328,24 @@ export default function NotificationSettings() {
                 key={item.id}
                 className={`p-4 rounded-2xl border transition-all flex items-start gap-3.5 shadow-md ${
                   item.read
-                    ? 'bg-slate-900/80 border-white/10 text-white/80'
-                    : 'bg-gradient-to-r from-rose-950/60 to-purple-950/60 border-rose-400/40 text-white ring-1 ring-rose-400/30'
+                    ? 'bg-slate-900/90 border-white/15 text-slate-200'
+                    : 'bg-gradient-to-r from-rose-950/70 via-purple-950/60 to-slate-900/90 border-rose-400/50 text-white ring-1 ring-rose-400/40 shadow-rose-950/40'
                 }`}
               >
-                <div className="text-2xl shrink-0 p-2 bg-white/10 rounded-xl border border-white/10">
+                <div className="text-2xl shrink-0 p-2.5 bg-white/10 rounded-xl border border-white/15 shadow-sm">
                   {item.icon}
                 </div>
 
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-white tracking-tight">{item.title}</h4>
-                    <span className="text-[11px] text-white/50 font-mono flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                    <h4 className="text-sm sm:text-base font-bold text-white tracking-tight truncate">{item.title}</h4>
+                    <span className="text-[11px] text-slate-300 font-mono flex items-center gap-1 shrink-0">
+                      <Clock className="w-3 h-3 text-slate-400" />
                       {formatTime(item.time)}
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-200 leading-relaxed font-sans">{item.message}</p>
+                  <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">{item.message}</p>
                 </div>
               </div>
             ))
@@ -312,81 +355,44 @@ export default function NotificationSettings() {
 
       {/* TAB 2: ALERT PREFERENCES SETTINGS */}
       {activeTab === 'settings' && (
-        <div className="glass p-5 rounded-2xl border border-white/15 space-y-4">
-          <h3 className="text-sm font-bold text-white uppercase tracking-wider text-rose-300">
+        <div className="glass p-4 sm:p-6 rounded-2xl border border-white/15 space-y-4 shadow-xl">
+          <h3 className="text-xs sm:text-sm font-bold text-rose-300 uppercase tracking-wider flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-rose-400" />
             Push & Alert Controls
           </h3>
 
           <div className="space-y-3">
-            {/* Preference Item 1 */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-900/80 border border-white/10">
-              <div>
-                <h4 className="text-sm font-bold text-white">Partner Love Notes & Care Alerts 💌</h4>
-                <p className="text-xs text-slate-300">Get notified when a love note or reply is sent</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={preferences.partnerNotes}
-                onChange={() => handleTogglePref('partnerNotes')}
-                className="w-5 h-5 accent-rose-500 rounded cursor-pointer"
-              />
-            </div>
+            {PREFERENCE_ITEMS.map((item) => (
+              <div
+                key={item.key}
+                className="flex items-center justify-between p-4 rounded-xl bg-slate-900/90 border border-white/15 hover:border-white/25 transition-all gap-4 shadow-sm"
+              >
+                <div className="space-y-0.5 min-w-0 flex-1">
+                  <h4 className="text-sm sm:text-base font-semibold text-white tracking-tight font-sans">{item.title}</h4>
+                  <p className="text-xs sm:text-sm text-slate-200 font-sans leading-normal">{item.description}</p>
+                </div>
 
-            {/* Preference Item 2 */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-900/80 border border-white/10">
-              <div>
-                <h4 className="text-sm font-bold text-white">Pre-Period 48-Hour Advance Warning 🩸</h4>
-                <p className="text-xs text-slate-300">Receive automatic alerts 2 days before cycle start</p>
+                {/* Custom Glassmorphic Toggle Switch */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={preferences[item.key]}
+                  aria-label={item.title}
+                  onClick={() => handleTogglePref(item.key)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-offset-2 focus:ring-offset-slate-900 ${
+                    preferences[item.key]
+                      ? 'bg-gradient-to-r from-rose-500 to-pink-500 shadow-sm'
+                      : 'bg-slate-700/80'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                      preferences[item.key] ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               </div>
-              <input
-                type="checkbox"
-                checked={preferences.prePeriodAlerts}
-                onChange={() => handleTogglePref('prePeriodAlerts')}
-                className="w-5 h-5 accent-rose-500 rounded cursor-pointer"
-              />
-            </div>
-
-            {/* Preference Item 3 */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-900/80 border border-white/10">
-              <div>
-                <h4 className="text-sm font-bold text-white">Daily Comfort Vibe Check-ins 💕</h4>
-                <p className="text-xs text-slate-300">Get updates when comfort vibe status changes</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={preferences.vibeCheckins}
-                onChange={() => handleTogglePref('vibeCheckins')}
-                className="w-5 h-5 accent-rose-500 rounded cursor-pointer"
-              />
-            </div>
-
-            {/* Preference Item 4 */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-900/80 border border-white/10">
-              <div>
-                <h4 className="text-sm font-bold text-white">Daily Care Quest Completions 🍫</h4>
-                <p className="text-xs text-slate-300">Alerts when partner completes daily care actions</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={preferences.careQuests}
-                onChange={() => handleTogglePref('careQuests')}
-                className="w-5 h-5 accent-rose-500 rounded cursor-pointer"
-              />
-            </div>
-
-            {/* Preference Item 5 */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-900/80 border border-white/10">
-              <div>
-                <h4 className="text-sm font-bold text-white">Hydration & Self-Care Reminders 💧</h4>
-                <p className="text-xs text-slate-300">Daily health & wellness check-in prompts</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={preferences.selfCareReminders}
-                onChange={() => handleTogglePref('selfCareReminders')}
-                className="w-5 h-5 accent-rose-500 rounded cursor-pointer"
-              />
-            </div>
+            ))}
 
             {/* Hydration Reminder Schedule — Issue #455 */}
             <NotificationPreferences />

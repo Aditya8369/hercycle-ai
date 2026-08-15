@@ -3,9 +3,11 @@ import { ClerkProvider } from '@clerk/nextjs'
 import { LanguageProvider } from '@/lib/LanguageContext'
 import { OfflineProvider } from '@/lib/OfflineContext'
 import { EncryptionProvider } from '@/lib/EncryptionContext'
+import { ThemeProvider } from '@/lib/ThemeContext'
 import { Toaster } from 'react-hot-toast'
 import Script from 'next/script'
 import '../globals.css'
+import '../theme.css'
 
 export const viewport = {
   width: 'device-width',
@@ -68,7 +70,7 @@ export default async function RootLayout({ children, params }) {
 
   return (
     <ClerkProvider clockSkewInMs={30000}>
-      <html lang={locale}>
+      <html lang={locale} suppressHydrationWarning>
         <head>
           <link rel="apple-touch-icon" href="/icon-192.png" />
           <link rel="apple-touch-icon" sizes="152x152" href="/icon-192.png" />
@@ -78,45 +80,46 @@ export default async function RootLayout({ children, params }) {
         </head>
         <body className="w-full" suppressHydrationWarning>
           <NextIntlClientProvider locale={locale} messages={messages}>
-            <EncryptionProvider>
-              <OfflineProvider>
-                <LanguageProvider>
-                  <div className="app-decor" aria-hidden="true">
-                    <div className="blob"></div>
-                    <div className="blob"></div>
-                    <div className="blob"></div>
+            <ThemeProvider>
+              <EncryptionProvider>
+                <OfflineProvider>
+                  <LanguageProvider>
+                    <div className="app-decor" aria-hidden="true">
+                      <div className="blob"></div>
+                      <div className="blob"></div>
+                      <div className="blob"></div>
 
-                    <div className="particle" style={{ left: '8%', animationDuration: '13s', animationDelay: '0s' }}>&#10024;</div>
-                    <div className="particle" style={{ left: '22%', animationDuration: '17s', animationDelay: '3.5s' }}>&#127800;</div>
-                    <div className="particle" style={{ left: '38%', animationDuration: '14s', animationDelay: '7s' }}>&#128171;</div>
-                    <div className="particle" style={{ left: '52%', animationDuration: '19s', animationDelay: '1s' }}>&#127799;</div>
-                    <div className="particle" style={{ left: '67%', animationDuration: '11s', animationDelay: '5s' }}>&#10024;</div>
-                    <div className="particle" style={{ left: '80%', animationDuration: '16s', animationDelay: '2s' }}>&#128149;</div>
-                    <div className="particle" style={{ left: '91%', animationDuration: '12s', animationDelay: '8s' }}>&#127800;</div>
-                  </div>
-                  {children}
-                  <ChatFAB />
-                  <EncryptionGate />
-                  <Toaster
-                     position="top-center"
+                      <div className="particle" style={{ left: '8%', animationDuration: '13s', animationDelay: '0s' }}>&#10024;</div>
+                      <div className="particle" style={{ left: '22%', animationDuration: '17s', animationDelay: '3.5s' }}>&#127800;</div>
+                      <div className="particle" style={{ left: '38%', animationDuration: '14s', animationDelay: '7s' }}>&#128171;</div>
+                      <div className="particle" style={{ left: '52%', animationDuration: '19s', animationDelay: '1s' }}>&#127799;</div>
+                      <div className="particle" style={{ left: '67%', animationDuration: '11s', animationDelay: '5s' }}>&#10024;</div>
+                      <div className="particle" style={{ left: '80%', animationDuration: '16s', animationDelay: '2s' }}>&#128149;</div>
+                      <div className="particle" style={{ left: '91%', animationDuration: '12s', animationDelay: '8s' }}>&#127800;</div>
+                    </div>
+                    {children}
+                    <ChatFAB />
+                    <EncryptionGate />
+                    <Toaster
+                       position="top-center"
 
-
-                      toastOptions={{
-                        style: {
-                          background: 'rgba(30,12,40,0.95)',
-                          color: '#fff',
-                          border: '1px solid rgba(232,82,126,0.4)',
-                          borderRadius: '12px',
-                          backdropFilter: 'blur(12px)',
-                          fontFamily: 'Inter, sans-serif',
-                        },
-                        success: { iconTheme: { primary: '#e8527e', secondary: '#fff' } },
-                        error: { iconTheme: { primary: '#f87171', secondary: '#fff' } },
-                      }}
-                    />
-                </LanguageProvider>
-              </OfflineProvider>
-            </EncryptionProvider>
+                        toastOptions={{
+                          style: {
+                            background: 'rgba(30,12,40,0.95)',
+                            color: '#fff',
+                            border: '1px solid rgba(232,82,126,0.4)',
+                            borderRadius: '12px',
+                            backdropFilter: 'blur(12px)',
+                            fontFamily: 'Inter, sans-serif',
+                          },
+                          success: { iconTheme: { primary: '#e8527e', secondary: '#fff' } },
+                          error: { iconTheme: { primary: '#f87171', secondary: '#fff' } },
+                        }}
+                      />
+                  </LanguageProvider>
+                </OfflineProvider>
+              </EncryptionProvider>
+            </ThemeProvider>
           </NextIntlClientProvider>
         </body>
       </html>

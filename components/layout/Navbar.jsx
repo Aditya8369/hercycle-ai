@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { useUser, UserButton, useClerk } from '@clerk/nextjs'
 import { useOffline } from '@/lib/OfflineContext'
+import { useTheme } from '@/lib/ThemeContext'
 import { User as ProfileIcon, Bell as BellIcon, Shield as ShieldIcon, HelpCircle as HelpIcon, Languages, Users as UsersIcon, LogOut, X, Sun, Moon, Trophy } from 'lucide-react'
 import PrivacySettingsContent from './PrivacySettingsModal'
 import HealthProfileSettings from './HealthProfileSettings'
@@ -12,6 +13,8 @@ import NotificationSettings from './NotificationSettings'
 import SupportSettings from './SupportSettings'
 import LanguageSettings from '../settings/LanguageSettings'
 import PartnerSharing from '../settings/PartnerSharing'
+import FailedSyncPanel from '@/components/offline/FailedSyncPanel'
+import { summariseFailures, groupFailures } from '@/lib/sync-failure-view'
 
 function PartnerLogoutContent() {
   const { signOut } = useClerk()
@@ -44,43 +47,15 @@ export default function Navbar() {
   const pathname = usePathname()
   const { user } = useUser()
   const { signOut } = useClerk()
-  const { isOffline, pendingSyncCount, isSyncing } = useOffline()
+  const { isOffline, pendingSyncCount, isSyncing, failedSyncItems } = useOffline()
+  const [showFailedSync, setShowFailedSync] = useState(false)
 
-  const [mounted, setMounted] = useState(false)
-  const [theme, setTheme] = useState('light')
+  // Dead-lettered changes previously had no surface at all: the recovery API
+  // on OfflineContext had zero consumers, so a permanently-failed health log
+  // vanished into IndexedDB behind one transient toast.
+  const failedSummary = summariseFailures(groupFailures(failedSyncItems, { now: 0 }))
 
-  useEffect(() => {
-    setMounted(true)
-    const savedTheme = localStorage.getItem('theme')
-    if (savedTheme) {
-      setTheme(savedTheme)
-      if (savedTheme === 'dark') {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-      }
-    } else {
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      if (systemPrefersDark) {
-        setTheme('dark')
-        document.documentElement.classList.add('dark')
-      } else {
-        setTheme('light')
-        document.documentElement.classList.remove('dark')
-      }
-    }
-  }, [])
-
-  const toggleTheme = () => {
-    const nextTheme = theme === 'dark' ? 'light' : 'dark'
-    setTheme(nextTheme)
-    localStorage.setItem('theme', nextTheme)
-    if (nextTheme === 'dark') {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-  }
+  const { theme, toggleTheme, mounted } = useTheme()
 
   const role = user?.publicMetadata?.role
   const isPartner = role === 'partner'
@@ -136,6 +111,18 @@ export default function Navbar() {
               <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-ping"></span>
               {t('syncPending')} ({pendingSyncCount})
             </span>
+          )}
+          {failedSummary.total > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowFailedSync((open) => !open)}
+              aria-expanded={showFailedSync}
+              aria-controls="failed-sync-region"
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30 whitespace-nowrap transition-colors hover:bg-rose-500/30"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+              {t('syncFailed')} ({failedSummary.total})
+            </button>
           )}
           {!isOffline && isSyncing && (
             <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30 whitespace-nowrap">
@@ -294,7 +281,7 @@ export default function Navbar() {
               />
             )}
             <UserButton.Action
-              label="Notification"
+              label={t('notification')}
               labelIcon={<BellIcon className="w-4 h-4 text-rose-400" />}
               open="notifications"
             />
@@ -358,6 +345,15 @@ export default function Navbar() {
 
             <NotificationSettings />
           </div>
+        </div>
+      )}
+
+      {/* Expands in place under the nav rather than in an overlay: these are
+          changes the user needs to read and decide about, not an interruption
+          to dismiss. */}
+      {showFailedSync && (
+        <div id="failed-sync-region" className="w-full">
+          <FailedSyncPanel onClose={() => setShowFailedSync(false)} />
         </div>
       )}
     </nav>

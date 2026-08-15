@@ -6,18 +6,7 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { eventBus } from '@/lib/events'
 import { pcodRiskCache } from '@/lib/cache'
-
-/**
- * ISO date string must be a valid calendar date and must not be in the future.
- */
-const isoDateNotInFuture = z
-  .string()
-  .min(1, 'Date is required')
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format')
-  .refine(
-    (d) => !isNaN(Date.parse(d)),
-    { message: 'Must be a valid calendar date' }
-  )
+import { endsOnOrAfterStart, isoCalendarDate, optionalIsoCalendarDate } from '@/lib/date-schemas'
 
 /**
  * Physiologically valid cycle length: 15–90 days covers all clinical edge cases
@@ -32,49 +21,45 @@ const validCycleLength = z
 const cyclePostSchema = z
   .object({
     id: z.string().uuid('Must be a valid UUID').optional(),
-    start_date: isoDateNotInFuture,
-    end_date: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'end_date must be in YYYY-MM-DD format')
-      .nullable()
-      .optional(),
+    start_date: isoCalendarDate({ label: 'start_date' }),
+    end_date: optionalIsoCalendarDate({ label: 'end_date' }),
     cycle_length: validCycleLength.optional(),
     encrypted_data: z.any().optional()
   })
   .refine(
-    (data) => {
-      if (data.end_date && data.start_date) {
-        return new Date(data.end_date) >= new Date(data.start_date);
-      }
-      return true;
-    },
+    (data) => endsOnOrAfterStart(data.start_date, data.end_date),
     { message: 'end_date must be on or after start_date', path: ['end_date'] }
   );
 
 const cyclePatchSchema = z
   .object({
     id: z.string().uuid('Must be a valid UUID'),
-    start_date: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'start_date must be in YYYY-MM-DD format')
-      .optional(),
-    end_date: z
-      .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'end_date must be in YYYY-MM-DD format')
-      .nullable()
-      .optional(),
+    start_date: isoCalendarDate({ label: 'start_date' }).optional(),
+    end_date: optionalIsoCalendarDate({ label: 'end_date' }),
     cycle_length: validCycleLength.optional(),
     encrypted_data: z.any().optional()
   })
   .refine(
-    (data) => {
-      if (data.end_date && data.start_date) {
-        return new Date(data.end_date) >= new Date(data.start_date);
-      }
-      return true;
-    },
+    (data) => endsOnOrAfterStart(data.start_date, data.end_date),
     { message: 'end_date must be on or after start_date', path: ['end_date'] }
   );
+
+  /**
+ * Maps a Postgres CHECK constraint violation (code 23514) to a clean,
+ * user-facing message. Falls back to the raw error for anything else.
+ */
+function toCleanCycleError(error) {
+  if (error?.code === '23514') {
+    if (error.message?.includes('check_end_date_after_start')) {
+      return { message: 'End date cannot be before the start date.', status: 400 }
+    }
+    if (error.message?.includes('check_cycle_length_bounds')) {
+      return { message: 'Cycle length must be between 10 and 120 days.', status: 400 }
+    }
+    return { message: 'Invalid cycle data submitted.', status: 400 }
+  }
+  return { message: error?.message || 'Unknown database error', status: 500 }
+}
 
 export async function GET(request) {
   // ============ RATE LIMITING ============
@@ -177,8 +162,9 @@ export async function POST(request) {
     const { error } = await supabaseAdmin.from('cycles').insert([insertObj])
 
     if (error) {
+      const clean = toCleanCycleError(error)
       logger.error(`Database error inserting cycle for user ${userId}:`, error.message);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+      return NextResponse.json({ success: false, error: clean.message }, { status: clean.status })
     }
 
     logger.info(`Successfully added new period cycle for user ${userId}`);
@@ -248,11 +234,11 @@ export async function PATCH(request) {
       .eq('id', id)
       .eq('user_id', userId)
 
-    if (error) {
+   if (error) {
+      const clean = toCleanCycleError(error)
       logger.error(`Database error updating cycle ${id} for user ${userId}:`, error.message);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+      return NextResponse.json({ success: false, error: clean.message }, { status: clean.status })
     }
-
     logger.info(`Successfully updated period cycle ${id} for user ${userId}`);
     
     // Automatic LRU cache invalidation for PCOD risk score

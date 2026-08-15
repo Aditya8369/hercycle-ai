@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
+import { Plus } from 'lucide-react'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import CycleCalendar from '@/components/dashboard/CycleCalendar'
@@ -299,6 +300,7 @@ export default function TrackPage() {
               daysUntilNext={daysUntilNext}
               activeLang="EN"
               onDayClick={handleDayClick}
+              selectedDate={selectedDate}
             />
           </div>
 
@@ -342,6 +344,16 @@ export default function TrackPage() {
           }
         }}
       />
+
+      {/* Mobile quick-log FAB */}
+      <button
+        onClick={() => handleDayClick(getTodayISO())}
+        className="quick-log-fab md:hidden"
+        aria-label={t('logToday')}
+      >
+        <Plus className="w-5 h-5" strokeWidth={2.5} />
+        <span>{t('logToday')}</span>
+      </button>
     </>
   )
 }

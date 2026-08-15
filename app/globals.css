@@ -402,6 +402,15 @@ nav {
   color: var(--rose-deep);
   letter-spacing: -0.01em;
   white-space: nowrap;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.logo a {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .logo em {
@@ -809,6 +818,13 @@ nav ul li a.active {
   box-shadow: 0 0 0 2px rgba(194, 24, 91, 0.5);
 }
 
+.cal-d.selected-day {
+  border: 2px solid #ffb3d9 !important;
+  box-shadow: 0 0 14px rgba(255, 179, 217, 0.8) !important;
+  transform: scale(1.1);
+  z-index: 2;
+}
+
 .cal-d.ovulation {
   background: rgba(192, 132, 252, 0.28);
   color: white;
@@ -1114,6 +1130,32 @@ nav ul li a.active {
 
   100% {
     background-position: -200% 0;
+  }
+}
+
+/* ── Insights & Chart Skeleton Loaders & Fade In ── */
+.chart-skeleton-box {
+  border-radius: 8px;
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.14) 40%,
+      rgba(255, 255, 255, 0.06) 80%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+}
+
+.insights-fade-in {
+  animation: chartFadeIn 0.4s ease-out forwards;
+}
+
+@keyframes chartFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -1670,10 +1712,18 @@ nav ul li a.active {
 
 footer {
   text-align: center;
-  padding: 24px;
+  padding: 24px 20px;
   color: var(--text-faint);
   font-size: 0.85rem;
   margin-top: 48px;
+  overflow-wrap: anywhere;
+}
+
+.footer-logo {
+  font-family: var(--serif);
+  font-weight: 700;
+  color: var(--rose-bright);
+  white-space: nowrap;
 }
 
 @keyframes fillAnim {
@@ -3345,6 +3395,39 @@ nav ul li a:focus-visible,
   animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* ──── MOBILE QUICK-LOG FAB ──── */
+.quick-log-fab {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 900;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: linear-gradient(135deg, var(--rose-mid), var(--lavender));
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  font-family: var(--sans);
+  box-shadow: 0 8px 24px rgba(232, 82, 126, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: var(--interaction-transition);
+}
+
+.quick-log-fab:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 12px 30px rgba(232, 82, 126, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.quick-log-fab:active {
+  transform: scale(0.96);
+}
+
 /* ──── LOG HISTORY SCROLL GUARD ──── */
 .log-history-scroll {
   -webkit-overflow-scrolling: touch;
@@ -3487,6 +3570,82 @@ nav ul li a:focus-visible,
   }
 }
 
+@media (max-width: 479px) {
+  .logo {
+    font-size: 1.1rem;
+  }
+
+  footer {
+    padding: 20px 16px 32px;
+    font-size: 0.8rem;
+  }
+}
+
+/* ──── SYMPTOM PILL TRACK (mobile) ──── */
+@media (max-width: 639px) {
+  .symp-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    gap: 8px;
+    padding-bottom: 4px;
+    scroll-snap-type: x proximity;
+  }
+
+  .symp-grid .symp-chip {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .symp-grid::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .symp-grid::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .symp-grid::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+  }
+}
+
+/* ──── HEATMAP RESPONSIVE GUARD ──── */
+.heatmap-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.heatmap-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.heatmap-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.heatmap-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+}
+
+.heatmap-grid {
+  min-width: 360px;
+}
+
+.heatmap-grid > * {
+  min-width: 20px;
+  min-height: 20px;
+  cursor: pointer;
+}
+
 /* ──── SELF-CARE OPACITY & TRANSITION GLITCH FIX (Fixes #330) ──── */
 .self-care-step-img,
 .self-care-card img,
@@ -3504,9 +3663,9 @@ nav ul li a:focus-visible,
 .track-logs-history {
   margin-left: -4px;
   margin-right: -4px;
+  box-sizing: border-box;
   padding-left: 4px;
   padding-right: 4px;
   scrollbar-gutter: stable;
   overflow-y: auto;
-  box-sizing: border-box;
 }
