@@ -12,12 +12,20 @@ CREATE TABLE IF NOT EXISTS public.users (
 );
 
 -- 3. Create public.cycles table (Period cycles tracker)
+-- CREATE TABLE IF NOT EXISTS public.cycles (
+--   id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+--   user_id         TEXT NOT NULL,
+--   start_date      DATE NOT NULL,
+--   end_date        DATE,
+-- --   cycle_length    INTEGER DEFAULT 28,
+--   created_at      TIMESTAMPTZ DEFAULT now()
+-- );
 CREATE TABLE IF NOT EXISTS public.cycles (
   id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id         TEXT NOT NULL,
   start_date      DATE NOT NULL,
-  end_date        DATE,
-  cycle_length    INTEGER DEFAULT 28,
+  end_date        DATE CHECK (end_date IS NULL OR end_date >= start_date),
+  cycle_length    INTEGER DEFAULT 28 CHECK (cycle_length IS NULL OR (cycle_length >= 10 AND cycle_length <= 120)),
   created_at      TIMESTAMPTZ DEFAULT now()
 );
 
