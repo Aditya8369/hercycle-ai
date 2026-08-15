@@ -10,15 +10,20 @@ import {
   XAxis, YAxis, Tooltip, CartesianGrid,
   ResponsiveContainer, Cell,
 } from 'recharts'
+import dynamic from 'next/dynamic'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { useOffline } from '@/lib/OfflineContext'
 import { useTranslations } from 'next-intl'
-import WeightTrendChart from '@/components/dashboard/WeightTrendChart'
 import SymptomPhaseInsights from '@/components/dashboard/SymptomPhaseInsights'
 import { formatDateForCSV } from '@/lib/utils'
 import { normaliseRiskResult } from '@/lib/pcod-risk-result'
 import SectionCard, { IconBadge } from '@/components/ui/SectionCard'
+
+const WeightTrendChart = dynamic(() => import('@/components/dashboard/WeightTrendChart'), {
+  loading: () => <div className="chart-skeleton-box" style={{ width: '100%', height: 260, borderRadius: 16 }} />,
+  ssr: false,
+})
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const PINK = '#e8527e'
 const MAUVE = '#9d3f7a'
