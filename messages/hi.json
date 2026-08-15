@@ -12,6 +12,12 @@
     "syncing": "सिंक हो रहा है",
     "logToday": "आज लॉग करें",
     "signOut": "साइन आउट",
+    "notification": "सूचना",
+    "language": "भाषा",
+    "partnerSharing": "साथी साझाकरण",
+    "dataPrivacy": "डेटा और गोपनीयता",
+    "healthProfile": "स्वास्थ्य प्रोफाइल",
+    "helpSupport": "सहायता और समर्थन",
     "syncFailed": "सहेजा नहीं गया"
   },
   "SyncFailures": {
@@ -318,7 +324,12 @@
     "deleteDesc": "अपने खाते और उससे जुड़े सभी डेटा को हमारे सर्वर से स्थायी रूप से हटा दें। यह कार्रवाई अपरिवर्तनीय है।",
     "deleteBtn": "मेरा खाता हटाएं",
     "deleting": "खाता हटाया जा रहा है...",
-    "deleteConfirm": "चेतावनी: यह आपके खाते को स्थायी रूप से हटा देगा। क्या आप वाकई आगे बढ़ना चाहते हैं?"
+    "deleteConfirm": "चेतावनी: यह आपके खाते को स्थायी रूप से हटा देगा। क्या आप वाकई आगे बढ़ना चाहते हैं?",
+    "deleteModalTitle": "खाता हटाने की पुष्टि करें",
+    "deleteModalDesc": "चेतावनी: यह आपके खाते, चक्र लॉग, भविष्यवाणियों और प्रोफाइल डेटा को स्थायी रूप से हटा देगा। यह कार्रवाई वापस नहीं ली जा सकती।",
+    "deleteModalKeyword": "DELETE",
+    "deleteModalPlaceholder": "पुष्टि के लिए DELETE टाइप करें",
+    "cancelBtn": "रद्द करें"
   },
   "CycleEducation": {
     "eyebrow": "चक्र शिक्षा",
@@ -341,7 +352,22 @@
     "trendDesc": "माप कालानुक्रमिक क्रम में दिखाए गए हैं।",
     "noMeasurements": "अभी तक कोई माप नहीं। ट्रैक पृष्ठ से पहली प्रविष्टि जोड़ें।",
     "overall": "कुल मिलाकर",
-    "loading": "माप लोड हो रहा है…"
+    "loading": "माप लोड हो रहा है…",
+    "weightPlaceholder": "उदा. 62.5",
+    "heightPlaceholder": "उदा. 165",
+    "bmiNotCalculated": "गणना नहीं की गई",
+    "bmiBelowRange": "स्वस्थ सीमा से कम",
+    "bmiHealthyRange": "स्वस्थ सीमा",
+    "bmiAboveRange": "स्वस्थ सीमा से अधिक",
+    "bmiHighRange": "उच्च सीमा",
+    "saveSuccess": "माप सफलतापूर्वक सहेजा गया",
+    "saveError": "माप सहेजने में असमर्थ।",
+    "syncingBadge": "माप सिंक हो रहा है...",
+    "savedBadge": "माप सहेजा गया",
+    "weightBadgeLabel": "वजन",
+    "waistBadgeLabel": "कमर",
+    "heightBadgeLabel": "ऊंचाई",
+    "bmiBadgeLabel": "बीएमआई"
   },
   "CycleHistory": {
     "title": "चक्र का इतिहास",

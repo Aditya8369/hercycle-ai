@@ -2,21 +2,28 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@clerk/nextjs'
-import { RefreshCw, Calendar, CalendarRange, TrendingUp, Activity, BarChart2 } from 'lucide-react'
+import { useAuth, useUser } from '@clerk/nextjs'
+import { RefreshCw, Calendar, CalendarRange, TrendingUp, Activity, BarChart2, Download } from 'lucide-react'
+import toast from 'react-hot-toast'
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, Tooltip, CartesianGrid,
   ResponsiveContainer, Cell,
 } from 'recharts'
+import dynamic from 'next/dynamic'
 import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import { useOffline } from '@/lib/OfflineContext'
 import { useTranslations } from 'next-intl'
-import WeightTrendChart from '@/components/dashboard/WeightTrendChart'
 import SymptomPhaseInsights from '@/components/dashboard/SymptomPhaseInsights'
 import { formatDateForCSV } from '@/lib/utils'
 import { normaliseRiskResult } from '@/lib/pcod-risk-result'
+import SectionCard, { IconBadge } from '@/components/ui/SectionCard'
+
+const WeightTrendChart = dynamic(() => import('@/components/dashboard/WeightTrendChart'), {
+  loading: () => <div className="chart-skeleton-box" style={{ width: '100%', height: 260, borderRadius: 16 }} />,
+  ssr: false,
+})
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const PINK = '#e8527e'
 const MAUVE = '#9d3f7a'
@@ -30,23 +37,6 @@ const SYMPTOM_LIST = ['Cramps', 'Headache', 'Bloating', 'Fatigue', 'Acne', 'Naus
 const MOOD_EMOJIS = ['😊', '😐', '😢', '😡']
 const MOOD_LABELS = { '😊': 'Happy', '😐': 'Neutral', '😢': 'Sad', '😡': 'Angry' }
 
-// ─── Icon badge wrapper ───────────────────────────────────────────────────────
-function IconBadge({ children, size = 'lg' }) {
-  const pad = size === 'lg' ? '12px' : '8px'
-  return (
-    <div style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'rgba(233,30,140,0.15)',
-      borderRadius: '12px',
-      padding: pad,
-      marginBottom: size === 'lg' ? '0.6rem' : 0,
-    }}>
-      {children}
-    </div>
-  )
-}
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({ icon, label, value, sub, loading }) {
@@ -79,28 +69,6 @@ function StatCard({ icon, label, value, sub, loading }) {
       {sub && (
         <div style={{ fontSize: '0.75rem', color: TEXT_FAINT, marginTop: 2 }}>{sub}</div>
       )}
-    </div>
-  )
-}
-
-// ─── Section card ─────────────────────────────────────────────────────────────
-function SectionCard({ icon, title, children }) {
-  return (
-    <div className="insight-card interactive-card" style={{
-      background: CARD_BG,
-      border: CARD_BORDER,
-      borderRadius: 16,
-      backdropFilter: 'blur(12px)',
-      padding: '1.5rem',
-      marginBottom: '1.5rem',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
-        {icon && <IconBadge size="sm">{icon}</IconBadge>}
-        <h3 style={{ color: TEXT_PRIMARY, fontSize: '1.05rem', fontWeight: 600, margin: 0 }}>
-          {title}
-        </h3>
-      </div>
-      {children}
     </div>
   )
 }
@@ -147,6 +115,7 @@ export default function InsightsPage() {
   const tRisk = useTranslations('Risk')
   const router = useRouter()
   const { isLoaded, isSignedIn } = useAuth()
+  const { user } = useUser()
   const { offlineClient } = useOffline()
 
   const [cycleData, setCycleData] = useState(null)
@@ -189,7 +158,7 @@ export default function InsightsPage() {
     }
   }
 
-// Last 12 cycles, rendered oldest -> newest. The x-axis uses each cycle's
+  // Last 12 cycles, rendered oldest -> newest. The x-axis uses each cycle's
   // start date so users can spot how cycle length varies over time.
   const cycleLengthData = cycles
     .slice(0, 12)
@@ -227,18 +196,39 @@ export default function InsightsPage() {
   const recordedSub = totalCycles > 0 ? t('cycles') : t('entries')
 
   const handleCSVExport = () => {
-    if (!cycles.length) return
+    if (!cycles || cycles.length === 0) {
+      toast.error(t('trendEmpty') || 'No cycle records available to export')
+      return
+    }
+
+    // Branding, metadata, and user context
+    const brand = 'HerCycle AI - Cycle Export'
+    const exportDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+    const userEmail = user?.primaryEmailAddress?.emailAddress || user?.id || 'Guest'
+
+    // Computed Summary Statistics
+    const metadata = [
+      `${brand},,`,
+      `Exported On,"${exportDate}",`,
+      `User Context,"${userEmail}",`,
+      `Average Cycle Length,${avgCycle} days,`,
+      `Total Cycles Tracked,${totalCycles},`,
+      ',,'
+    ]
+
     const header = 'start_date,end_date,cycle_length'
     const rows = cycles.map(c =>
       `${formatDateForCSV(c.start_date)},${formatDateForCSV(c.end_date)},${c.cycle_length || ''}`
     )
-    const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' })
+    const csvContent = [...metadata, header, ...rows].join('\n')
+    const blob = new Blob([csvContent], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
     a.download = 'hercycle-cycles.csv'
     a.click()
     URL.revokeObjectURL(url)
+    toast.success('Cycle records exported to CSV! 📊')
   }
 
   // `null` when there is no assessment. This used to default to 'LOW RISK',
@@ -320,7 +310,7 @@ export default function InsightsPage() {
       <div className="page">
         <Navbar />
 
-        <div style={{ maxWidth: 1000, margin: '0 auto', padding: '2rem 1.5rem' }}>
+        <div className="max-w-[1000px] mx-auto px-4 sm:px-6 py-8">
 
           {/* ── Page header ── */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap', rowGap: '12px' }}>
@@ -335,7 +325,7 @@ export default function InsightsPage() {
               <BarChart2 size={28} color="white" strokeWidth={1.5} />
             </div>
             <h1 style={{ margin: 0, fontSize: '2rem', flex: 1, minWidth: 0 }}>{t('title')}</h1>
-            
+
             {!loading && (
               <div style={{
                 background: 'rgba(233,30,140,0.15)',
@@ -410,21 +400,47 @@ export default function InsightsPage() {
             >
               {copied ? `✅ ${t('copiedSummary')}` : `📋 ${t('copySummary')}`}
             </button>
-            {cycles.length > 0 && (
-              <button
-                onClick={handleCSVExport}
-                className="export-btn"
-                style={{ width: 'auto', padding: '10px 20px' }}
-              >
-                ⬇️ {t('exportCsv')}
-              </button>
-            )}
+            <button
+              onClick={handleCSVExport}
+              className="export-btn"
+              style={{
+                width: 'auto',
+                padding: '10px 20px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                opacity: cycles.length === 0 ? 0.75 : 1,
+              }}
+              title={cycles.length === 0 ? 'No cycle records available to export' : 'Export cycle history as CSV'}
+            >
+              <Download size={16} />
+              <span>{t('exportCsv')}</span>
+            </button>
           </div>
 
           {/* ── Cycle Length Trend ── */}
           <SectionCard
             icon={<TrendingUp size={18} color={ACCENT} strokeWidth={1.5} />}
             title={t('trendTitle')}
+            headerAction={
+              <button
+                onClick={handleCSVExport}
+                className="export-btn"
+                style={{
+                  width: 'auto',
+                  padding: '6px 14px',
+                  fontSize: '0.82rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  opacity: cycles.length === 0 ? 0.75 : 1,
+                }}
+                title={cycles.length === 0 ? 'No cycle records available to export' : 'Export cycle history as CSV'}
+              >
+                <Download size={14} />
+                <span>{t('exportCsv')}</span>
+              </button>
+            }
           >
             {loading ? (
               <div style={{ width: '100%', height: 220, display: 'flex', flexDirection: 'column', gap: '1rem', justifyContent: 'center' }}>
@@ -444,70 +460,75 @@ export default function InsightsPage() {
                     {t('trendEmpty')}
                   </p>
                 ) : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <LineChart
-                      data={cycleLengthData}
-                      margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
-                    >
-                      <defs>
-                        <filter
-                          id="cycleGlow"
-                          x="-50%"
-                          y="-50%"
-                          width="200%"
-                          height="200%"
-                        >
-                          <feGaussianBlur
-                            in="SourceGraphic"
-                            stdDeviation="4"
-                            result="blur"
-                          />
-                          <feMerge>
-                            <feMergeNode in="blur" />
-                            <feMergeNode in="SourceGraphic" />
-                          </feMerge>
-                        </filter>
-                      </defs>
+                  <div
+                    role="img"
+                    aria-label={`Line chart showing cycle length trend across your last ${cycleLengthData.length} tracked cycles, averaging ${avgCycle} days`}
+                  >
+                    <ResponsiveContainer width="100%" height={220} aria-hidden="true">
+                      <LineChart
+                        data={cycleLengthData}
+                        margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
+                      >
+                        <defs>
+                          <filter
+                            id="cycleGlow"
+                            x="-50%"
+                            y="-50%"
+                            width="200%"
+                            height="200%"
+                          >
+                            <feGaussianBlur
+                              in="SourceGraphic"
+                              stdDeviation="4"
+                              result="blur"
+                            />
+                            <feMerge>
+                              <feMergeNode in="blur" />
+                              <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                          </filter>
+                        </defs>
 
-                      <CartesianGrid
-                        vertical={false}
-                        stroke="rgba(255,255,255,0.05)"
-                      />
+                        <CartesianGrid
+                          vertical={false}
+                          stroke="rgba(255,255,255,0.05)"
+                        />
 
-                      <XAxis
-                        dataKey="name"
-                        {...axisProps}
-                      />
+                        <XAxis
+                          dataKey="name"
+                          {...axisProps}
+                        />
 
-                      <YAxis
-                        domain={[20, 40]}
-                        {...axisProps}
-                      />
+                        <YAxis
+                          domain={[20, 40]}
+                          {...axisProps}
+                        />
 
-                      <Tooltip content={<CustomTooltip />} />
+                        <Tooltip content={<CustomTooltip />} />
 
-                      <Line
-                        type="monotone"
-                        dataKey="days"
-                        name="days"
-                        stroke={PINK}
-                        strokeWidth={2.5}
-                        filter="url(#cycleGlow)"
-                        dot={{
-                          fill: PINK,
-                          stroke: PINK,
-                          strokeWidth: 2,
-                          r: 5,
-                        }}
-                        activeDot={{
-                          r: 8,
-                          fill: MAUVE,
-                          stroke: PINK,
-                          strokeWidth: 3,
-                        }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                        <Line
+                          type="monotone"
+                          dataKey="days"
+                          name="days"
+                          stroke={PINK}
+                          strokeWidth={2.5}
+                          filter="url(#cycleGlow)"
+                          dot={{
+                            fill: PINK,
+                            stroke: PINK,
+                            strokeWidth: 2,
+                            r: 5,
+                          }}
+                          activeDot={{
+                            r: 8,
+                            fill: MAUVE,
+                            stroke: PINK,
+                            strokeWidth: 3,
+                          }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
                 )}
               </div>
             )}
@@ -536,19 +557,24 @@ export default function InsightsPage() {
                     {t('symptomEmpty')}
                   </p>
                 ) : (
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={symptomFreq} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                      <CartesianGrid {...gridProps} />
-                      <XAxis dataKey="name" {...axisProps} />
-                      <YAxis allowDecimals={false} {...axisProps} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="count" name="occurrences" radius={[6, 6, 0, 0]}>
-                        {symptomFreq.map((_, i) => (
-                          <Cell key={i} fill={i % 2 === 0 ? PINK : MAUVE} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <div
+                    role="img"
+                    aria-label={`Bar chart showing frequency of logged symptoms across ${totalLogs} entries`}
+                  >
+                    <ResponsiveContainer width="100%" height={200} aria-hidden="true">
+                      <BarChart data={symptomFreq} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                        <CartesianGrid {...gridProps} />
+                        <XAxis dataKey="name" {...axisProps} />
+                        <YAxis allowDecimals={false} {...axisProps} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey="count" name="occurrences" radius={[6, 6, 0, 0]}>
+                          {symptomFreq.map((_, i) => (
+                            <Cell key={i} fill={i % 2 === 0 ? PINK : MAUVE} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 )}
               </div>
             )}

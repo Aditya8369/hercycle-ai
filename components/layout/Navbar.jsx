@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { useUser, UserButton, useClerk } from '@clerk/nextjs'
 import { useOffline } from '@/lib/OfflineContext'
+import { useTheme } from '@/lib/ThemeContext'
 import { User as ProfileIcon, Bell as BellIcon, Shield as ShieldIcon, HelpCircle as HelpIcon, Languages, Users as UsersIcon, LogOut, X, Sun, Moon, Trophy } from 'lucide-react'
 import PrivacySettingsContent from './PrivacySettingsModal'
 import HealthProfileSettings from './HealthProfileSettings'
@@ -54,41 +55,7 @@ export default function Navbar() {
   // vanished into IndexedDB behind one transient toast.
   const failedSummary = summariseFailures(groupFailures(failedSyncItems, { now: 0 }))
 
-  const [mounted, setMounted] = useState(false)
-  const [theme, setTheme] = useState('light')
-
-  useEffect(() => {
-    setMounted(true)
-    const savedTheme = localStorage.getItem('theme')
-    if (savedTheme) {
-      setTheme(savedTheme)
-      if (savedTheme === 'dark') {
-        document.documentElement.classList.add('dark')
-      } else {
-        document.documentElement.classList.remove('dark')
-      }
-    } else {
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      if (systemPrefersDark) {
-        setTheme('dark')
-        document.documentElement.classList.add('dark')
-      } else {
-        setTheme('light')
-        document.documentElement.classList.remove('dark')
-      }
-    }
-  }, [])
-
-  const toggleTheme = () => {
-    const nextTheme = theme === 'dark' ? 'light' : 'dark'
-    setTheme(nextTheme)
-    localStorage.setItem('theme', nextTheme)
-    if (nextTheme === 'dark') {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-  }
+  const { theme, toggleTheme, mounted } = useTheme()
 
   const role = user?.publicMetadata?.role
   const isPartner = role === 'partner'
@@ -314,7 +281,7 @@ export default function Navbar() {
               />
             )}
             <UserButton.Action
-              label="Notification"
+              label={t('notification')}
               labelIcon={<BellIcon className="w-4 h-4 text-rose-400" />}
               open="notifications"
             />

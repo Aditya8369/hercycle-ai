@@ -13,6 +13,8 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import HeroSection from '@/components/dashboard/HeroSection'
 import CycleCalendar from '@/components/dashboard/CycleCalendar'
+import CycleCalendarSkeleton from '@/components/dashboard/CycleCalendarSkeleton'
+import DayLogDrawer from '@/components/dashboard/DayLogDrawer'
 import PartnerLoveBanner from '@/components/dashboard/PartnerLoveBanner'
 import VibeCheckin from '@/components/dashboard/VibeCheckin'
 import PCODRiskCard from '@/components/dashboard/PCODRiskCard'
@@ -157,6 +159,13 @@ const HerCycleApp = () => {
   const [dataLoaded, setDataLoaded] = useState(false)
   const [showPcosQuiz, setShowPcosQuiz] = useState(false)
   const [showPcosSymptomProfileQuiz, setShowPcosSymptomProfileQuiz] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(null)
+
+  const handleDayClick = (iso) => {
+    setSelectedDate(iso)
+    setDrawerOpen(true)
+  }
 
   const openLogDrawer = () => setIsLogOpen(true)
   const closeLogDrawer = () => setIsLogOpen(false)
@@ -488,16 +497,33 @@ const HerCycleApp = () => {
 
         <div className="hero">
           <HeroSection activeLang={activeLang} cycleDayInfo={cycleDayInfo} />
-          <CycleCalendar
-            calendarDays={calendarDays}
-            currentMonth={`${new Intl.DateTimeFormat(locale === 'hi' ? 'hi-IN' : 'en-US', { month: 'long' }).format(new Date(viewYear, viewMonth))} ${viewYear}`}
-            onPrevMonth={goToPrevMonth}
-            onNextMonth={goToNextMonth}
-            averageCycleLength={cycleData?.averageCycleLength || 28}
-            daysUntilNext={daysUntilNext}
-            activeLang={activeLang}
-          />
+          {dataLoaded ? (
+            <CycleCalendar
+              calendarDays={calendarDays}
+              currentMonth={`${new Intl.DateTimeFormat(locale === 'hi' ? 'hi-IN' : 'en-US', { month: 'long' }).format(new Date(viewYear, viewMonth))} ${viewYear}`}
+              onPrevMonth={goToPrevMonth}
+              onNextMonth={goToNextMonth}
+              averageCycleLength={cycleData?.averageCycleLength || 28}
+              daysUntilNext={daysUntilNext}
+              activeLang={activeLang}
+              onDayClick={handleDayClick}
+              selectedDate={selectedDate}
+            />
+          ) : (
+            <CycleCalendarSkeleton />
+          )}
         </div>
+
+        <DayLogDrawer
+          isOpen={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          selectedDate={selectedDate}
+          cycleData={cycleData}
+          onSaved={() => {
+            fetchCycleData()
+            fetchTodayLog()
+          }}
+        />
 
         <div style={{ marginTop: '1.5rem' }}>
           <CyclePhaseCard
