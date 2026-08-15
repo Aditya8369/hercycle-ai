@@ -147,34 +147,67 @@ export default function WeightTrendChart({ refreshKey = 0 }) {
               </div>
             </div>
           ) : (
-            <div style={{ width: '100%', height: 300 }}>
+            <div style={{
+              width: '100%',
+              height: 300,
+              background: 'rgba(20, 8, 28, 0.25)',
+              borderRadius: 12,
+              padding: '8px 4px',
+            }}>
               <ResponsiveContainer>
                 <LineChart data={chartData} margin={{ top: 8, right: 12, left: -8, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                  <defs>
+                    <filter id="weightGlow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="5" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                    <filter id="waistGlow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur stdDeviation="4.5" result="blur" />
+                      <feMerge>
+                        <feMergeNode in="blur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+
+                  <CartesianGrid
+                    vertical={false}
+                    strokeDasharray="3 3"
+                    stroke="rgba(255,255,255,0.06)"
+                  />
+
                   <XAxis
                     dataKey="label"
                     tick={{ fill: 'rgba(255,255,255,0.72)', fontSize: 12 }}
                   />
+
                   <YAxis
                     yAxisId="weight"
-                    tick={{ fill: 'rgba(255,255,255,0.72)', fontSize: 12 }}
+                    tick={{ fill: '#e8527e', fontSize: 12 }}
                     domain={['dataMin - 3', 'dataMax + 3']}
                   />
                   <YAxis
                     yAxisId="waist"
                     orientation="right"
-                    tick={{ fill: 'rgba(255,255,255,0.72)', fontSize: 12 }}
+                    tick={{ fill: '#a98bff', fontSize: 12 }}
                     domain={['dataMin - 5', 'dataMax + 5']}
                   />
+
                   <Tooltip
                     contentStyle={{
-                      background: 'rgba(30,12,40,0.96)',
-                      border: '1px solid rgba(232,82,126,0.5)',
+                      background: 'rgba(30, 12, 40, 0.75)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
                       borderRadius: 10,
+                      backdropFilter: 'blur(12px)',
+                      WebkitBackdropFilter: 'blur(12px)',
                     }}
                     labelStyle={{ color: '#fff' }}
                   />
                   <Legend />
+
                   <Line
                     yAxisId="weight"
                     type="monotone"
@@ -182,7 +215,8 @@ export default function WeightTrendChart({ refreshKey = 0 }) {
                     name={t('weight')}
                     stroke="#e8527e"
                     strokeWidth={3}
-                    activeDot={{ r: 6 }}
+                    activeDot={{ r: 6, fill: '#e8527e', stroke: '#fff', strokeWidth: 2 }}
+                    style={{ filter: 'url(#weightGlow)' }}
                   />
                   <Line
                     yAxisId="waist"
@@ -190,8 +224,10 @@ export default function WeightTrendChart({ refreshKey = 0 }) {
                     dataKey="waist"
                     name={t('waist')}
                     stroke="#a98bff"
-                    strokeWidth={2}
+                    strokeWidth={2.5}
                     connectNulls
+                    activeDot={{ r: 6, fill: '#a98bff', stroke: '#fff', strokeWidth: 2 }}
+                    style={{ filter: 'url(#waistGlow)' }}
                   />
                 </LineChart>
               </ResponsiveContainer>
