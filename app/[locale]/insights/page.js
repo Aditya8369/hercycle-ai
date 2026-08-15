@@ -18,6 +18,7 @@ import { useTranslations } from 'next-intl'
 import SymptomPhaseInsights from '@/components/dashboard/SymptomPhaseInsights'
 import { formatDateForCSV } from '@/lib/utils'
 import { normaliseRiskResult } from '@/lib/pcod-risk-result'
+import SectionCard, { IconBadge } from '@/components/ui/SectionCard'
 
 const WeightTrendChart = dynamic(() => import('@/components/dashboard/WeightTrendChart'), {
   loading: () => <div className="chart-skeleton-box" style={{ width: '100%', height: 260, borderRadius: 16 }} />,
@@ -36,23 +37,6 @@ const SYMPTOM_LIST = ['Cramps', 'Headache', 'Bloating', 'Fatigue', 'Acne', 'Naus
 const MOOD_EMOJIS = ['😊', '😐', '😢', '😡']
 const MOOD_LABELS = { '😊': 'Happy', '😐': 'Neutral', '😢': 'Sad', '😡': 'Angry' }
 
-// ─── Icon badge wrapper ───────────────────────────────────────────────────────
-function IconBadge({ children, size = 'lg' }) {
-  const pad = size === 'lg' ? '12px' : '8px'
-  return (
-    <div style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'rgba(233,30,140,0.15)',
-      borderRadius: '12px',
-      padding: pad,
-      marginBottom: size === 'lg' ? '0.6rem' : 0,
-    }}>
-      {children}
-    </div>
-  )
-}
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 function StatCard({ icon, label, value, sub, loading }) {
@@ -85,31 +69,6 @@ function StatCard({ icon, label, value, sub, loading }) {
       {sub && (
         <div style={{ fontSize: '0.75rem', color: TEXT_FAINT, marginTop: 2 }}>{sub}</div>
       )}
-    </div>
-  )
-}
-
-// ─── Section card ─────────────────────────────────────────────────────────────
-function SectionCard({ icon, title, headerAction, children }) {
-  return (
-    <div className="insight-card interactive-card" style={{
-      background: CARD_BG,
-      border: CARD_BORDER,
-      borderRadius: 16,
-      backdropFilter: 'blur(12px)',
-      padding: '1.5rem',
-      marginBottom: '1.5rem',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.6rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          {icon && <IconBadge size="sm">{icon}</IconBadge>}
-          <h3 style={{ color: TEXT_PRIMARY, fontSize: '1.05rem', fontWeight: 600, margin: 0 }}>
-            {title}
-          </h3>
-        </div>
-        {headerAction}
-      </div>
-      {children}
     </div>
   )
 }
@@ -199,7 +158,7 @@ export default function InsightsPage() {
     }
   }
 
-// Last 12 cycles, rendered oldest -> newest. The x-axis uses each cycle's
+  // Last 12 cycles, rendered oldest -> newest. The x-axis uses each cycle's
   // start date so users can spot how cycle length varies over time.
   const cycleLengthData = cycles
     .slice(0, 12)
@@ -351,7 +310,7 @@ export default function InsightsPage() {
       <div className="page">
         <Navbar />
 
-        <div style={{ maxWidth: 1000, margin: '0 auto', padding: '2rem 1.5rem' }}>
+        <div className="max-w-[1000px] mx-auto px-4 sm:px-6 py-8">
 
           {/* ── Page header ── */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap', rowGap: '12px' }}>
@@ -366,7 +325,7 @@ export default function InsightsPage() {
               <BarChart2 size={28} color="white" strokeWidth={1.5} />
             </div>
             <h1 style={{ margin: 0, fontSize: '2rem', flex: 1, minWidth: 0 }}>{t('title')}</h1>
-            
+
             {!loading && (
               <div style={{
                 background: 'rgba(233,30,140,0.15)',
@@ -510,64 +469,64 @@ export default function InsightsPage() {
                         data={cycleLengthData}
                         margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
                       >
-                      <defs>
-                        <filter
-                          id="cycleGlow"
-                          x="-50%"
-                          y="-50%"
-                          width="200%"
-                          height="200%"
-                        >
-                          <feGaussianBlur
-                            in="SourceGraphic"
-                            stdDeviation="4"
-                            result="blur"
-                          />
-                          <feMerge>
-                            <feMergeNode in="blur" />
-                            <feMergeNode in="SourceGraphic" />
-                          </feMerge>
-                        </filter>
-                      </defs>
+                        <defs>
+                          <filter
+                            id="cycleGlow"
+                            x="-50%"
+                            y="-50%"
+                            width="200%"
+                            height="200%"
+                          >
+                            <feGaussianBlur
+                              in="SourceGraphic"
+                              stdDeviation="4"
+                              result="blur"
+                            />
+                            <feMerge>
+                              <feMergeNode in="blur" />
+                              <feMergeNode in="SourceGraphic" />
+                            </feMerge>
+                          </filter>
+                        </defs>
 
-                      <CartesianGrid
-                        vertical={false}
-                        stroke="rgba(255,255,255,0.05)"
-                      />
+                        <CartesianGrid
+                          vertical={false}
+                          stroke="rgba(255,255,255,0.05)"
+                        />
 
-                      <XAxis
-                        dataKey="name"
-                        {...axisProps}
-                      />
+                        <XAxis
+                          dataKey="name"
+                          {...axisProps}
+                        />
 
-                      <YAxis
-                        domain={[20, 40]}
-                        {...axisProps}
-                      />
+                        <YAxis
+                          domain={[20, 40]}
+                          {...axisProps}
+                        />
 
-                      <Tooltip content={<CustomTooltip />} />
+                        <Tooltip content={<CustomTooltip />} />
 
-                      <Line
-                        type="monotone"
-                        dataKey="days"
-                        name="days"
-                        stroke={PINK}
-                        strokeWidth={2.5}
-                        filter="url(#cycleGlow)"
-                        dot={{
-                          fill: PINK,
-                          stroke: PINK,
-                          strokeWidth: 2,
-                          r: 5,
-                        }}
-                        activeDot={{
-                          r: 8,
-                          fill: MAUVE,
-                          stroke: PINK,
-                          strokeWidth: 3,
-                        }}
-                      />
-                    </LineChart>
+                        <Line
+                          type="monotone"
+                          dataKey="days"
+                          name="days"
+                          stroke={PINK}
+                          strokeWidth={2.5}
+                          filter="url(#cycleGlow)"
+                          dot={{
+                            fill: PINK,
+                            stroke: PINK,
+                            strokeWidth: 2,
+                            r: 5,
+                          }}
+                          activeDot={{
+                            r: 8,
+                            fill: MAUVE,
+                            stroke: PINK,
+                            strokeWidth: 3,
+                          }}
+                        />
+                      </LineChart>
                     </ResponsiveContainer>
                   </div>
                 )}
@@ -598,22 +557,22 @@ export default function InsightsPage() {
                     {t('symptomEmpty')}
                   </p>
                 ) : (
-                <div
+                  <div
                     role="img"
                     aria-label={`Bar chart showing frequency of logged symptoms across ${totalLogs} entries`}
                   >
                     <ResponsiveContainer width="100%" height={200} aria-hidden="true">
                       <BarChart data={symptomFreq} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                      <CartesianGrid {...gridProps} />
-                      <XAxis dataKey="name" {...axisProps} />
-                      <YAxis allowDecimals={false} {...axisProps} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="count" name="occurrences" radius={[6, 6, 0, 0]}>
-                        {symptomFreq.map((_, i) => (
-                          <Cell key={i} fill={i % 2 === 0 ? PINK : MAUVE} />
-                        ))}
-                      </Bar>
-                    </BarChart>
+                        <CartesianGrid {...gridProps} />
+                        <XAxis dataKey="name" {...axisProps} />
+                        <YAxis allowDecimals={false} {...axisProps} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey="count" name="occurrences" radius={[6, 6, 0, 0]}>
+                          {symptomFreq.map((_, i) => (
+                            <Cell key={i} fill={i % 2 === 0 ? PINK : MAUVE} />
+                          ))}
+                        </Bar>
+                      </BarChart>
                     </ResponsiveContainer>
                   </div>
                 )}

@@ -13,6 +13,7 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import HeroSection from '@/components/dashboard/HeroSection'
 import CycleCalendar from '@/components/dashboard/CycleCalendar'
+import CycleCalendarSkeleton from '@/components/dashboard/CycleCalendarSkeleton'
 import DayLogDrawer from '@/components/dashboard/DayLogDrawer'
 import PartnerLoveBanner from '@/components/dashboard/PartnerLoveBanner'
 import VibeCheckin from '@/components/dashboard/VibeCheckin'
@@ -496,17 +497,21 @@ const HerCycleApp = () => {
 
         <div className="hero">
           <HeroSection activeLang={activeLang} cycleDayInfo={cycleDayInfo} />
-          <CycleCalendar
-            calendarDays={calendarDays}
-            currentMonth={`${new Intl.DateTimeFormat(locale === 'hi' ? 'hi-IN' : 'en-US', { month: 'long' }).format(new Date(viewYear, viewMonth))} ${viewYear}`}
-            onPrevMonth={goToPrevMonth}
-            onNextMonth={goToNextMonth}
-            averageCycleLength={cycleData?.averageCycleLength || 28}
-            daysUntilNext={daysUntilNext}
-            activeLang={activeLang}
-            onDayClick={handleDayClick}
-            selectedDate={selectedDate}
-          />
+          {dataLoaded ? (
+            <CycleCalendar
+              calendarDays={calendarDays}
+              currentMonth={`${new Intl.DateTimeFormat(locale === 'hi' ? 'hi-IN' : 'en-US', { month: 'long' }).format(new Date(viewYear, viewMonth))} ${viewYear}`}
+              onPrevMonth={goToPrevMonth}
+              onNextMonth={goToNextMonth}
+              averageCycleLength={cycleData?.averageCycleLength || 28}
+              daysUntilNext={daysUntilNext}
+              activeLang={activeLang}
+              onDayClick={handleDayClick}
+              selectedDate={selectedDate}
+            />
+          ) : (
+            <CycleCalendarSkeleton />
+          )}
         </div>
 
         <DayLogDrawer
