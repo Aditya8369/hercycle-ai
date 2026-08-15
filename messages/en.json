@@ -352,7 +352,22 @@
     "trendDesc": "Measurements are shown in chronological order.",
     "noMeasurements": "No measurements yet. Add the first entry from the Track page.",
     "overall": "overall",
-    "loading": "Loading measurements…"
+    "loading": "Loading measurements…",
+    "weightPlaceholder": "e.g. 62.5",
+    "heightPlaceholder": "e.g. 165",
+    "bmiNotCalculated": "Not calculated",
+    "bmiBelowRange": "Below healthy range",
+    "bmiHealthyRange": "Healthy range",
+    "bmiAboveRange": "Above healthy range",
+    "bmiHighRange": "High range",
+    "saveSuccess": "Measurement saved successfully",
+    "saveError": "Unable to save the measurement.",
+    "syncingBadge": "Syncing measurement...",
+    "savedBadge": "Measurement saved",
+    "weightBadgeLabel": "Weight",
+    "waistBadgeLabel": "Waist",
+    "heightBadgeLabel": "Height",
+    "bmiBadgeLabel": "BMI"
   },
   "CycleHistory": {
     "title": "Cycle History",

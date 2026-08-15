@@ -352,7 +352,22 @@
     "trendDesc": "माप कालानुक्रमिक क्रम में दिखाए गए हैं।",
     "noMeasurements": "अभी तक कोई माप नहीं। ट्रैक पृष्ठ से पहली प्रविष्टि जोड़ें।",
     "overall": "कुल मिलाकर",
-    "loading": "माप लोड हो रहा है…"
+    "loading": "माप लोड हो रहा है…",
+    "weightPlaceholder": "उदा. 62.5",
+    "heightPlaceholder": "उदा. 165",
+    "bmiNotCalculated": "गणना नहीं की गई",
+    "bmiBelowRange": "स्वस्थ सीमा से कम",
+    "bmiHealthyRange": "स्वस्थ सीमा",
+    "bmiAboveRange": "स्वस्थ सीमा से अधिक",
+    "bmiHighRange": "उच्च सीमा",
+    "saveSuccess": "माप सफलतापूर्वक सहेजा गया",
+    "saveError": "माप सहेजने में असमर्थ।",
+    "syncingBadge": "माप सिंक हो रहा है...",
+    "savedBadge": "माप सहेजा गया",
+    "weightBadgeLabel": "वजन",
+    "waistBadgeLabel": "कमर",
+    "heightBadgeLabel": "ऊंचाई",
+    "bmiBadgeLabel": "बीएमआई"
   },
   "CycleHistory": {
     "title": "चक्र का इतिहास",
