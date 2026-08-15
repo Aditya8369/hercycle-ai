@@ -51,4 +51,30 @@ describe('Suite 7: Internationalization (i18n) Parity & Algorithm Edge Cases', (
     assert.strictEqual(emptyRisk.score, 0);
     assert.strictEqual(emptyRisk.tier, 'LOW RISK');
   });
+
+  test('calculatePCODRisk deduplicates symptoms to prevent duplicate symptoms from artificially increasing the risk score', async () => {
+    const { calculatePCODRisk } = await import('../lib/api-helpers.js');
+    const mockCycles = [
+      { start_date: '2026-04-01', cycle_length: 28 },
+      { start_date: '2026-04-29', cycle_length: 28 },
+      { start_date: '2026-05-27', cycle_length: 28 }
+    ];
+
+    // Case 1: Flat legacy symptoms array
+    const singleFlat = await calculatePCODRisk(mockCycles, ['acne']);
+    const duplicateFlat = await calculatePCODRisk(mockCycles, ['acne', 'acne']);
+    assert.strictEqual(duplicateFlat.score, singleFlat.score);
+
+    // Case 2: Daily log entries with duplicates in the symptoms array
+    const singleDailySyms = await calculatePCODRisk(mockCycles, [{ date: '2026-07-20', symptoms: ['acne'] }]);
+    const duplicateDailySyms = await calculatePCODRisk(mockCycles, [{ date: '2026-07-20', symptoms: ['acne', 'acne'] }]);
+    assert.strictEqual(duplicateDailySyms.score, singleDailySyms.score);
+
+    // Case 3: Multiple daily log entries for the same day with duplicate symptoms
+    const duplicateLogs = await calculatePCODRisk(mockCycles, [
+      { date: '2026-07-20', symptoms: ['acne'] },
+      { date: '2026-07-20', symptoms: ['acne'] }
+    ]);
+    assert.strictEqual(duplicateLogs.score, singleDailySyms.score);
+  });
 });

@@ -12,6 +12,12 @@
     "syncing": "Syncing",
     "logToday": "Log Today",
     "signOut": "Sign Out",
+    "notification": "Notification",
+    "language": "Language",
+    "partnerSharing": "Partner Sharing",
+    "dataPrivacy": "Data & Privacy",
+    "healthProfile": "Health Profile",
+    "helpSupport": "Help & Support",
     "syncFailed": "Not saved"
   },
   "SyncFailures": {
@@ -318,7 +324,12 @@
     "deleteDesc": "Permanently delete your account and all associated data from our servers. This will immediately trigger a hard wipe of your cycles, logs, and profile. This action is irreversible.",
     "deleteBtn": "Delete My Account",
     "deleting": "Deleting Account...",
-    "deleteConfirm": "WARNING: This will permanently delete your account, including all cycle logs, predictions, and profile data. This action CANNOT be undone. Are you sure you want to proceed?"
+    "deleteConfirm": "WARNING: This will permanently delete your account, including all cycle logs, predictions, and profile data. This action CANNOT be undone. Are you sure you want to proceed?",
+    "deleteModalTitle": "Confirm Account Deletion",
+    "deleteModalDesc": "WARNING: This will permanently delete your account, including all cycle logs, predictions, and profile data. This action CANNOT be undone.",
+    "deleteModalKeyword": "DELETE",
+    "deleteModalPlaceholder": "Type DELETE to confirm",
+    "cancelBtn": "Cancel"
   },
   "CycleEducation": {
     "eyebrow": "Cycle education",
@@ -341,7 +352,22 @@
     "trendDesc": "Measurements are shown in chronological order.",
     "noMeasurements": "No measurements yet. Add the first entry from the Track page.",
     "overall": "overall",
-    "loading": "Loading measurements…"
+    "loading": "Loading measurements…",
+    "weightPlaceholder": "e.g. 62.5",
+    "heightPlaceholder": "e.g. 165",
+    "bmiNotCalculated": "Not calculated",
+    "bmiBelowRange": "Below healthy range",
+    "bmiHealthyRange": "Healthy range",
+    "bmiAboveRange": "Above healthy range",
+    "bmiHighRange": "High range",
+    "saveSuccess": "Measurement saved successfully",
+    "saveError": "Unable to save the measurement.",
+    "syncingBadge": "Syncing measurement...",
+    "savedBadge": "Measurement saved",
+    "weightBadgeLabel": "Weight",
+    "waistBadgeLabel": "Waist",
+    "heightBadgeLabel": "Height",
+    "bmiBadgeLabel": "BMI"
   },
   "CycleHistory": {
     "title": "Cycle History",

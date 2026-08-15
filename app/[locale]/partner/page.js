@@ -216,7 +216,7 @@ export default function PartnerPage() {
             <div className="text-5xl mb-4">📋</div>
             <h2 className="text-xl font-semibold text-white mb-2">No cycle data yet</h2>
             <p className="text-white/60 text-sm">
-              Your partner hasn't logged any cycle data yet. Check back once they start tracking!
+              Your partner hasn&apos;t logged any cycle data yet. Check back once they start tracking!
             </p>
           </div>
         ) : (
@@ -304,7 +304,7 @@ export default function PartnerPage() {
                   <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
                     <Smile className="w-5 h-5 text-yellow-400" />
                   </div>
-                  <h2 className="text-lg font-semibold text-white">Today's Mood</h2>
+                  <h2 className="text-lg font-semibold text-white">Today&apos;s Mood</h2>
                 </div>
                 {insights.mood ? (
                   <p className="text-2xl font-medium text-white">{insights.mood}</p>
@@ -321,7 +321,7 @@ export default function PartnerPage() {
                   <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
                     <FileText className="w-5 h-5 text-purple-400" />
                   </div>
-                  <h2 className="text-lg font-semibold text-white">Today's Symptoms</h2>
+                  <h2 className="text-lg font-semibold text-white">Today&apos;s Symptoms</h2>
                 </div>
                 {insights.symptoms && insights.symptoms.length > 0 ? (
                   <div className="flex flex-wrap gap-2">

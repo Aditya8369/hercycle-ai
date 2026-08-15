@@ -44,6 +44,23 @@ const cyclePatchSchema = z
     { message: 'end_date must be on or after start_date', path: ['end_date'] }
   );
 
+  /**
+ * Maps a Postgres CHECK constraint violation (code 23514) to a clean,
+ * user-facing message. Falls back to the raw error for anything else.
+ */
+function toCleanCycleError(error) {
+  if (error?.code === '23514') {
+    if (error.message?.includes('check_end_date_after_start')) {
+      return { message: 'End date cannot be before the start date.', status: 400 }
+    }
+    if (error.message?.includes('check_cycle_length_bounds')) {
+      return { message: 'Cycle length must be between 10 and 120 days.', status: 400 }
+    }
+    return { message: 'Invalid cycle data submitted.', status: 400 }
+  }
+  return { message: error?.message || 'Unknown database error', status: 500 }
+}
+
 export async function GET(request) {
   // ============ RATE LIMITING ============
   try {
@@ -145,8 +162,9 @@ export async function POST(request) {
     const { error } = await supabaseAdmin.from('cycles').insert([insertObj])
 
     if (error) {
+      const clean = toCleanCycleError(error)
       logger.error(`Database error inserting cycle for user ${userId}:`, error.message);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+      return NextResponse.json({ success: false, error: clean.message }, { status: clean.status })
     }
 
     logger.info(`Successfully added new period cycle for user ${userId}`);
@@ -216,11 +234,11 @@ export async function PATCH(request) {
       .eq('id', id)
       .eq('user_id', userId)
 
-    if (error) {
+   if (error) {
+      const clean = toCleanCycleError(error)
       logger.error(`Database error updating cycle ${id} for user ${userId}:`, error.message);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+      return NextResponse.json({ success: false, error: clean.message }, { status: clean.status })
     }
-
     logger.info(`Successfully updated period cycle ${id} for user ${userId}`);
     
     // Automatic LRU cache invalidation for PCOD risk score
