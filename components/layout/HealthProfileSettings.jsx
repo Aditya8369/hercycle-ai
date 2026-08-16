@@ -35,9 +35,9 @@ export default function HealthProfileSettings() {
       const data = await res.json()
       if (data.success && data.profile) {
         setFormData({
-          age: data.profile.age || '',
-          weight_kg: data.profile.weight_kg || '',
-          height_cm: data.profile.height_cm || '',
+          age: data.profile.age !== null && data.profile.age !== undefined ? data.profile.age : '',
+          weight_kg: data.profile.weight_kg !== null && data.profile.weight_kg !== undefined ? data.profile.weight_kg : '',
+          height_cm: data.profile.height_cm !== null && data.profile.height_cm !== undefined ? data.profile.height_cm : '',
           known_conditions: data.profile.known_conditions || [],
           cycle_goal: data.profile.cycle_goal || ''
         })
@@ -77,7 +77,7 @@ export default function HealthProfileSettings() {
     setSaving(true)
     try {
       const payload = {
-        age: formData.age ? parseInt(formData.age) : null,
+        age: formData.age ? parseInt(formData.age, 10) : null,
         weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
         height_cm: formData.height_cm ? parseFloat(formData.height_cm) : null,
         known_conditions: formData.known_conditions,
@@ -93,6 +93,15 @@ export default function HealthProfileSettings() {
       const data = await res.json()
       if (data.success) {
         toast.success('Health profile saved successfully!')
+        if (data.profile) {
+          setFormData({
+            age: data.profile.age !== null && data.profile.age !== undefined ? data.profile.age : '',
+            weight_kg: data.profile.weight_kg !== null && data.profile.weight_kg !== undefined ? data.profile.weight_kg : '',
+            height_cm: data.profile.height_cm !== null && data.profile.height_cm !== undefined ? data.profile.height_cm : '',
+            known_conditions: data.profile.known_conditions || [],
+            cycle_goal: data.profile.cycle_goal || ''
+          })
+        }
       } else {
         toast.error(data.error || 'Failed to save profile')
       }
