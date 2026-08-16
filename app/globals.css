@@ -1416,6 +1416,14 @@ nav ul li a.active {
 .panel {
   border-radius: 20px;
   padding: 24px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 479px) {
+  .panel {
+    padding: 16px;
+  }
 }
 
 .panel h4 {
@@ -1427,29 +1435,11 @@ nav ul li a.active {
 }
 
 .symp-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
-}
-
-/* Mobile horizontal scroll wrapper for logged symptoms (Fixes #249, #329) */
-@media (max-width: 640px) {
-  .symp-grid-scroll-wrapper,
-  .symptoms-horizontal-scroll {
-    display: flex !important;
-    overflow-x: auto !important;
-    white-space: nowrap !important;
-    padding-bottom: 8px !important;
-    gap: 8px !important;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-  .symp-grid-scroll-wrapper .symp-chip,
-  .symptoms-horizontal-scroll .symp-chip {
-    flex: 0 0 auto !important;
-    white-space: nowrap !important;
-  }
+  width: 100%;
 }
 
 .symp-chip {
@@ -1462,14 +1452,14 @@ nav ul li a.active {
   color: var(--text-soft);
   cursor: pointer;
   transition: all 0.22s;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   line-height: 1.4;
   text-align: center;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  max-width: 100%;
+  box-sizing: border-box;
   min-width: 0;
 }
 
@@ -1485,20 +1475,42 @@ nav ul li a.active {
   gap: 8px;
   margin-bottom: 16px;
   justify-content: space-between;
+  width: 100%;
+  min-width: 0;
 }
 
 .mood-btn {
   flex: 1;
-  aspect-ratio: 1;
+  min-width: 0;
+  min-height: 54px;
+  padding: 6px 4px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 14px;
-  font-size: 1.8rem;
   cursor: pointer;
   transition: all 0.22s;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
+}
+
+.mood-btn .emoji {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.mood-btn .mood-name {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-soft);
+  line-height: 1.1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .mood-btn:hover,
@@ -3585,31 +3597,14 @@ nav ul li a:focus-visible,
 @media (max-width: 639px) {
   .symp-grid {
     display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
+    flex-wrap: wrap;
     gap: 8px;
-    padding-bottom: 4px;
-    scroll-snap-type: x proximity;
+    width: 100%;
   }
 
   .symp-grid .symp-chip {
     flex: 0 0 auto;
-    scroll-snap-align: start;
-  }
-
-  .symp-grid::-webkit-scrollbar {
-    height: 4px;
-  }
-
-  .symp-grid::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .symp-grid::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.25);
-    border-radius: 999px;
+    max-width: 100%;
   }
 }
 

@@ -305,10 +305,7 @@ export default function TrackPage() {
           </div>
 
           {/* Daily log panel */}
-          <h2 id="daily-log-section" style={{
-            color: TEXT_PRIMARY,
-            fontSize: '1.4rem',
-            fontWeight: 700,
+          <h2 id="daily-log-section" className="sec-head" style={{
             marginBottom: '1.25rem',
           }}>
             {t('logToday')}

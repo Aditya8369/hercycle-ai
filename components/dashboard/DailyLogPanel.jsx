@@ -87,6 +87,7 @@ export default function DailyLogPanel({
             onChange={(e) => setCustomInput(e.target.value)}
             style={{
               flex: 1,
+              minWidth: 0,
               background: 'rgba(255, 255, 255, 0.08)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '50px',
@@ -107,7 +108,8 @@ export default function DailyLogPanel({
               fontSize: '0.85rem',
               fontWeight: 600,
               cursor: 'pointer',
-              transition: 'all 0.2s'
+              transition: 'all 0.22s',
+              flexShrink: 0
             }}
             onMouseOver={(e) => e.target.style.background = 'rgba(232, 82, 126, 0.4)'}
             onMouseOut={(e) => e.target.style.background = 'rgba(232, 82, 126, 0.25)'}
@@ -139,8 +141,8 @@ export default function DailyLogPanel({
           {moods.map(mood => (
             <button
               key={mood.emoji}
-              className={`mood-btn ${selectedMood === mood.emoji ? 'active' : ''
-                }`}
+              type="button"
+              className={`mood-btn ${selectedMood === mood.emoji ? 'active' : ''}`}
               onClick={() => setSelectedMood(mood.emoji)}
             >
               <span className="emoji">
@@ -154,7 +156,7 @@ export default function DailyLogPanel({
           ))}
         </div>
 
-        <div className="flow-lbl">
+        <div className="flow-lbl flow-label">
           {t("flow")}
         </div>
 
