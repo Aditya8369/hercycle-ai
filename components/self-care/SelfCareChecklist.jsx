@@ -149,7 +149,7 @@ export default function SelfCareChecklist() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <section className="bg-white/5 border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
+    <section className="bg-white/5 border border-white/10 rounded-3xl p-4 sm:p-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -325,7 +325,7 @@ export default function SelfCareChecklist() {
           onKeyDown={(e) => { if (e.key === 'Enter') addTask(); }}
           placeholder={t('checklistAddPlaceholder')}
           maxLength={80}
-          className="flex-1 bg-white/10 border border-white/15 rounded-xl px-4 py-2.5 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-pink-400/50"
+          className="flex-1 min-w-0 bg-white/10 border border-white/15 rounded-xl px-3 sm:px-4 py-2.5 text-white placeholder-white/40 text-sm focus:outline-none focus:ring-2 focus:ring-pink-400/50"
           style={{ WebkitUserSelect: 'text', userSelect: 'text' }}
         />
         <button
@@ -333,10 +333,10 @@ export default function SelfCareChecklist() {
           onClick={addTask}
           disabled={!newTaskLabel.trim()}
           aria-label={t('checklistAdd')}
-          className="btn-pill px-4 py-2.5 text-sm disabled:opacity-40 disabled:cursor-not-allowed shrink-0 flex items-center gap-1.5"
+          className="btn-pill px-3 sm:px-4 py-2.5 text-sm disabled:opacity-40 disabled:cursor-not-allowed shrink-0 flex items-center gap-1.5"
         >
-          <Plus className="w-4 h-4" aria-hidden="true" />
-          {t('checklistAdd')}
+          <Plus className="w-4 h-4 shrink-0" aria-hidden="true" />
+          <span>{t('checklistAdd')}</span>
         </button>
       </div>
     </section>
