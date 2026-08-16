@@ -263,7 +263,7 @@ function SettingsModal({ settings, onSave, onClose, t }) {
               step={100}
               value={draft.dailyGoal}
               onChange={(e) => setDraft((d) => ({ ...d, dailyGoal: e.target.value }))}
-              className="flex-1 bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-400/50"
+              className="flex-1 min-w-0 bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-400/50"
               style={{ WebkitUserSelect: 'text', userSelect: 'text' }}
             />
             <span className="text-white/50 text-sm shrink-0">ml</span>
@@ -284,7 +284,7 @@ function SettingsModal({ settings, onSave, onClose, t }) {
               step={50}
               value={draft.cupCapacity}
               onChange={(e) => setDraft((d) => ({ ...d, cupCapacity: e.target.value }))}
-              className="flex-1 bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-400/50"
+              className="flex-1 min-w-0 bg-white/10 border border-white/15 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-pink-400/50"
               style={{ WebkitUserSelect: 'text', userSelect: 'text' }}
             />
             <span className="text-white/50 text-sm shrink-0">ml</span>
