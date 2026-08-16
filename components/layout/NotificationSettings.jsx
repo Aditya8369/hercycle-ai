@@ -200,16 +200,16 @@ export default function NotificationSettings() {
   const unreadCount = notifications.filter((n) => !n.read).length
 
   return (
-    <div className="p-4 sm:p-6 w-full max-w-2xl mx-auto space-y-6 animate-in fade-in duration-300 font-sans">
+    <div className="p-2.5 sm:p-6 w-full max-w-2xl mx-auto space-y-4 sm:space-y-6 animate-in fade-in duration-300 font-sans min-w-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/15 pb-4 gap-3 sm:gap-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-400/40 flex items-center justify-center shrink-0 shadow-sm">
             <Bell className="w-5 h-5 text-rose-300" />
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-              Notifications & Alerts
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2 flex-wrap">
+              <span>Notifications & Alerts</span>
               {unreadCount > 0 && (
                 <span className="text-xs bg-rose-500 text-white font-mono font-bold px-2.5 py-0.5 rounded-full shadow-sm">
                   {unreadCount} new
@@ -220,7 +220,7 @@ export default function NotificationSettings() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-start sm:justify-end">
+        <div className="flex items-center gap-2.5 w-full sm:w-auto justify-start sm:justify-end shrink-0">
           {unreadCount > 0 && (
             <button
               type="button"
@@ -246,9 +246,9 @@ export default function NotificationSettings() {
       </div>
 
       {/* Device Push Permission Card */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-rose-950/90 via-purple-950/80 to-slate-900/90 border border-rose-400/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
-        <div className="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
-          <div className="w-10 h-10 rounded-2xl bg-rose-500/20 border border-rose-400/40 flex items-center justify-center text-xl shrink-0 shadow-sm">
+      <div className="p-3.5 sm:p-5 rounded-2xl bg-gradient-to-r from-rose-950/90 via-purple-950/80 to-slate-900/90 border border-rose-400/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 shadow-lg min-w-0">
+        <div className="flex items-start sm:items-center gap-3 sm:gap-3.5 flex-1 min-w-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-rose-500/20 border border-rose-400/40 flex items-center justify-center text-lg sm:text-xl shrink-0 shadow-sm">
             📲
           </div>
           <div className="space-y-0.5 min-w-0">
@@ -256,7 +256,7 @@ export default function NotificationSettings() {
               <span>Device System Push Banners</span>
               <span className="text-sm">🔔</span>
             </h4>
-            <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">
+            <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans break-words">
               {devicePermission === 'granted'
                 ? 'Active: System banners & lock screen alerts enabled'
                 : 'Enable phone/desktop notifications like WhatsApp & Instagram'}
@@ -283,11 +283,11 @@ export default function NotificationSettings() {
       </div>
 
       {/* Tabs Switcher */}
-      <div className="flex bg-black/50 p-1.5 rounded-2xl border border-white/15 gap-1.5 shadow-inner">
+      <div className="flex bg-black/50 p-1 sm:p-1.5 rounded-2xl border border-white/15 gap-1 sm:gap-1.5 shadow-inner min-w-0">
         <button
           type="button"
           onClick={() => setActiveTab('feed')}
-          className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-0 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer ${
             activeTab === 'feed'
               ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-md font-bold'
               : 'text-slate-300 hover:text-white hover:bg-white/5'
@@ -300,7 +300,7 @@ export default function NotificationSettings() {
         <button
           type="button"
           onClick={() => setActiveTab('settings')}
-          className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+          className={`flex-1 min-w-0 py-2 sm:py-2.5 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 sm:gap-2 cursor-pointer ${
             activeTab === 'settings'
               ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-md font-bold'
               : 'text-slate-300 hover:text-white hover:bg-white/5'
@@ -313,7 +313,7 @@ export default function NotificationSettings() {
 
       {/* TAB 1: ACTIVITY INBOX FEED */}
       {activeTab === 'feed' && (
-        <div className="space-y-3">
+        <div className="space-y-3 min-w-0">
           {loading ? (
             <div className="glass p-8 rounded-2xl text-center text-slate-300 text-sm font-sans animate-pulse border border-white/10">
               Loading activity notifications...
@@ -326,26 +326,26 @@ export default function NotificationSettings() {
             notifications.map((item) => (
               <div
                 key={item.id}
-                className={`p-4 rounded-2xl border transition-all flex items-start gap-3.5 shadow-md ${
+                className={`p-3 sm:p-4 rounded-2xl border transition-all flex items-start gap-2.5 sm:gap-3.5 shadow-md min-w-0 ${
                   item.read
                     ? 'bg-slate-900/90 border-white/15 text-slate-200'
                     : 'bg-gradient-to-r from-rose-950/70 via-purple-950/60 to-slate-900/90 border-rose-400/50 text-white ring-1 ring-rose-400/40 shadow-rose-950/40'
                 }`}
               >
-                <div className="text-2xl shrink-0 p-2.5 bg-white/10 rounded-xl border border-white/15 shadow-sm">
+                <div className="text-xl sm:text-2xl shrink-0 p-2 sm:p-2.5 bg-white/10 rounded-xl border border-white/15 shadow-sm">
                   {item.icon}
                 </div>
 
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-                    <h4 className="text-sm sm:text-base font-bold text-white tracking-tight truncate">{item.title}</h4>
+                    <h4 className="text-sm sm:text-base font-bold text-white tracking-tight break-words leading-snug">{item.title}</h4>
                     <span className="text-[11px] text-slate-300 font-mono flex items-center gap-1 shrink-0">
                       <Clock className="w-3 h-3 text-slate-400" />
                       {formatTime(item.time)}
                     </span>
                   </div>
 
-                  <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans">{item.message}</p>
+                  <p className="text-xs sm:text-sm text-slate-200 leading-relaxed font-sans break-words">{item.message}</p>
                 </div>
               </div>
             ))
@@ -355,21 +355,21 @@ export default function NotificationSettings() {
 
       {/* TAB 2: ALERT PREFERENCES SETTINGS */}
       {activeTab === 'settings' && (
-        <div className="glass p-4 sm:p-6 rounded-2xl border border-white/15 space-y-4 shadow-xl">
+        <div className="glass p-3.5 sm:p-6 rounded-2xl border border-white/15 space-y-4 shadow-xl min-w-0">
           <h3 className="text-xs sm:text-sm font-bold text-rose-300 uppercase tracking-wider flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-rose-400" />
             Push & Alert Controls
           </h3>
 
-          <div className="space-y-3">
+          <div className="space-y-3 min-w-0">
             {PREFERENCE_ITEMS.map((item) => (
               <div
                 key={item.key}
-                className="flex items-center justify-between p-4 rounded-xl bg-slate-900/90 border border-white/15 hover:border-white/25 transition-all gap-4 shadow-sm"
+                className="flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-slate-900/90 border border-white/15 hover:border-white/25 transition-all gap-3 sm:gap-4 shadow-sm min-w-0"
               >
                 <div className="space-y-0.5 min-w-0 flex-1">
-                  <h4 className="text-sm sm:text-base font-semibold text-white tracking-tight font-sans">{item.title}</h4>
-                  <p className="text-xs sm:text-sm text-slate-200 font-sans leading-normal">{item.description}</p>
+                  <h4 className="text-sm sm:text-base font-semibold text-white tracking-tight font-sans break-words">{item.title}</h4>
+                  <p className="text-xs sm:text-sm text-slate-200 font-sans leading-normal break-words">{item.description}</p>
                 </div>
 
                 {/* Custom Glassmorphic Toggle Switch */}
