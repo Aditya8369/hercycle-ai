@@ -1,5 +1,7 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { jsonSuccess, jsonError } from '@/lib/api-helpers'
+import { aiLimiter } from '@/lib/rateLimiter'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const COACH_FALLBACKS = {
@@ -39,10 +41,19 @@ Guidelines:
 }
 
 export async function POST(req) {
+  // ============ RATE LIMITING ============
+  try {
+    await aiLimiter.check(req);
+  } catch (rateLimitError) {
+    console.warn(`[Rate Limit] Partner Coach endpoint: ${rateLimitError.message}`);
+    return jsonError('Too many requests, please slow down. AI partner coach is rate limited to 20 messages per 5 minutes.', 429)
+  }
+  // =======================================
+
   try {
     const { userId } = await auth()
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return jsonError('Unauthorized', 401)
     }
 
     let parsedBody;
@@ -50,7 +61,7 @@ export async function POST(req) {
       parsedBody = await req.json();
     } catch (parseError) {
       console.warn(`Malformed JSON payload in partner-coach: ${parseError.message}`);
-      return NextResponse.json({ reply: "I'm here to help you support her! Try asking about cramp relief, food ideas, or mood support." }, { status: 400 });
+      return jsonError('Bad Request: Invalid JSON payload', 400);
     }
     const { phase = 'Follicular', cycleDay = 1, symptoms = [], query = '' } = parsedBody
 

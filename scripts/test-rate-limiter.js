@@ -238,16 +238,17 @@ check(consume('user:slider', { limit, intervalMs: windowMs, now: windowStart + 3
 // Window 3: Window slides past another 30s (t = windowStart + 60000)
 check(consume('user:slider', { limit, intervalMs: windowMs, now: windowStart + 60000 }).allowed, true, 'window 3 request 1 allowed after second window slides')
 
-// Test 3: Multiple endpoint limiters threshold breach isolation (AI=5, CRUD=30, Dev=10)
+// Test 3: Multiple endpoint limiters threshold breach isolation (AI=20 per 5 min, CRUD=30, Dev=10)
 resetInMemoryRateLimits()
 const testTime = 4_000_000_000_000
+const FIVE_MIN_MS = 5 * 60 * 1000
 
-// AI Endpoint Limiter (Limit: 5)
+// AI Chat Limiter (Limit: 20 per 5 minutes)
 let aiPassed = 0
-for (let i = 0; i < 8; i++) {
-  if (consume('ai:user_100', { limit: 5, intervalMs: 60000, now: testTime + i }).allowed) aiPassed++
+for (let i = 0; i < 25; i++) {
+  if (consume('ai:user_100', { limit: 20, intervalMs: FIVE_MIN_MS, now: testTime + i * 1000 }).allowed) aiPassed++
 }
-check(aiPassed, 5, 'AI limiter simulation enforces threshold of 5 requests')
+check(aiPassed, 20, 'AI chat limiter simulation enforces threshold of 20 requests per 5 minutes')
 
 // CRUD Endpoint Limiter (Limit: 30)
 let crudPassed = 0
@@ -264,7 +265,7 @@ for (let i = 0; i < 15; i++) {
 check(devPassed, 10, 'Dev limiter simulation enforces threshold of 10 requests')
 
 // Verify namespaces remain isolated for the same user
-check(consume('ai:user_100', { limit: 5, intervalMs: 60000, now: testTime + 100 }).allowed, false, 'AI endpoint bucket remains blocked')
+check(consume('ai:user_100', { limit: 20, intervalMs: FIVE_MIN_MS, now: testTime + 100 }).allowed, false, 'AI endpoint bucket remains blocked after 20 requests')
 check(consume('crud:user_100', { limit: 30, intervalMs: 60000, now: testTime + 100 }).allowed, false, 'CRUD endpoint bucket remains blocked')
 check(consume('dev:user_100', { limit: 10, intervalMs: 60000, now: testTime + 100 }).allowed, false, 'Dev endpoint bucket remains blocked')
 
@@ -276,6 +277,7 @@ const testInterval = 10_000
 consume('user:boundary', { limit: 1, intervalMs: testInterval, now: baseTime })
 check(consume('user:boundary', { limit: 1, intervalMs: testInterval, now: baseTime + testInterval - 1 }).allowed, false, 'request 1ms before window reset is blocked')
 check(consume('user:boundary', { limit: 1, intervalMs: testInterval, now: baseTime + testInterval }).allowed, true, 'request exactly at window reset is allowed')
+
 
 // ───────────────────────────────────────────────────────────────────────────
 if (failed > 0) {

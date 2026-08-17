@@ -187,16 +187,13 @@ export async function POST(request) {
 
   // ============ RATE LIMITING ============
   try {
-    const identifier = await getRateLimitIdentifier(request);
-    await aiLimiter.check(request); // 10 requests per minute
+    await aiLimiter.check(request);
   } catch (rateLimitError) {
     console.warn(`[Rate Limit] Chat endpoint: ${rateLimitError.message}`);
-    return NextResponse.json(
-      { success: false, error: 'Too many requests, please slow down. AI chat is rate limited.' },
-      { status: 429 }
-    );
+    return jsonError('Too many requests, please slow down. AI chat is rate limited to 20 messages per 5 minutes.', 429)
   }
   // =======================================
+
 
   try {
     // 1. Clerk Authentication
