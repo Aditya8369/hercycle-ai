@@ -50,17 +50,19 @@ export default function SettingsPage() {
     setIsDeleting(true)
     const toastId = toast.loading('Deleting account...')
     try {
-      // Delete user via Clerk client / backend API
-      if (user?.delete) {
-        await user.delete()
-      } else {
-        const res = await fetch('/api/delete-account', { method: 'POST' })
-        if (!res.ok) throw new Error('Failed to delete account via API')
+      // Delete user account and purge all associated database data via backend API
+      const res = await fetch('/api/delete-account', { method: 'POST' })
+      if (!res.ok) throw new Error('Failed to delete account via API')
+
+      if (typeof window !== 'undefined') {
+        localStorage.clear()
+        sessionStorage.clear()
       }
       await signOut()
       toast.success('Account deleted successfully.', { id: toastId })
       setIsDeleteModalOpen(false)
       router.push('/')
+
     } catch (error) {
       console.error(error)
       toast.error('Failed to delete account. Please try again.', { id: toastId })

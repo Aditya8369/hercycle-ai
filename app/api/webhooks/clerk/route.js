@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { Webhook } from 'svix'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { logger } from '@/lib/logger'
+import { purgeUserData } from '@/lib/user-purge'
+import { jsonSuccess, jsonError } from '@/lib/api-helpers'
 
 /**
  * Returns true when a webhook delivery for `eventId` was already processed.
@@ -133,33 +135,26 @@ export async function POST(request) {
 
     if (!clerkUserId) {
       logger.warn('Webhook user.deleted event contains no user id');
-      return NextResponse.json({ error: 'Missing user id' }, { status: 400 })
+      return jsonError('Missing user id', 400)
     }
 
     try {
       logger.info(`Webhook user.deleted: Purging database records for user ${clerkUserId}`);
 
-      // Delete from users table (cascades to cycles and daily_logs)
-      const { error } = await supabaseAdmin
-        .from('users')
-        .delete()
-        .eq('id', clerkUserId)
-
-      if (error) {
-        logger.error(`Webhook: failed to delete user ${clerkUserId}:`, error.message);
-        throw new Error(error.message);
-      }
+      // Perform comprehensive atomic multi-table purge
+      const purgeResult = await purgeUserData(clerkUserId)
 
       await recordAuditEvent(supabaseAdmin, eventId, eventType);
 
-      logger.info(`Webhook user.deleted: Successfully purged all database records for user ${clerkUserId}`);
-      return NextResponse.json({ success: true, message: 'User data purged successfully' })
+      logger.info(`Webhook user.deleted: Successfully purged all database records for auditHash ${purgeResult.auditHash}`);
+      return jsonSuccess({ auditHash: purgeResult.auditHash }, 'User data purged successfully')
 
     } catch (err) {
       logger.error(`Webhook: database delete execution failed for user ${clerkUserId}:`, err.message || err);
-      return NextResponse.json({ error: 'Database operation failed' }, { status: 500 })
+      return jsonError('Database operation failed', 500)
     }
   }
+
 
   // Acknowledge other event types to ensure Clerk doesn't retry
   return NextResponse.json({ success: true, received: true })
