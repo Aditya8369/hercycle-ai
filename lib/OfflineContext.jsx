@@ -1,7 +1,7 @@
 
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react'
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { getAllFromStore, putIntoStore, deleteFromStore, queueSyncRequest, replaceAll } from './db'
 import { predictNextPeriod, calculatePCODRisk } from './api-helpers'
 import { useEncryption } from './EncryptionContext'
@@ -127,6 +127,22 @@ function sortByStartDateDesc(cycles) {
   })
 }
 
+/**
+ * Shallow-compares two dead-letter item arrays by id and reason (a retried-
+ * then-re-dead-lettered item keeps the same id but gets a new reason).
+ * Used to skip a `setFailedSyncItems` update — and the re-render it would
+ * otherwise trigger for every consumer — when a queue read produces an
+ * array that is contentually identical to what's already in state.
+ */
+function sameFailedItems(a, b) {
+  if (a === b) return true
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (a[i]?.id !== b[i]?.id || a[i]?.reason !== b[i]?.reason) return false
+  }
+  return true
+}
+
 // Helper to generate robust UUIDs client-side
 const generateUUID = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -189,27 +205,31 @@ export function OfflineProvider({ children }) {
     }
   }, [])
 
-  const updateSyncCount = async () => {
+  const updateSyncCount = useCallback(async () => {
     try {
       const queue = await getAllFromStore('sync_queue');
-      setPendingSyncCount(queue.length);
+      // Functional updater: React skips the re-render entirely when the
+      // count hasn't actually changed, instead of setting an identical
+      // number and triggering a render anyway.
+      setPendingSyncCount(prev => (prev === queue.length ? prev : queue.length));
     } catch (e) {
       console.error('Failed to update sync count:', e);
     }
 
     try {
       const failed = await getAllFromStore(DEAD_LETTER_STORE);
-      setFailedSyncItems(failed.map(item => ({ ...item, description: describeQueueItem(item) })));
+      const nextFailedItems = failed.map(item => ({ ...item, description: describeQueueItem(item) }));
+      setFailedSyncItems(prev => (sameFailedItems(prev, nextFailedItems) ? prev : nextFailedItems));
     } catch (e) {
       console.error('Failed to read dead-lettered sync operations:', e);
     }
-  }
+  }, []);
 
   /**
    * Puts a dead-lettered operation back on the queue for another try — the
    * manual recovery path the old code had no equivalent of.
    */
-  const retryFailedSync = async (deadLetterId) => {
+  const retryFailedSync = useCallback(async (deadLetterId) => {
     try {
       const failed = await getAllFromStore(DEAD_LETTER_STORE);
       const candidates = deadLetterId === undefined
@@ -228,10 +248,10 @@ export function OfflineProvider({ children }) {
       await updateSyncCount();
     }
     syncData();
-  }
+  }, [updateSyncCount, syncData]);
 
   /** Permanently discards a dead-lettered operation at the user's request. */
-  const discardFailedSync = async (deadLetterId) => {
+  const discardFailedSync = useCallback(async (deadLetterId) => {
     try {
       await deleteFromStore(DEAD_LETTER_STORE, deadLetterId);
     } catch (e) {
@@ -239,14 +259,14 @@ export function OfflineProvider({ children }) {
     } finally {
       await updateSyncCount();
     }
-  }
+  }, [updateSyncCount]);
 
   /**
    * Moves an operation out of the retry queue and into the dead-letter store,
    * so it stays visible to the user instead of being silently dropped or
    * retried forever.
    */
-  const deadLetter = async (item, reason) => {
+  const deadLetter = useCallback(async (item, reason) => {
     const { id, ...rest } = item;
     try {
       await putIntoStore(DEAD_LETTER_STORE, { ...rest, reason, deadLetteredAt: Date.now() });
@@ -254,9 +274,9 @@ export function OfflineProvider({ children }) {
       console.error('Failed to record a dead-lettered sync operation:', e);
     }
     await deleteFromStore('sync_queue', id);
-  };
+  }, []);
 
-  const syncData = async () => {
+  const syncData = useCallback(async () => {
     if (!navigator.onLine || isSyncingRef.current) return;
 
     try {
@@ -336,7 +356,7 @@ export function OfflineProvider({ children }) {
       setIsSyncing(false);
       updateSyncCount();
     }
-  };
+  }, [updateSyncCount, deadLetter]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -375,7 +395,7 @@ export function OfflineProvider({ children }) {
       window.removeEventListener('offline', handleOffline);
       clearInterval(interval);
     };
-  }, []);
+  }, [syncData, updateSyncCount]);
 
 
 
@@ -696,20 +716,25 @@ export function OfflineProvider({ children }) {
       return { success: true, offline: true };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [encrypt, decrypt, isUnlocked, isEncryptionEnabled]) // rebuilt when the encryption state changes; otherwise stable
 
+  // Memoized so consumers of useOffline() only re-render when a value they
+  // actually read has changed. Previously this object literal was rebuilt on
+  // every OfflineProvider render, which re-rendered every consumer in the
+  // tree regardless of whether isOffline/pendingSyncCount/etc. had moved.
+  const contextValue = useMemo(() => ({
+    isOffline,
+    pendingSyncCount,
+    failedSyncItems,
+    isSyncing,
+    syncData,
+    retryFailedSync,
+    discardFailedSync,
+    offlineClient
+  }), [isOffline, pendingSyncCount, failedSyncItems, isSyncing, syncData, retryFailedSync, discardFailedSync, offlineClient])
+
   return (
-    <OfflineContext.Provider value={{
-      isOffline,
-      pendingSyncCount,
-      failedSyncItems,
-      isSyncing,
-      syncData,
-      retryFailedSync,
-      discardFailedSync,
-      offlineClient
-    }}>
+    <OfflineContext.Provider value={contextValue}>
       {children}
     </OfflineContext.Provider>
   )
