@@ -39,6 +39,18 @@ import { getTodayISO, eachDayISO, addDaysISO } from '@/lib/date-utils'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
+// Label/color lookup for the Hero banner, keyed by the phaseKey values
+// lib/calculateCyclePhase.js returns ('menstrual' | 'follicular' | 'ovulation'
+// | 'luteal' | 'irregular'). This used to be a second, independent
+// day-range calculation right here in this file — see #612.
+const PHASE_DISPLAY = {
+  menstrual: { phaseLabel: 'menstrualPhase', color: '#ff4757' },
+  follicular: { phaseLabel: 'follicularPhase', color: '#a29bfe' },
+  ovulation: { phaseLabel: 'ovulationWindow', color: '#00b894' },
+  luteal: { phaseLabel: 'lutealPhase', color: '#fdcb6e' },
+  irregular: { phaseLabel: 'lateIrregular', color: '#636e72' },
+}
+
 /**
  * Derives the four date-type Sets from raw API cycle data.
  * Handles both column naming conventions:
@@ -358,61 +370,7 @@ const HerCycleApp = () => {
     ? Math.max(0, Math.round((new Date(cycleData.nextPeriodDate) - new Date()) / 86400000))
     : null
 
-  // Calculate current cycle day and phase
-  let cycleDayInfo = {
-    text: tCycle('startTracking'),
-    color: '#a0aec0',
-    dot: '#a0aec0',
-    phase: null,
-    day: null
-  }
-
-  if (cycleData?.cycles?.length > 0) {
-    const sortedCycles = [...cycleData.cycles].sort((a, b) => {
-      const aDate = new Date(a.start_date)
-      const bDate = new Date(b.start_date)
-      return bDate - aDate
-    })
-
-    const mostRecentCycle = sortedCycles[0]
-    const lastPeriodStart = new Date(mostRecentCycle.start_date)
-    const todayObj = new Date()
-
-    // Normalize times to midnight to get accurate day difference
-    todayObj.setHours(0, 0, 0, 0)
-    lastPeriodStart.setHours(0, 0, 0, 0)
-
-    const cycleDay = Math.floor((todayObj - lastPeriodStart) / (1000 * 60 * 60 * 24)) + 1
-    cycleDayInfo.day = cycleDay
-
-    if (cycleDay >= 1 && cycleDay <= 5) {
-      cycleDayInfo.phase = tCycle('menstrualPhase')
-      cycleDayInfo.color = '#ff4757'
-      cycleDayInfo.dot = '#ff4757'
-    } else if (cycleDay >= 6 && cycleDay <= 11) {
-      cycleDayInfo.phase = tCycle('follicularPhase')
-      cycleDayInfo.color = '#a29bfe'
-      cycleDayInfo.dot = '#a29bfe'
-    } else if (cycleDay >= 12 && cycleDay <= 16) {
-      cycleDayInfo.phase = tCycle('ovulationWindow')
-      cycleDayInfo.color = '#00b894'
-      cycleDayInfo.dot = '#00b894'
-    } else if (cycleDay >= 17 && cycleDay <= 28) {
-      cycleDayInfo.phase = tCycle('lutealPhase')
-      cycleDayInfo.color = '#fdcb6e'
-      cycleDayInfo.dot = '#fdcb6e'
-    } else {
-      cycleDayInfo.phase = tCycle('lateIrregular')
-      cycleDayInfo.color = '#636e72'
-      cycleDayInfo.dot = '#636e72'
-    }
-
-    if (cycleDay >= 1) {
-      cycleDayInfo.text = tCycle('cycleDay', { day: cycleDay, phase: cycleDayInfo.phase })
-    }
-  }
-
-
+  // Single source of truth for cycle day + phase — lib/calculateCyclePhase.js.
   const latestCycle = getLatestCycle(cycleData?.cycles)
 
   const periodStart =
@@ -445,6 +403,25 @@ const HerCycleApp = () => {
       28,
     periodLength: inferredPeriodLength,
   })
+
+  // Hero banner display — derived from phaseInfo above via a label/color
+  // lookup, instead of a second independent day-range calculation.
+  let cycleDayInfo = {
+    text: tCycle('startTracking'),
+    color: '#a0aec0',
+    dot: '#a0aec0',
+    phase: null,
+    day: null
+  }
+
+  if (phaseInfo.hasData && phaseInfo.phaseKey) {
+    const display = PHASE_DISPLAY[phaseInfo.phaseKey] || PHASE_DISPLAY.irregular
+    cycleDayInfo.day = phaseInfo.cycleDay
+    cycleDayInfo.phase = tCycle(display.phaseLabel)
+    cycleDayInfo.color = display.color
+    cycleDayInfo.dot = display.color
+    cycleDayInfo.text = tCycle('cycleDay', { day: phaseInfo.cycleDay, phase: cycleDayInfo.phase })
+  }
 
   return (
     <>
