@@ -203,3 +203,28 @@ CREATE TABLE IF NOT EXISTS public.user_badges (
 );
 
 ALTER TABLE public.user_badges ENABLE ROW LEVEL SECURITY;
+
+-- Foreign Key CASCADE Rules for Dependent Health Tables
+ALTER TABLE public.user_profiles DROP CONSTRAINT IF EXISTS user_profiles_user_id_fkey;
+ALTER TABLE public.user_profiles ADD CONSTRAINT user_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE public.cycles DROP CONSTRAINT IF EXISTS cycles_user_id_fkey;
+ALTER TABLE public.cycles ADD CONSTRAINT cycles_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE public.daily_logs DROP CONSTRAINT IF EXISTS daily_logs_user_id_fkey;
+ALTER TABLE public.daily_logs ADD CONSTRAINT daily_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE public.weight_entries DROP CONSTRAINT IF EXISTS weight_entries_user_id_fkey;
+ALTER TABLE public.weight_entries ADD CONSTRAINT weight_entries_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE public.challenge_progress DROP CONSTRAINT IF EXISTS challenge_progress_user_id_fkey;
+ALTER TABLE public.challenge_progress ADD CONSTRAINT challenge_progress_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE public.user_badges DROP CONSTRAINT IF EXISTS user_badges_user_id_fkey;
+ALTER TABLE public.user_badges ADD CONSTRAINT user_badges_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE public.user_push_subscriptions DROP CONSTRAINT IF EXISTS user_push_subscriptions_user_id_fkey;
+ALTER TABLE public.user_push_subscriptions ADD CONSTRAINT user_push_subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+ALTER TABLE public.pairing_attempts DROP CONSTRAINT IF EXISTS pairing_attempts_user_id_fkey;
+ALTER TABLE public.pairing_attempts ADD CONSTRAINT pairing_attempts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
