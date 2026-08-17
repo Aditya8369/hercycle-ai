@@ -531,6 +531,7 @@ const HerCycleApp = () => {
             cycleDay={phaseInfo.cycleDay}
             ovulationDay={phaseInfo.ovulationDay}
             hasData={phaseInfo.hasData}
+            onLogClick={() => handleDayClick(getTodayISO())}
           />
         </div>
 

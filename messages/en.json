@@ -313,6 +313,11 @@
     "disconnectConfirm": "Are you sure you want to disconnect this partner? They will lose access immediately.",
     "copied": "Code copied to clipboard"
   },
+  "PartnerLoveBanner": {
+    "emptyTitle": "Bring your partner closer",
+    "emptyDesc": "Connect a partner so they can see your cycle insights and send you care notes.",
+    "emptyCta": "Invite Partner"
+  },
   "PrivacyData": {
     "title": "Privacy & Data",
     "exportTitle": "Export Your Data",
@@ -334,7 +339,8 @@
   "CycleEducation": {
     "eyebrow": "Cycle education",
     "title": "Discover your current cycle phase",
-    "desc": "Log the start date of your latest period to receive phase-based educational information and self-care guidance."
+    "desc": "Log the start date of your latest period to receive phase-based educational information and self-care guidance.",
+    "cta": "Log Your First Period"
   },
   "WeightTracker": {
     "title": "Weight Tracker",
