@@ -318,21 +318,25 @@ const [cycleData, setCycleData] = useState(null)
         <div className="max-w-[1000px] mx-auto px-4 sm:px-6 py-8">
 
           {/* ── Page header ── */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap', rowGap: '12px' }}>
-            <div style={{
-              background: 'rgba(255,255,255,0.2)',
-              borderRadius: '12px',
-              padding: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              flexShrink: 0,
-            }}>
-              <BarChart2 size={28} color="white" strokeWidth={1.5} />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <div style={{
+                background: 'rgba(255,255,255,0.2)',
+                borderRadius: '12px',
+                padding: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                flexShrink: 0,
+              }}>
+                <BarChart2 size={28} color="white" strokeWidth={1.5} />
+              </div>
+              <h1 style={{ margin: 0, fontSize: '2rem' }} className="font-bold text-white tracking-tight leading-tight min-w-0 break-words">
+                {t('title')}
+              </h1>
             </div>
-            <h1 style={{ margin: 0, fontSize: '2rem', flex: 1, minWidth: 0 }}>{t('title')}</h1>
 
             {!loading && (
-              <div style={{
+              <div className="self-start sm:self-auto shrink-0" style={{
                 background: 'rgba(233,30,140,0.15)',
                 border: `1px solid ${PINK}55`,
                 padding: '6px 14px',
@@ -341,7 +345,6 @@ const [cycleData, setCycleData] = useState(null)
                 alignItems: 'center',
                 gap: '8px',
                 whiteSpace: 'nowrap',
-                flexShrink: 0,
               }}>
                 <CalendarRange size={16} color={PINK} />
                 <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#ffb3d9' }}>
@@ -351,7 +354,7 @@ const [cycleData, setCycleData] = useState(null)
             )}
           </div>
           <p style={{ color: TEXT_FAINT, marginBottom: '2rem' }}>
-            {t('subtitle')} {!loading && <span style={{ opacity: 0.9, marginLeft: '0.5rem', color: PINK, fontWeight: 500 }}>({t('avgCycle')}: {avgCycle} days)</span>}
+            {t('subtitle')}
           </p>
 
           {/* ── Stat Cards ── */}
