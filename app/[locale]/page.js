@@ -18,6 +18,7 @@ import DayLogDrawer from '@/components/dashboard/DayLogDrawer'
 import PartnerLoveBanner from '@/components/dashboard/PartnerLoveBanner'
 import VibeCheckin from '@/components/dashboard/VibeCheckin'
 import PCODRiskCard from '@/components/dashboard/PCODRiskCard'
+import ReportErrorBoundary from '@/components/dashboard/ReportErrorBoundary'
 import ChatAssistant from '@/components/dashboard/ChatAssistant'
 import DailyLogPanel from '@/components/dashboard/DailyLogPanel'
 import OnboardingModal from '@/components/dashboard/OnboardingModal'
@@ -545,15 +546,17 @@ const HerCycleApp = () => {
 
         <h2 className="sec-head" id="pcod-risk-section">{tHeadings('insights')}</h2>
         <div className="dual-row">
-          <PCODRiskCard
-            pcodRisk={pcodRisk}
-            unavailableReason={pcodRiskReason}
-            loading={pcodRiskLoading}
-            cycleCount={cycleData?.cycles?.length ?? 0}
-            cycles={cycleData?.cycles ?? []}
-            recentSymptoms={selectedSymptoms}
-            activeLang={activeLang}
-          />
+        <ReportErrorBoundary>
+            <PCODRiskCard
+              pcodRisk={pcodRisk}
+              unavailableReason={pcodRiskReason}
+              loading={pcodRiskLoading}
+              cycleCount={cycleData?.cycles?.length ?? 0}
+              cycles={cycleData?.cycles ?? []}
+              recentSymptoms={selectedSymptoms}
+              activeLang={activeLang}
+            />
+          </ReportErrorBoundary>
           <ChatAssistant
             chatMessages={chatMessages}
             isTyping={isTyping}

@@ -1,10 +1,10 @@
 'use client'
-
 import { useEffect, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import generateReport from '@/lib/generateReport'
 import { useTranslations, useLocale } from 'next-intl'
 import { RISK_UNAVAILABLE_REASONS, normaliseRiskResult } from '@/lib/pcod-risk-result'
+import toast from 'react-hot-toast'
 
 // ── Tier → visual tokens ──────────────────────────────────────────────────────
 const TIER_TOKENS = {
@@ -93,6 +93,7 @@ export default function PCODRiskCard({ pcodRisk, unavailableReason = null, loadi
       })
     } catch (error) {
       console.error('Failed to generate the doctor report', error)
+      toast.error('Could not generate the report. Please try again.')
     } finally {
       setExporting(false)
     }
