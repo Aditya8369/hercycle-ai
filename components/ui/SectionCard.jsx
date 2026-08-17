@@ -12,10 +12,12 @@
  * shape (radius, padding, spacing, font sizes) stays identical.
  */
 
+import { THEME_SURFACES, THEME_TEXT } from '@/lib/theme-constants'
+
 const DEFAULT_TONE = {
-    background: 'rgba(255,255,255,0.08)',
-    border: '1px solid rgba(255,255,255,0.14)',
-    titleColor: '#ffffff',
+    background: THEME_SURFACES.cardBg,
+    border: THEME_SURFACES.cardBorder,
+    titleColor: THEME_TEXT.primary,
 }
 
 export function IconBadge({ children, size = 'lg' }) {
@@ -26,7 +28,7 @@ export function IconBadge({ children, size = 'lg' }) {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'rgba(233,30,140,0.15)',
+                background: THEME_SURFACES.badgeBg,
                 borderRadius: '12px',
                 padding: pad,
                 marginBottom: size === 'lg' ? '0.6rem' : 0,

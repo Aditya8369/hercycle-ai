@@ -24,14 +24,16 @@ const WeightTrendChart = dynamic(() => import('@/components/dashboard/WeightTren
   loading: () => <div className="chart-skeleton-box" style={{ width: '100%', height: 260, borderRadius: 16 }} />,
   ssr: false,
 })
+import { THEME_COLORS, THEME_SURFACES, THEME_TEXT } from '@/lib/theme-constants'
+
 // ─── Design tokens ────────────────────────────────────────────────────────────
-const PINK = '#e8527e'
-const MAUVE = '#9d3f7a'
-const ACCENT = '#e91e8c'
-const TEXT_PRIMARY = '#ffffff'
-const TEXT_FAINT = 'rgba(255,255,255,0.65)'
-const CARD_BG = 'rgba(255,255,255,0.08)'
-const CARD_BORDER = '1px solid rgba(255,255,255,0.14)'
+const PINK = THEME_COLORS.pink
+const MAUVE = THEME_COLORS.mauve
+const ACCENT = THEME_COLORS.accent
+const TEXT_PRIMARY = THEME_TEXT.primary
+const TEXT_FAINT = THEME_TEXT.faint
+const CARD_BG = THEME_SURFACES.cardBg
+const CARD_BORDER = THEME_SURFACES.cardBorder
 
 const SYMPTOM_LIST = ['Cramps', 'Headache', 'Bloating', 'Fatigue', 'Acne', 'Nausea']
 const MOOD_EMOJIS = ['😊', '😐', '😢', '😡']
