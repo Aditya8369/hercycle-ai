@@ -16,15 +16,31 @@ const symptomIcons = {
   Nausea: "🤢"
 }
 
+/**
+ * @typedef {object} DailyLogPanelProps
+ * @property {string[]} [selectedSymptoms] Array of selected symptom names
+ * @property {(symptom: string) => void} [toggleSymptom] Callback to toggle a symptom selection
+ * @property {string|null} [selectedMood] Currently selected mood emoji
+ * @property {(mood: string|null) => void} [setSelectedMood] Callback to update selected mood
+ * @property {string|null} [selectedFlow] Currently selected flow intensity
+ * @property {(flow: string|null) => void} [setSelectedFlow] Callback to update selected flow
+ * @property {() => void} [handleSaveLog] Callback to save the daily log
+ * @property {object} [cycleData] User's current cycle information
+ */
+
+/**
+ * DailyLogPanel renders interactive controls for tracking symptoms, mood, and flow.
+ * @param {DailyLogPanelProps} props
+ */
 export default function DailyLogPanel({
-  selectedSymptoms,
-  toggleSymptom,
-  selectedMood,
-  setSelectedMood,
-  selectedFlow,
-  setSelectedFlow,
-  handleSaveLog,
-  cycleData
+  selectedSymptoms = [],
+  toggleSymptom = () => {},
+  selectedMood = null,
+  setSelectedMood = () => {},
+  selectedFlow = null,
+  setSelectedFlow = () => {},
+  handleSaveLog = () => {},
+  cycleData = null
 }) {
   const t = useTranslations('log')
   const tSymp = useTranslations('symptoms')

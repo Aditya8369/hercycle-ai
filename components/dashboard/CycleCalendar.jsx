@@ -1,22 +1,34 @@
 import { useTranslations, useLocale } from 'next-intl'
 import { useRef, useState } from 'react'
 /**
- * CycleCalendar — renders a monthly grid with period/ovulation/predicted/today markers.
- *
- * Props (two modes, both supported):
- *  MODE A — pre-built array (current):
- *    calendarDays: Array<{ type: 'header'|'empty'|'normal'|'period'|'ovulation'|'predicted'|'today', label, isToday? }>
- *
- *  MODE B — explicit date Sets (new, as requested):
- *    periodDays:    Set<'YYYY-MM-DD'>
- *    ovulationDays: Set<'YYYY-MM-DD'>
- *    predictedDays: Set<'YYYY-MM-DD'>
- *    today:         'YYYY-MM-DD'
- *    viewYear:      number
- *    viewMonth:     number   (0-indexed)
- *
- *  Shared props:
- *    currentMonth, onPrevMonth, onNextMonth, averageCycleLength, daysUntilNext, activeLang
+ * @typedef {object} CalendarDayItem
+ * @property {'header'|'empty'|'normal'|'period'|'ovulation'|'predicted'|'today'} type
+ * @property {string|number} label
+ * @property {boolean} [isToday]
+ * @property {string} [iso]
+ */
+
+/**
+ * @typedef {object} CycleCalendarProps
+ * @property {CalendarDayItem[]} [calendarDays] Pre-built calendar day cells
+ * @property {Set<string>} [periodDays] Set of ISO dates for menstrual period days
+ * @property {Set<string>} [ovulationDays] Set of ISO dates for fertile window days
+ * @property {Set<string>} [predictedDays] Set of ISO dates for predicted future cycle days
+ * @property {string} [today] Current ISO date (YYYY-MM-DD)
+ * @property {number} [viewYear] Currently displayed calendar year
+ * @property {number} [viewMonth] Currently displayed calendar month index (0-11)
+ * @property {string} [currentMonth] Human-readable current month title
+ * @property {() => void} [onPrevMonth] Handler for previous month button
+ * @property {() => void} [onNextMonth] Handler for next month button
+ * @property {number} [averageCycleLength] Average cycle duration in days
+ * @property {number|null} [daysUntilNext] Days remaining until the next predicted cycle
+ * @property {(isoDate: string) => void} [onDayClick] Callback when clicking a date cell
+ * @property {string|null} [selectedDate] Currently active ISO date
+ */
+
+/**
+ * CycleCalendar renders a monthly grid with period, ovulation, predicted, and today markers.
+ * @param {CycleCalendarProps} props
  */
 export default function CycleCalendar({
   // Mode A
@@ -29,13 +41,13 @@ export default function CycleCalendar({
   viewYear,
   viewMonth,
   // Shared
-  currentMonth,
-  onPrevMonth,
-  onNextMonth,
-  averageCycleLength,
-  daysUntilNext,
-  onDayClick,
-  selectedDate
+  currentMonth = '',
+  onPrevMonth = () => {},
+  onNextMonth = () => {},
+  averageCycleLength = 28,
+  daysUntilNext = null,
+  onDayClick = () => {},
+  selectedDate = null
 }) {
   const t = useTranslations('cycle')
   const locale = useLocale()

@@ -10,7 +10,26 @@ import { isEncryptionFailure } from '@/lib/encryption-policy'
 import { toISODate } from '@/lib/date-utils'
 import useModalA11y from '@/lib/a11y/useModalA11y'
 
-export default function DayLogDrawer({ isOpen, onClose, selectedDate, cycleData, onSaved }) {
+/**
+ * @typedef {object} DayLogDrawerProps
+ * @property {boolean} isOpen Whether the drawer is currently open
+ * @property {() => void} onClose Callback when closing the drawer
+ * @property {string|null} selectedDate Currently selected ISO date (YYYY-MM-DD)
+ * @property {object} [cycleData] User's current cycle information
+ * @property {() => void} [onSaved] Callback invoked after saving log changes
+ */
+
+/**
+ * DayLogDrawer slides out to view, edit, or delete a daily symptom log.
+ * @param {DayLogDrawerProps} props
+ */
+export default function DayLogDrawer({
+  isOpen = false,
+  onClose = () => {},
+  selectedDate = null,
+  cycleData = null,
+  onSaved = () => {}
+}) {
   const tTrack = useTranslations('pages.track')
   const locale = useLocale()
   const { offlineClient } = useOffline()
