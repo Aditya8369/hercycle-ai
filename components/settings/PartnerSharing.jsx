@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import { Users, Copy, Check, Trash2 } from 'lucide-react'
 import * as Switch from '@radix-ui/react-switch'
 import { useTranslations } from 'next-intl'
+import { copyToClipboard } from '@/lib/clipboard'
 
 export default function PartnerSharing() {
   const t = useTranslations('PartnerSharing')
@@ -42,12 +43,16 @@ export default function PartnerSharing() {
     }
   }
 
-  const copyCode = () => {
+  const copyCode = async () => {
     if (connection?.pairing_code) {
-      navigator.clipboard.writeText(connection.pairing_code)
-      setCopied(true)
-      toast.success('Code copied to clipboard')
-      setTimeout(() => setCopied(false), 2000)
+      const ok = await copyToClipboard(connection.pairing_code)
+      if (ok) {
+        setCopied(true)
+        toast.success('Code copied to clipboard')
+        setTimeout(() => setCopied(false), 2000)
+      } else {
+        toast.error('Could not copy code')
+      }
     }
   }
 
