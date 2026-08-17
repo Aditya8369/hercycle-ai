@@ -76,6 +76,40 @@ CREATE TABLE IF NOT EXISTS public.partner_permissions (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+
+-- 7b. Create public.partner_nudges table (Partner love notes / care alerts)
+-- Missing from this consolidated setup file until now — the table was
+-- defined in 03_enhance_partner_schema.sql and MASTER_PRODUCTION_MIGRATION.sql
+-- but never included here, so a fresh setup using only this file would be
+-- missing it entirely.
+CREATE TABLE IF NOT EXISTS public.partner_nudges (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    connection_id UUID REFERENCES public.partner_connections(id) ON DELETE CASCADE,
+    nudge_type TEXT NOT NULL,
+    message TEXT,
+    sender_id TEXT,
+    read_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_nudges_read ON public.partner_nudges(connection_id, read_at);
+ALTER TABLE public.partner_nudges ENABLE ROW LEVEL SECURITY;
+
+-- Requires the pg_cron extension enabled on this Supabase project.
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- Automated retention cleanup: deletes read partner_nudges older than
+-- 24 hours (measured from when they were read, not when they were sent).
+SELECT cron.schedule(
+  'cleanup-read-partner-nudges',
+  '0 * * * *',
+  $$
+  DELETE FROM public.partner_nudges
+  WHERE read_at IS NOT NULL
+  AND read_at < NOW() - INTERVAL '24 hours';
+  $$
+);
+
 -- 8. Create public.forum_categories table (Community discussion channels)
 CREATE TABLE IF NOT EXISTS public.forum_categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
