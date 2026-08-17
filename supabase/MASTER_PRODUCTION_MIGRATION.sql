@@ -203,3 +203,8 @@ CREATE TABLE IF NOT EXISTS public.user_badges (
 );
 
 ALTER TABLE public.user_badges ENABLE ROW LEVEL SECURITY;
+
+-- Performance Composite Indexes
+CREATE INDEX IF NOT EXISTS idx_cycles_user_start_date ON public.cycles(user_id, start_date DESC);
+CREATE INDEX IF NOT EXISTS idx_daily_logs_user_date ON public.daily_logs(user_id, date DESC);
+CREATE INDEX IF NOT EXISTS idx_weight_user_recorded ON public.weight_entries(user_id, recorded_date DESC);
