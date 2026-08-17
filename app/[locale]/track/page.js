@@ -17,7 +17,12 @@ import { isEncryptionFailure } from '@/lib/encryption-policy'
 import { getTodayISO, eachDayISO, addDaysISO, toISODate } from '@/lib/date-utils'
 
 const TEXT_PRIMARY = '#ffffff'
-const TEXT_FAINT = 'rgba(255,255,255,0.65)'
+// Was a hardcoded rgba literal that bypassed the app's theme system, so it
+// never picked up the higher-contrast value .dark already defines for
+// secondary text (see --text-soft in app/globals.css). Using the CSS
+// variable directly fixes contrast on dark cards without touching every
+// call site below.
+const TEXT_FAINT = 'var(--text-soft)'
 
 function deriveDateSets(cycleData) {
   const periodDays = new Set()

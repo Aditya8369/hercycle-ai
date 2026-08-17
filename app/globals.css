@@ -144,6 +144,31 @@ body {
   color: #b6c0d0 !important;
 }
 
+/* Placeholder text sits at the same low opacities as the text-white/NN
+   utilities above and fails the same AA check on dark glass cards — apply
+   the same boosted values via ::placeholder. Covers both the older
+   `placeholder-white/NN` utility and the `placeholder:text-white/NN` variant
+   used across the app. */
+.dark .placeholder-white\/20::placeholder,
+.dark .placeholder\:text-white\/20::placeholder {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.dark .placeholder-white\/30::placeholder,
+.dark .placeholder\:text-white\/30::placeholder {
+  color: rgba(255, 255, 255, 0.62) !important;
+}
+
+.dark .placeholder-white\/40::placeholder,
+.dark .placeholder\:text-white\/40::placeholder {
+  color: rgba(255, 255, 255, 0.68) !important;
+}
+
+.dark .placeholder-white\/50::placeholder,
+.dark .placeholder\:text-white\/50::placeholder {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
 .hero-title,
 h1 {
   font-family: 'Playfair Display', Georgia, serif !important;
@@ -1153,6 +1178,7 @@ nav ul li a.active {
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -3356,7 +3382,7 @@ nav ul li a:focus-visible,
     align-items: stretch;
   }
 
-  .hero-btns > * {
+  .hero-btns>* {
     width: 100%;
     text-align: center;
   }
@@ -3635,7 +3661,7 @@ nav ul li a:focus-visible,
   min-width: 360px;
 }
 
-.heatmap-grid > * {
+.heatmap-grid>* {
   min-width: 20px;
   min-height: 20px;
   cursor: pointer;
