@@ -740,19 +740,22 @@ nav ul li a.active {
 }
 
 .month-nav button {
-  width: 28px;
-  height: 28px;
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.22);
   color: rgba(255, 255, 255, 0.9);
-  font-size: 0.85rem;
+  font-size: 1.15rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.18s;
   font-family: var(--sans);
+  touch-action: manipulation;
 }
 
 .month-nav button:hover {
