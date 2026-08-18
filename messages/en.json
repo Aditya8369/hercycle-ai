@@ -229,7 +229,10 @@
     "Multiple PCOD-related symptoms reported": "Multiple PCOD-related symptoms reported",
     "Some hormonal symptoms present": "Some hormonal symptoms present",
     "Regular cycle length maintained": "Regular cycle length maintained",
-    "No significant hormonal symptoms": "No significant hormonal symptoms"
+    "No significant hormonal symptoms": "No significant hormonal symptoms",
+    "Mild hormonal symptom noted": "Mild hormonal symptom noted",
+    "High symptom recurrence detected across 90-day window": "High symptom recurrence detected across 90-day window",
+    "Persistent recurrence of PCOD-related symptoms over 90 days": "Persistent recurrence of PCOD-related symptoms over 90 days"
   },
   "recommendations": {
     "consult": "Consider consulting with a healthcare provider for detailed assessment.",

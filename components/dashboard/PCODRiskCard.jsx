@@ -250,10 +250,10 @@ export default function PCODRiskCard({ pcodRisk, unavailableReason = null, loadi
 
       {/* Contributing factors from API */}
       <ul className="risk-factors">
-        {factors.length > 0
+                {factors.length > 0
           ? factors.map((f, i) => (
               <li key={i} style={{ '--dot-color': tokens.dotColor }}>
-                {tFactors(f)}
+                {tFactors.has(f) ? tFactors(f) : f}
               </li>
             ))
           : (
@@ -276,11 +276,11 @@ export default function PCODRiskCard({ pcodRisk, unavailableReason = null, loadi
           border:     '1px solid rgba(255,255,255,0.07)',
           lineHeight: 1.55,
         }}>
-          💡 {tRec(
-            recommendation.includes('consulting') ? 'consult' :
-            recommendation.includes('Keep tracking') ? 'keepTracking' :
+                   💡 {
+            recommendation.includes('consulting') ? tRec('consult') :
+            recommendation.includes('Keep tracking') ? tRec('keepTracking') :
             recommendation
-          )}
+          }
         </p>
       )}
 
