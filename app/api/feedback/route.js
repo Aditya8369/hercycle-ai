@@ -1,17 +1,33 @@
 import { NextResponse } from 'next/server';
 import { currentUser } from '@clerk/nextjs/server';
+import { z } from 'zod';
+
+const feedbackSchema = z.object({
+  message: z.string().min(1, 'Message is required'),
+  type: z.string().optional().default('General Feedback'),
+});
 
 export async function POST(req) {
   try {
     const user = await currentUser();
     const userEmail = user?.emailAddresses?.[0]?.emailAddress || 'Unknown User';
     
-    const body = await req.json();
-    const { message, type } = body;
-
-    if (!message) {
-      return NextResponse.json({ success: false, error: 'Message is required' }, { status: 400 });
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ success: false, error: 'Bad Request: Invalid JSON payload' }, { status: 400 });
     }
+
+    const parseResult = feedbackSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { success: false, error: parseResult.error.issues[0]?.message || 'Invalid feedback payload' },
+        { status: 400 }
+      );
+    }
+
+    const { message, type } = parseResult.data;
 
     const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
     if (!webhookUrl) {

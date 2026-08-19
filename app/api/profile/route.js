@@ -1,7 +1,46 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { getAuthUserId } from '@/lib/clerk-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { logger } from '@/lib/logger'
+
+const profileSchema = z.object({
+  age: z
+    .union([z.number(), z.string()])
+    .nullable()
+    .optional()
+    .transform((val) => (val === '' || val === null || val === undefined ? null : Number(val)))
+    .refine((val) => val === null || (Number.isFinite(val) && val >= 1 && val <= 120), {
+      message: 'Age must be a valid number between 1 and 120',
+    }),
+  weight_kg: z
+    .union([z.number(), z.string()])
+    .nullable()
+    .optional()
+    .transform((val) => (val === '' || val === null || val === undefined ? null : Number(val)))
+    .refine((val) => val === null || (Number.isFinite(val) && val >= 1 && val <= 500), {
+      message: 'Weight must be a valid number between 1 and 500 kg',
+    }),
+  height_cm: z
+    .union([z.number(), z.string()])
+    .nullable()
+    .optional()
+    .transform((val) => (val === '' || val === null || val === undefined ? null : Number(val)))
+    .refine((val) => val === null || (Number.isFinite(val) && val >= 1 && val <= 300), {
+      message: 'Height must be a valid number between 1 and 300 cm',
+    }),
+  cycleLength: z
+    .union([z.number(), z.string()])
+    .nullable()
+    .optional()
+    .transform((val) => (val === '' || val === null || val === undefined ? null : Number(val)))
+    .refine((val) => val === null || (Number.isFinite(val) && val >= 15 && val <= 60), {
+      message: 'Cycle length must be between 15 and 60 days',
+    }),
+  known_conditions: z.array(z.string()).optional().default([]),
+  cycle_goal: z.string().nullable().optional(),
+  allow_ai_analysis: z.boolean().optional().default(true),
+})
 
 export async function GET(request) {
   try {
@@ -48,47 +87,25 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Invalid payload' }, { status: 400 })
     }
 
-    const { age, weight_kg, height_cm, known_conditions, cycle_goal, allow_ai_analysis, cycleLength } = body
-
-    let parsedAge = null
-    if (age !== undefined && age !== null && age !== '') {
-      parsedAge = Number(age)
-      if (!Number.isFinite(parsedAge) || parsedAge < 1 || parsedAge > 120) {
-        return NextResponse.json({ success: false, error: 'Age must be a valid number between 1 and 120' }, { status: 400 })
-      }
+    const parseResult = profileSchema.safeParse(body)
+    if (!parseResult.success) {
+      const firstIssue = parseResult.error.issues[0]
+      return NextResponse.json(
+        { success: false, error: firstIssue?.message || 'Invalid payload' },
+        { status: 400 }
+      )
     }
 
-    let parsedWeight = null
-    if (weight_kg !== undefined && weight_kg !== null && weight_kg !== '') {
-      parsedWeight = Number(weight_kg)
-      if (!Number.isFinite(parsedWeight) || parsedWeight < 1 || parsedWeight > 500) {
-        return NextResponse.json({ success: false, error: 'Weight must be a valid number between 1 and 500 kg' }, { status: 400 })
-      }
-    }
-
-    let parsedHeight = null
-    if (height_cm !== undefined && height_cm !== null && height_cm !== '') {
-      parsedHeight = Number(height_cm)
-      if (!Number.isFinite(parsedHeight) || parsedHeight < 1 || parsedHeight > 300) {
-        return NextResponse.json({ success: false, error: 'Height must be a valid number between 1 and 300 cm' }, { status: 400 })
-      }
-    }
-
-    if (cycleLength !== undefined && cycleLength !== null && cycleLength !== '') {
-      const parsedCycleLength = Number(cycleLength)
-      if (!Number.isFinite(parsedCycleLength) || parsedCycleLength < 15 || parsedCycleLength > 60) {
-        return NextResponse.json({ success: false, error: 'Cycle length must be between 15 and 60 days' }, { status: 400 })
-      }
-    }
+    const validatedData = parseResult.data
 
     const profileRecord = {
       user_id: userId,
-      age: parsedAge,
-      weight_kg: parsedWeight,
-      height_cm: parsedHeight,
-      known_conditions: Array.isArray(known_conditions) ? known_conditions : [],
-      cycle_goal: cycle_goal || null,
-      allow_ai_analysis: typeof allow_ai_analysis === 'boolean' ? allow_ai_analysis : true,
+      age: validatedData.age,
+      weight_kg: validatedData.weight_kg,
+      height_cm: validatedData.height_cm,
+      known_conditions: validatedData.known_conditions || [],
+      cycle_goal: validatedData.cycle_goal || null,
+      allow_ai_analysis: validatedData.allow_ai_analysis,
       updated_at: new Date().toISOString()
     }
 
