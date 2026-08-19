@@ -229,7 +229,10 @@
     "Multiple PCOD-related symptoms reported": "PCOD से संबंधित कई लक्षण बताए गए",
     "Some hormonal symptoms present": "कुछ हार्मोनल लक्षण मौजूद हैं",
     "Regular cycle length maintained": "नियमित चक्र अवधि बनी हुई है",
-    "No significant hormonal symptoms": "कोई महत्वपूर्ण हार्मोनल लक्षण नहीं"
+    "No significant hormonal symptoms": "कोई महत्वपूर्ण हार्मोनल लक्षण नहीं",
+    "Mild hormonal symptom noted": "हल्के हार्मोनल लक्षण देखे गए",
+"High symptom recurrence detected across 90-day window": "90 दिनों की अवधि में उच्च लक्षण पुनरावृत्ति का पता चला",
+"Persistent recurrence of PCOD-related symptoms over 90 days": "90 दिनों में PCOD-संबंधित लक्षणों की लगातार पुनरावृत्ति"
   },
   "recommendations": {
     "consult": "विस्तृत मूल्यांकन के लिए स्वास्थ्य सेवा प्रदाता से परामर्श करने पर विचार करें।",
