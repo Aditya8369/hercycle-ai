@@ -31,9 +31,15 @@ export default function CervicalDischargeTracker({ selectedDischarge, setSelecte
 
     const fetchRecentLogs = async () => {
       const res = await offlineClient.fetchAllLogs();
-      if (res.success && res.data) {
-        // filter for logs with cervical_discharge
-        const filtered = res.data.filter(log => log.cervical_discharge !== null && log.cervical_discharge !== undefined);
+      if (res.success && Array.isArray(res.data)) {
+        // filter for logs with cervical_discharge and sort by date descending
+        const filtered = res.data
+          .filter(log => log && log.cervical_discharge !== null && log.cervical_discharge !== undefined)
+          .sort((a, b) => {
+            const timeA = new Date(a.date || a.created_at || 0).getTime();
+            const timeB = new Date(b.date || b.created_at || 0).getTime();
+            return timeB - timeA;
+          });
         // limit to latest 5
         setRecentEntries(filtered.slice(0, 5));
       }
