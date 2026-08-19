@@ -226,42 +226,6 @@ export function OfflineProvider({ children }) {
   }, []);
 
   /**
-   * Puts a dead-lettered operation back on the queue for another try — the
-   * manual recovery path the old code had no equivalent of.
-   */
-  const retryFailedSync = useCallback(async (deadLetterId) => {
-    try {
-      const failed = await getAllFromStore(DEAD_LETTER_STORE);
-      const candidates = deadLetterId === undefined
-        ? failed
-        : failed.filter(item => item.id === deadLetterId);
-
-      for (const item of candidates) {
-        // Requeue as a fresh operation: drop the dead-letter bookkeeping and
-        // reset the attempt counter so it is retried immediately.
-        await queueSyncRequest(item.url, item.method, item.body);
-        await deleteFromStore(DEAD_LETTER_STORE, item.id);
-      }
-    } catch (e) {
-      console.error('Failed to requeue a dead-lettered operation:', e);
-    } finally {
-      await updateSyncCount();
-    }
-    syncData();
-  }, [updateSyncCount, syncData]);
-
-  /** Permanently discards a dead-lettered operation at the user's request. */
-  const discardFailedSync = useCallback(async (deadLetterId) => {
-    try {
-      await deleteFromStore(DEAD_LETTER_STORE, deadLetterId);
-    } catch (e) {
-      console.error('Failed to discard a dead-lettered operation:', e);
-    } finally {
-      await updateSyncCount();
-    }
-  }, [updateSyncCount]);
-
-  /**
    * Moves an operation out of the retry queue and into the dead-letter store,
    * so it stays visible to the user instead of being silently dropped or
    * retried forever.
@@ -357,6 +321,42 @@ export function OfflineProvider({ children }) {
       updateSyncCount();
     }
   }, [updateSyncCount, deadLetter]);
+
+  /**
+   * Puts a dead-lettered operation back on the queue for another try — the
+   * manual recovery path the old code had no equivalent of.
+   */
+  const retryFailedSync = useCallback(async (deadLetterId) => {
+    try {
+      const failed = await getAllFromStore(DEAD_LETTER_STORE);
+      const candidates = deadLetterId === undefined
+        ? failed
+        : failed.filter(item => item.id === deadLetterId);
+
+      for (const item of candidates) {
+        // Requeue as a fresh operation: drop the dead-letter bookkeeping and
+        // reset the attempt counter so it is retried immediately.
+        await queueSyncRequest(item.url, item.method, item.body);
+        await deleteFromStore(DEAD_LETTER_STORE, item.id);
+      }
+    } catch (e) {
+      console.error('Failed to requeue a dead-lettered operation:', e);
+    } finally {
+      await updateSyncCount();
+    }
+    syncData();
+  }, [updateSyncCount, syncData]);
+
+  /** Permanently discards a dead-lettered operation at the user's request. */
+  const discardFailedSync = useCallback(async (deadLetterId) => {
+    try {
+      await deleteFromStore(DEAD_LETTER_STORE, deadLetterId);
+    } catch (e) {
+      console.error('Failed to discard a dead-lettered operation:', e);
+    } finally {
+      await updateSyncCount();
+    }
+  }, [updateSyncCount]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
