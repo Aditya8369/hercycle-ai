@@ -20,6 +20,27 @@ function timeAgo(dateStr) {
   return `${days}d ago`
 }
 
+function getStoredLastSeen() {
+  if (typeof window === 'undefined') return 0
+  try {
+    const stored = localStorage.getItem('hercycle_chat_last_seen')
+    const parsed = parseInt(stored, 10)
+    return Number.isFinite(parsed) ? parsed : 0
+  } catch (err) {
+    console.warn('Could not read last seen from localStorage:', err)
+    return 0
+  }
+}
+
+function setStoredLastSeen(timestamp) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem('hercycle_chat_last_seen', timestamp.toString())
+  } catch (err) {
+    console.warn('Could not write last seen to localStorage:', err)
+  }
+}
+
 export default function PartnerLoveBanner() {
   const t = useTranslations('PartnerLoveBanner')
   const [mounted, setMounted] = useState(false)
@@ -31,8 +52,8 @@ export default function PartnerLoveBanner() {
 
   useEffect(() => {
     setMounted(true)
-    const stored = localStorage.getItem('hercycle_chat_last_seen')
-    if (stored) setLastSeenTime(parseInt(stored, 10))
+    const storedTime = getStoredLastSeen()
+    if (storedTime) setLastSeenTime(storedTime)
     loadNudges()
   }, [])
 
@@ -58,7 +79,7 @@ export default function PartnerLoveBanner() {
     setIsChatOpen(true)
     const now = Date.now()
     setLastSeenTime(now)
-    localStorage.setItem('hercycle_chat_last_seen', now.toString())
+    setStoredLastSeen(now)
   }
 
   if (!mounted || loading) {
