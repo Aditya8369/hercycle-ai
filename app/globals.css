@@ -3728,3 +3728,12 @@ nav ul li a:focus-visible,
   scrollbar-gutter: stable;
   overflow-y: auto;
 }
+
+/* ──── HORIZONTAL SCROLLBAR HIDING CLASS (Fixes #661) ──── */
+.self-care-scroll::-webkit-scrollbar {
+  display: none;
+}
+.self-care-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
