@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { eventBus } from '@/lib/events'
 import { isoCalendarDate } from '@/lib/date-schemas'
+import { sanitizeSymptomList, sanitizeText } from '@/lib/api-helpers'
 
 const logPostSchema = z.object({
   // Shape alone is not enough: the old `/^\d{4}-\d{2}-\d{2}$/` accepted
@@ -44,7 +45,7 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date')
-    
+
     if (!date) {
       return NextResponse.json({ success: false, message: 'Bad Request: Missing date.' }, { status: 400 })
     }
@@ -63,7 +64,18 @@ export async function GET(request) {
     }
 
     logger.info(`Successfully fetched daily log for user ${userId}`);
-    return NextResponse.json({ success: true, data: data || null })
+    // Re-sanitize on the way out too, so rows written before this endpoint
+    // enforced sanitization can't still surface raw markup to the client.
+    const safeData = data
+      ? {
+        ...data,
+        symptoms: sanitizeSymptomList(data.symptoms),
+        mood: data.mood ? sanitizeText(data.mood) : data.mood,
+        flow: data.flow ? sanitizeText(data.flow) : data.flow,
+        cervical_discharge: data.cervical_discharge ? sanitizeText(data.cervical_discharge) : data.cervical_discharge,
+      }
+      : null
+    return NextResponse.json({ success: true, data: safeData })
   } catch (error) {
     logger.error('Error fetching day log:', error.message || error);
     return NextResponse.json({ success: false, message: `Failed to fetch daily log: ${error.message || error}` }, { status: 500 })
@@ -108,6 +120,14 @@ export async function POST(request) {
 
     const { date, symptoms, mood, flow, cervical_discharge, encrypted_data } = result.data
 
+    // Sanitize every free-text field before it ever reaches the database:
+    // strip HTML/script tags, trim whitespace, and cap custom-symptom
+    // length (50 chars) and count (20 items) to prevent stored XSS/injection.
+    const sanitizedSymptoms = sanitizeSymptomList(symptoms)
+    const sanitizedMood = mood ? sanitizeText(mood) : null
+    const sanitizedFlow = flow ? sanitizeText(flow) : null
+    const sanitizedCervicalDischarge = cervical_discharge ? sanitizeText(cervical_discharge) : null
+
     const supabaseAdmin = getSupabaseAdmin()
 
     // Build the upsert payload — only include encrypted_data when the
@@ -116,10 +136,10 @@ export async function POST(request) {
     const upsertPayload = {
       user_id: userId,
       date,
-      symptoms: symptoms || [],
-      mood: mood || null,
-      flow: flow || null,
-      cervical_discharge: cervical_discharge || null,
+      symptoms: sanitizedSymptoms,
+      mood: sanitizedMood,
+      flow: sanitizedFlow,
+      cervical_discharge: sanitizedCervicalDischarge,
       updated_at: new Date().toISOString()
     }
     if (encrypted_data !== undefined && encrypted_data !== null) {
@@ -136,7 +156,7 @@ export async function POST(request) {
     }
 
     logger.info(`Successfully upserted daily log for user ${userId}`);
-    
+
     // Emit event for daily logs update
     eventBus.emit('daily_logs:updated', { userId });
 

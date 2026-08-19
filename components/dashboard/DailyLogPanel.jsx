@@ -34,19 +34,26 @@ export default function DailyLogPanel({
 
   const [customInput, setCustomInput] = useState('')
 
+  // Mirrors the server-side caps in lib/api-helpers.js (MAX_SYMPTOM_LENGTH /
+  // MAX_CUSTOM_SYMPTOMS) — this is a UX nicety only, the backend is what
+  // actually enforces it.
+  const MAX_CUSTOM_SYMPTOM_LENGTH = 50
+  const MAX_CUSTOM_SYMPTOMS = 20
+
+  const baseSymptoms = ['Cramps', 'Headache', 'Bloating', 'Fatigue', 'Acne', 'Nausea']
+  const customSymptoms = selectedSymptoms.filter(s => !baseSymptoms.includes(s))
+  const allDisplaySymptoms = [...baseSymptoms, ...customSymptoms]
+
   const handleAddCustom = (e) => {
     e.preventDefault()
-    const trimmed = customInput.trim()
+    const trimmed = customInput.trim().slice(0, MAX_CUSTOM_SYMPTOM_LENGTH)
     if (!trimmed) return
+    if (customSymptoms.length >= MAX_CUSTOM_SYMPTOMS) return
     if (!selectedSymptoms.includes(trimmed)) {
       toggleSymptom(trimmed)
     }
     setCustomInput('')
   }
-
-  const baseSymptoms = ['Cramps', 'Headache', 'Bloating', 'Fatigue', 'Acne', 'Nausea']
-  const customSymptoms = selectedSymptoms.filter(s => !baseSymptoms.includes(s))
-  const allDisplaySymptoms = [...baseSymptoms, ...customSymptoms]
 
   return (
     <>
@@ -82,11 +89,12 @@ export default function DailyLogPanel({
         </div>
 
         <form onSubmit={handleAddCustom} style={{ display: 'flex', gap: '8px', marginTop: '12px', marginBottom: '8px' }}>
-          <input 
-            type="text" 
-            placeholder="Add custom symptom..." 
+          <input
+            type="text"
+            placeholder="Add custom symptom..."
             value={customInput}
             onChange={(e) => setCustomInput(e.target.value)}
+            maxLength={MAX_CUSTOM_SYMPTOM_LENGTH}
             style={{
               flex: 1,
               minWidth: 0,
@@ -99,7 +107,7 @@ export default function DailyLogPanel({
               outline: 'none'
             }}
           />
-          <button 
+          <button
             type="submit"
             style={{
               background: 'rgba(232, 82, 126, 0.25)',

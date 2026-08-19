@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Heart, Mail, Sparkles, Send, X, Clock, MessageSquare } from 'lucide-react'
+import { Heart, Mail, Sparkles, Send, X, Clock, MessageSquare, UserPlus } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useTranslations } from 'next-intl'
 import { getPrimaryPartnerNudges } from '@/lib/actions/partner'
 import PartnerChatBox from '@/components/partner/PartnerChatBox'
+import PartnerSharingModal from '@/components/layout/PartnerSharingModal'
 
 function timeAgo(dateStr) {
   if (!dateStr) return null
@@ -19,10 +21,12 @@ function timeAgo(dateStr) {
 }
 
 export default function PartnerLoveBanner() {
+  const t = useTranslations('PartnerLoveBanner')
   const [mounted, setMounted] = useState(false)
   const [data, setData] = useState({ connected: false, nudges: [], currentUserId: null, partnerLastActiveAt: null })
   const [loading, setLoading] = useState(true)
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [isInviteOpen, setIsInviteOpen] = useState(false)
   const [lastSeenTime, setLastSeenTime] = useState(0)
 
   useEffect(() => {
@@ -66,7 +70,31 @@ export default function PartnerLoveBanner() {
   }
 
   if (!data.connected) {
-    return null // Don't block dashboard if not connected
+    return (
+      <section className="w-full my-8">
+        <div className="w-full relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-950/40 via-purple-950/40 to-pink-950/40 border border-rose-400/30 p-6 shadow-2xl backdrop-blur-xl text-center flex flex-col items-center gap-3">
+          <div className="absolute -top-12 -right-12 w-40 h-40 bg-pink-500/20 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute -bottom-12 -left-12 w-40 h-40 bg-rose-500/20 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div className="relative z-10 w-14 h-14 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center shadow-inner">
+            <Heart className="w-7 h-7 text-pink-300 fill-pink-300" />
+          </div>
+          <div className="relative z-10">
+            <h3 className="text-white font-semibold text-base">{t('emptyTitle')}</h3>
+            <p className="text-white/60 text-sm mt-1 max-w-sm mx-auto">{t('emptyDesc')}</p>
+          </div>
+          <button
+            onClick={() => setIsInviteOpen(true)}
+            className="relative z-10 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white text-xs px-5 py-2.5 rounded-xl font-medium shadow-lg transition-all flex items-center gap-1.5"
+          >
+            <UserPlus className="w-4 h-4" />
+            {t('emptyCta')}
+          </button>
+        </div>
+
+        <PartnerSharingModal isOpen={isInviteOpen} setIsOpen={setIsInviteOpen} />
+      </section>
+    )
   }
 
   // Calculate unread count (messages created after lastSeenTime and not sent by me)
@@ -90,11 +118,10 @@ export default function PartnerLoveBanner() {
 
         <button
           onClick={handleOpenChat}
-          className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition-all flex items-center gap-1.5 border ${
-            unreadCount > 0
-              ? 'bg-rose-500 text-white border-rose-400 shadow-lg animate-bounce'
-              : 'text-rose-200 hover:text-white bg-rose-500/20 hover:bg-rose-500/30 border-rose-500/30'
-          }`}
+          className={`text-xs px-3.5 py-1.5 rounded-full font-medium transition-all flex items-center gap-1.5 border ${unreadCount > 0
+            ? 'bg-rose-500 text-white border-rose-400 shadow-lg animate-bounce'
+            : 'text-rose-200 hover:text-white bg-rose-500/20 hover:bg-rose-500/30 border-rose-500/30'
+            }`}
         >
           <MessageSquare className="w-3.5 h-3.5" />
           {unreadCount > 0 ? (

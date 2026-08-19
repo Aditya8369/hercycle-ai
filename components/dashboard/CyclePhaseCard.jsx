@@ -41,6 +41,7 @@ export default function CyclePhaseCard({
   ovulationDay,
   hasData = true,
   className = '',
+  onLogClick,
 }) {
   const t = useTranslations('CycleEducation')
 
@@ -56,6 +57,12 @@ export default function CyclePhaseCard({
           <p>
             {t('desc')}
           </p>
+          {onLogClick && (
+            <button type="button" className="phase-empty-cta" onClick={onLogClick}>
+              <Droplets size={16} />
+              {t('cta')}
+            </button>
+          )}
         </div>
         <style jsx>{styles}</style>
       </section>
@@ -248,6 +255,25 @@ const styles = `
     margin-bottom: 0;
     color: rgba(255, 255, 255, 0.68);
     line-height: 1.6;
+  }
+  .phase-empty-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.9rem;
+    padding: 0.55rem 1rem;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #e8527e, #f0819f);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .phase-empty-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(232, 82, 126, 0.35);
   }
   @media (max-width: 900px) {
     .phase-content-grid { grid-template-columns: 1fr; }

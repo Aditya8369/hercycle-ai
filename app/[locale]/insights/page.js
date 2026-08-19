@@ -29,7 +29,12 @@ const PINK = '#e8527e'
 const MAUVE = '#9d3f7a'
 const ACCENT = '#e91e8c'
 const TEXT_PRIMARY = '#ffffff'
-const TEXT_FAINT = 'rgba(255,255,255,0.65)'
+// Was a hardcoded rgba literal that bypassed the app's theme system, so it
+// never picked up the higher-contrast value .dark already defines for
+// secondary text (see --text-soft in app/globals.css). Using the CSS
+// variable directly fixes contrast on dark cards without touching every
+// call site below.
+const TEXT_FAINT = 'var(--text-soft)'
 const CARD_BG = 'rgba(255,255,255,0.08)'
 const CARD_BORDER = '1px solid rgba(255,255,255,0.14)'
 
