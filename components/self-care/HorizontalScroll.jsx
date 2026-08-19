@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useRef } from 'react';
 
 export default function HorizontalScroll({ children, className = '' }) {

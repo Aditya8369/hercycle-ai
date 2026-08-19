@@ -51,8 +51,6 @@ export default function PCODRiskCard({ pcodRisk, unavailableReason = null, loadi
   const [exporting, setExporting] = useState(false)
   const { user } = useUser()
   const t = useTranslations('Risk')
-  const tFactors = useTranslations('factors')
-  const tRec = useTranslations('recommendations')
   const locale = useLocale()
 
   // A payload that does not validate is treated as absent. It used to be
@@ -253,7 +251,7 @@ export default function PCODRiskCard({ pcodRisk, unavailableReason = null, loadi
         {factors.length > 0
           ? factors.map((f, i) => (
               <li key={i} style={{ '--dot-color': tokens.dotColor }}>
-                {tFactors(f)}
+                {typeof f === 'string' ? f : JSON.stringify(f)}
               </li>
             ))
           : (
@@ -276,11 +274,7 @@ export default function PCODRiskCard({ pcodRisk, unavailableReason = null, loadi
           border:     '1px solid rgba(255,255,255,0.07)',
           lineHeight: 1.55,
         }}>
-          💡 {tRec(
-            recommendation.includes('consulting') ? 'consult' :
-            recommendation.includes('Keep tracking') ? 'keepTracking' :
-            recommendation
-          )}
+          💡 {recommendation}
         </p>
       )}
 

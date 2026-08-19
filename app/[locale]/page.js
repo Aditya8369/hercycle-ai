@@ -276,21 +276,34 @@ const HerCycleApp = () => {
     setIsTyping(true)
 
     try {
-      const response = await fetchWithTimeout('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userMessage,
-          language: activeLang,
-          context: { ...cycleData, currentPhase: cycleDayInfo }
-        })
-      })
+      const response = await fetchWithTimeout(
+        '/api/chat',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: userMessage,
+            language: locale === 'hi' ? 'hi' : 'en',
+            context: {
+              nextPeriodDate: cycleData?.nextPeriodDate,
+              averageCycleLength: cycleData?.averageCycleLength,
+              currentPhase: cycleDayInfo
+            }
+          })
+        },
+        15000
+      )
 
       const data = await response.json()
       setIsTyping(false)
 
-      if (data.success) {
+      if (data?.response) {
         setChatMessages(prev => [...prev, { role: 'ai', text: data.response }])
+      } else {
+        setChatMessages(prev => [...prev, {
+          role: 'ai',
+          text: tChat('error')
+        }])
       }
     } catch (error) {
       setIsTyping(false)

@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { exercises } from '@/lib/selfCareData';
 import { ArrowLeft, Clock, Activity } from 'lucide-react';
+import Image from 'next/image';
 import GuidedExercise from '@/components/self-care/GuidedExercise';
 import Navbar from '@/components/layout/Navbar';
 
@@ -42,10 +43,13 @@ export default function ExerciseDetailPage() {
       <Navbar />
       <main className="pb-24">
       <div className="relative h-64 sm:h-[400px] w-full">
-        <img 
+        <Image 
           src={exercise.image} 
           alt={exercise.title}
-          className="absolute inset-0 w-full h-full object-cover"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-[#120a1f]"></div>
         

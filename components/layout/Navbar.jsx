@@ -153,9 +153,9 @@ export default function Navbar() {
       </div>
 
       {/* Desktop Links */}
-      <ul className="hidden md:flex flex-1 justify-center gap-2">
+      <ul className="hidden md:flex flex-1 justify-center gap-2 list-none m-0 p-0">
         {NAV_ITEMS.map(({ key, label, href }) => (
-          <li key={key}>
+          <li key={key} className="list-none">
             <Link
               href={href}
               className={isActive(href) ? 'active' : ''}
@@ -168,12 +168,16 @@ export default function Navbar() {
 
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
-        <div className="nav-mobile-menu md:hidden w-full flex flex-col gap-2 py-3 border-t border-white/20 mt-1 mb-2">
+        <div className="nav-mobile-menu md:hidden w-full flex flex-col gap-1.5 py-3 border-t border-white/15 mt-1">
           {NAV_ITEMS.map(({ key, label, href }) => (
             <Link
               key={key}
               href={href}
-              className={`nav-mobile-link block px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${isActive(href) ? 'active bg-white/20 text-white' : 'text-white/80 hover:bg-white/10'}`}
+              className={`nav-mobile-link block px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                isActive(href)
+                  ? 'active bg-rose-500/25 border border-rose-400/40 text-white shadow-sm'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
               onClick={() => setMobileMenuOpen(false)}
             >
               {label}

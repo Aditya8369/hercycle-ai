@@ -142,7 +142,7 @@ export default function InsightsPage() {
       setLoading(false)
     }
     init()
-  }, [isLoaded, isSignedIn, router])
+  }, [isLoaded, isSignedIn, router, offlineClient])
 
   // ── Derived data ──────────────────────────────────────────────────────────
   const cycles = cycleData?.cycles || []

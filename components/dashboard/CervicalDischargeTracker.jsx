@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useState, useEffect } from 'react';
 import { useOffline } from '@/lib/OfflineContext';
 import { useTranslations } from 'next-intl';

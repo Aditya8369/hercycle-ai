@@ -6,30 +6,17 @@ import { aiLimiter, getRateLimitIdentifier } from '@/lib/rateLimiter'
 import { logger } from '@/lib/logger'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { z } from 'zod'
-
 import { pruneMessageHistory } from '@/lib/chat-utils';
 
-const TIMEOUT_MS = 8000; // 8 seconds timeout to prevent long hangs
+const TIMEOUT_MS = 6000; // 6 seconds timeout per AI attempt to keep chat snappy
 
 const chatPayloadSchema = z.object({
-  language: z.string().max(10).optional(),
-  message: z.string().min(1).max(1000),
-  context: z.object({
-    nextPeriodDate: z.string().max(50).optional(),
-    averageCycleLength: z.number().optional(),
-    currentPhase: z.object({
-      day: z.number().optional(),
-      phase: z.string().max(50).optional()
-    }).optional()
-  }).nullish(),
+  language: z.string().max(20).optional(),
+  message: z.string().min(1).max(2000),
+  context: z.any().optional(),
   history: z.array(z.any()).optional()
-})
+}).passthrough()
 
-/**
- * Utility function to enforce a timeout on asynchronous operations.
- * Uses AbortController so the underlying network call is actually cancelled,
- * not just abandoned.
- */
 const withTimeout = async (fn, ms) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), ms);
@@ -40,17 +27,61 @@ const withTimeout = async (fn, ms) => {
   }
 };
 
+function getSmartLocalResponse(message, language = 'en', context = {}) {
+  const query = (message || '').toLowerCase();
+  const isHindi = language === 'hi' || language === 'हि';
+
+  if (query.includes('eat') || query.includes('food') || query.includes('nutrition') || query.includes('diet') || query.includes('snack')) {
+    return isHindi
+      ? 'माहवारी के दौरान आयरन युक्त भोजन (जैसे पालक, दालें, मेवे), डार्क चॉकलेट और गर्म हर्बल चाय लें। प्रोसेस्ड और अत्यधिक नमकीन खाने से बचें।'
+      : 'During your period, focus on iron-rich foods (spinach, lentils, pumpkin seeds), magnesium (dark chocolate), and warm herbal teas like ginger or chamomile. Stay hydrated and limit excess salt/sugar to minimize bloating! 🥗🍫';
+  }
+
+  if (query.includes('cramp') || query.includes('pain') || query.includes('ache') || query.includes('hurt')) {
+    return isHindi
+      ? 'माहवारी के दर्द (क्रैम्प्स) में गर्म पानी की थैली (हीटिंग पैड) से सिकाई करें, पर्याप्त पानी पिएं और हल्के खिंचाव (स्ट्रेचिंग) करें। यदि दर्द अत्यधिक हो तो डॉक्टर से परामर्श लें।'
+      : 'For cramp relief, try a warm heating pad on your lower abdomen, gentle stretching/yoga, drinking warm chamomile or ginger tea, and staying hydrated. If severe, consult your doctor! 🌸';
+  }
+
+  if (query.includes('pcos') || query.includes('pcod')) {
+    return isHindi
+      ? 'PCOD/PCOS एक हार्मोनल स्थिति है। संतुलित आहार, नियमित व्यायाम और तनाव प्रबंधन इसे नियंत्रित करने में सहायक होते हैं।'
+      : 'PCOD/PCOS is a common hormonal condition. It can be managed effectively with a low-glycemic balanced diet, regular exercise, consistent sleep, and medical guidance. 🩺';
+  }
+
+  if (query.includes('next period') || query.includes('predicted') || query.includes('when')) {
+    if (context?.nextPeriodDate) {
+      return isHindi
+        ? `आपकी अगली माहवारी की अनुमानित तारीख ${context.nextPeriodDate} है।`
+        : `Based on your cycle history, your next period is predicted around ${context.nextPeriodDate}. 💕`;
+    }
+    return isHindi
+      ? 'नियमित रूप से अपनी माहवारी लॉग करें ताकि हम सटीक अनुमान लगा सकें।'
+      : 'Keep tracking your daily cycle data so we can generate accurate predictions for your next period! 📅';
+  }
+
+  if (query.includes('hello') || query.includes('hi') || query.includes('hey') || query.includes('hie')) {
+    return isHindi
+      ? 'नमस्ते! मैं आपकी स्वास्थ्य सहायक हूँ। आप मुझसे अपनी माहवारी, पोषण या स्वास्थ्य के बारे में कुछ भी पूछ सकती हैं। 💕'
+      : 'Hello! I am your HerCycle health assistant. Ask me anything about your cycle, nutrition, symptoms, or wellness tips! 💕';
+  }
+
+  return isHindi
+    ? 'मैं आपके स्वास्थ्य और माहवारी से जुड़े प्रश्नों में मदद के लिए यहाँ हूँ। अपनी माहवारी के लक्षण या सुझाव के बारे में पूछें। 💕'
+    : 'I am here to support you with menstrual health, cycle tracking tips, nutrition, and symptom care. How can I help you today? 💕';
+}
+
 /**
  * Primary AI Call: Google Gemini API
  */
 async function callGemini(message, systemPrompt, history = [], signal) {
-  validateEnv();
+  if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY.includes('your_gemini_key')) {
+    throw new Error('GEMINI_API_KEY is not configured.');
+  }
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-3.6-flash',
-  });
+  const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const model = genAI.getGenerativeModel({ model: modelName });
 
   const formattedHistory = history.map(msg => ({
     role: msg.role === 'ai' ? 'model' : (msg.role || 'user'),
@@ -80,12 +111,10 @@ async function callGemini(message, systemPrompt, history = [], signal) {
 }
 
 /**
- * Fallback AI Call: Groq API (llama3-8b-8192)
+ * Fallback AI Call: Groq API
  */
 async function callGroq(message, systemPrompt, history = [], signal) {
-  validateEnv();
-
-  if (!process.env.GROQ_API_KEY) {
+  if (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY.includes('your_groq_key')) {
     throw new Error('GROQ_API_KEY environment variable is not defined.');
   }
 
@@ -108,7 +137,7 @@ async function callGroq(message, systemPrompt, history = [], signal) {
         ...formattedHistory,
         { role: 'user', content: message }
       ]),
-      max_tokens: 300 // Keeping response small per prompt constraints
+      max_tokens: 300
     }),
     signal
   });
@@ -121,74 +150,14 @@ async function callGroq(message, systemPrompt, history = [], signal) {
   return data.choices[0].message.content;
 }
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function runWithRetry(fn, label) {
-  const maxRetries = 3;
-  const backoffDelays = [1000, 2000, 4000]; // 1s, 2s, 4s
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await withTimeout((signal) => fn(signal), TIMEOUT_MS);
-    } catch (error) {
-      const isAbort = error?.name === 'AbortError';
-      const reason = isAbort ? 'timed out' : error.message;
-
-      if (attempt === maxRetries) {
-        logger.error(`${label} failed after all retries: ${reason}`);
-        throw error;
-      }
-      const delayMs = backoffDelays[attempt];
-      logger.warn(`${label} attempt ${attempt + 1} failed (${reason}). Retrying in ${delayMs}ms...`);
-      await delay(delayMs);
-    }
-  }
-}
-
-async function callGeminiWithRetry(message, systemPrompt, history = []) {
-  return runWithRetry(
-    (signal) => callGemini(message, systemPrompt, history, signal),
-    'Gemini API'
-  );
-}
-
-async function callGroqWithRetry(message, systemPrompt, history = []) {
-  return runWithRetry(
-    (signal) => callGroq(message, systemPrompt, history, signal),
-    'Groq API'
-  );
-}
-
-/**
- * Orchestrates failover from Gemini to Groq.
- */
-async function getAIResponse(message, systemPrompt, history = []) {
-  try {
-    // 1. Try Gemini first (with retries and backoff)
-    const responseText = await callGeminiWithRetry(message, systemPrompt, history);
-    return responseText;
-  } catch (error) {
-    logger.warn(`Gemini API failed after all retries (${error.message}). Switching to Groq fallback...`);
-
-    // 2. Try Groq as fallback (with retries and backoff)
-    try {
-      const fallbackText = await callGroqWithRetry(message, systemPrompt, history);
-      return fallbackText;
-    } catch (fallbackError) {
-      logger.error('Both Gemini and Groq APIs failed.', fallbackError.message);
-      throw new Error('All AI service proxies failed.');
-    }
-  }
-}
-
 export async function POST(request) {
   validateEnv();
-  let language = 'en'; // default
+  let language = 'en';
 
   // ============ RATE LIMITING ============
   try {
     const identifier = await getRateLimitIdentifier(request);
-    await aiLimiter.check(request); // 10 requests per minute
+    await aiLimiter.check(request);
   } catch (rateLimitError) {
     console.warn(`[Rate Limit] Chat endpoint: ${rateLimitError.message}`);
     return NextResponse.json(
@@ -196,17 +165,14 @@ export async function POST(request) {
       { status: 429 }
     );
   }
-  // =======================================
 
   try {
-    // 1. Clerk Authentication
     const userId = await getAuthUserId()
     if (!userId) {
       logger.warn('Unauthenticated access attempt to AI Chat API');
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 2. Parse JSON body with error handling for malformed payloads
     let json;
     try {
       json = await request.json();
@@ -215,7 +181,6 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Bad Request: Invalid JSON payload' }, { status: 400 });
     }
 
-    // 3. Input Validation (Zod)
     const result = chatPayloadSchema.safeParse(json)
     if (!result.success) {
       logger.warn(`Invalid request payload on AI Chat API: ${result.error.message}`);
@@ -226,17 +191,9 @@ export async function POST(request) {
     language = result.data.language || 'en'
 
     if (!message || message.trim().length === 0) {
-      return NextResponse.json(
-        {
-          error: "Message content cannot be empty",
-        },
-        {
-          status: 400,
-        }
-      );
+      return NextResponse.json({ error: "Message content cannot be empty" }, { status: 400 });
     }
 
-    // 3. Fetch User Health Profile for Context Injection
     let userProfile = null;
     try {
       const supabase = getSupabaseAdmin();
@@ -256,25 +213,17 @@ export async function POST(request) {
 
     let systemPrompt = `You are a helpful menstrual health assistant. Provide empathetic, accurate health guidance.`;
 
-    // Sanitize helper to prevent prompt injection
     const sanitizeForPrompt = (str, maxLen = 200) => {
       if (!str) return '';
-      return String(str)
-        .replace(/[\[\]"'`\\]/g, '')  // Remove prompt control characters
-        .replace(/\n/g, ' ')
-        .slice(0, maxLen);
+      return String(str).replace(/[\[\]"'`\\]/g, '').replace(/\n/g, ' ').slice(0, maxLen);
     };
 
-    // 4. Inject Profile Context
     if (userProfile) {
       const conditions = userProfile.known_conditions || [];
       const ageStr = userProfile.age ? sanitizeForPrompt(`${userProfile.age} yrs old`) : 'unknown age';
       const weightStr = userProfile.weight_kg ? sanitizeForPrompt(`${userProfile.weight_kg}kg`) : 'unknown weight';
-      const conditionsStr = conditions.length > 0
-        ? conditions.map(c => sanitizeForPrompt(c)).join(', ')
-        : 'none';
-
-      systemPrompt += `\n[CONTEXT: User is ${ageStr}, weighs ${weightStr}, conditions: ${conditionsStr}]. Use this context to personalize your response, but do not explicitly repeat their data back to them unless necessary.`;
+      const conditionsStr = conditions.length > 0 ? conditions.map(c => sanitizeForPrompt(c)).join(', ') : 'none';
+      systemPrompt += `\n[CONTEXT: User is ${ageStr}, weighs ${weightStr}, conditions: ${conditionsStr}].`;
     }
 
     if (language === 'हि' || language === 'hi') {
@@ -291,22 +240,25 @@ export async function POST(request) {
 
     systemPrompt += `\n\nImportant: Keep responses under 100 words. Be supportive and conversational.`;
 
-    // Fetch response with fallback mechanism
-    const responseText = await getAIResponse(message, systemPrompt, history);
+    // Try Gemini -> Groq -> Local smart response
+    let responseText = null;
+    try {
+      responseText = await withTimeout((sig) => callGemini(message, systemPrompt, history, sig), TIMEOUT_MS);
+    } catch (geminiErr) {
+      logger.warn(`Gemini call failed: ${geminiErr.message}. Trying Groq fallback...`);
+      try {
+        responseText = await withTimeout((sig) => callGroq(message, systemPrompt, history, sig), TIMEOUT_MS);
+      } catch (groqErr) {
+        logger.warn(`Groq call failed: ${groqErr.message}. Using intelligent health fallback...`);
+        responseText = getSmartLocalResponse(message, language, context);
+      }
+    }
 
     logger.info(`Successful chat assistant response generated for user ${userId}`);
     return NextResponse.json({ success: true, response: responseText });
   } catch (error) {
     logger.error('AI Chat Route Error:', error);
-
-    // Fallback response so no crash/error is revealed to the user (Returns clean response)
-    const politeFallback = language === 'हि' || language === 'hi'
-      ? 'मुझे खेद है, मुझे अभी कुछ तकनीकी समस्या आ रही है। कृपया थोड़ी देर बाद पुनः प्रयास करें। 💕'
-      : 'I apologize, but I am experiencing a technical hiccup right now. Please try again in a little while. 💕';
-
-    return NextResponse.json({
-      success: true,
-      response: politeFallback
-    });
+    const fallback = getSmartLocalResponse(json?.message || '', language, json?.context);
+    return NextResponse.json({ success: true, response: fallback });
   }
 }

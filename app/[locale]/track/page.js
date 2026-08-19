@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
 import toast from 'react-hot-toast'
@@ -97,15 +97,15 @@ export default function TrackPage() {
     setDrawerOpen(true)
   }
 
-  const fetchCycleData = async () => {
+  const fetchCycleData = useCallback(async () => {
     try {
       const data = await offlineClient.fetchCycles()
       if (data.success) setCycleData(data.data)
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
-  }
+  }, [offlineClient])
 
-  const fetchTodayLog = async () => {
+  const fetchTodayLog = useCallback(async () => {
     try {
       const today = getTodayISO()
       const data = await offlineClient.fetchTodayLog(today)
@@ -115,13 +115,13 @@ export default function TrackPage() {
         if (data.data.flow) setSelectedFlow(data.data.flow)
       }
     } catch (e) { console.error(e) }
-  }
+  }, [offlineClient])
 
   useEffect(() => {
     if (!isLoaded) return
     if (!isSignedIn) { router.push('/auth/login'); return }
     Promise.all([fetchCycleData(), fetchTodayLog()])
-  }, [isLoaded, isSignedIn, router])
+  }, [isLoaded, isSignedIn, router, fetchCycleData, fetchTodayLog])
 
   const handleSaveLog = async () => {
     try {

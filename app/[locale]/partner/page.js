@@ -49,6 +49,21 @@ export default function PartnerPage() {
   const [accepting, setAccepting] = useState(false)
   const [isLetterModalOpen, setIsLetterModalOpen] = useState(false)
 
+  const fetchInsights = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true)
+    try {
+      const data = await getSharedInsights()
+      setInsights(data)
+      setError(null)
+    } catch (err) {
+      console.error(err)
+      setError('Failed to load insights')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (!isLoaded || !user) return
     if (!isSignedIn) {
@@ -65,22 +80,7 @@ export default function PartnerPage() {
       return
     }
     fetchInsights()
-  }, [isLoaded, isSignedIn, user, locale])
-
-  const fetchInsights = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true)
-    try {
-      const data = await getSharedInsights()
-      setInsights(data)
-      setError(null)
-    } catch (err) {
-      console.error(err)
-      setError('Failed to load insights')
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [])
+  }, [isLoaded, isSignedIn, user, locale, router, fetchInsights])
 
   // Auto-refresh every 15 seconds for live chat stream
   useEffect(() => {

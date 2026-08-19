@@ -442,30 +442,33 @@ nav ul {
   list-style: none;
   flex: 1;
   justify-content: center;
+  margin: 0;
+  padding: 0;
 }
 
 nav ul li a {
   text-decoration: none;
-  color: var(--plum);
+  color: rgba(255, 255, 255, 0.85);
   font-size: 0.875rem;
   font-weight: 600;
   padding: 7px 16px;
   border-radius: 50px;
-  transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  transition: all 0.22s ease-in-out;
   display: block;
   letter-spacing: 0.01em;
-  opacity: 0.8;
 }
 
 nav ul li a:hover,
 nav ul li a.active {
   background: rgba(255, 255, 255, 0.15);
-  color: var(--text-white);
+  color: #ffffff;
 }
 
 nav ul li a.active {
-  background: rgba(255, 255, 255, 0.20);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  background: rgba(232, 82, 126, 0.3);
+  border: 1px solid rgba(232, 82, 126, 0.45);
+  box-shadow: 0 2px 10px rgba(232, 82, 126, 0.25);
+  color: #ffffff;
 }
 
 .nav-right {
@@ -1442,6 +1445,51 @@ nav ul li a.active {
   width: 100%;
 }
 
+/* Mobile horizontal scroll wrapper for logged symptoms (Fixes #249, #329, #374) */
+@media (max-width: 640px) {
+  .symp-grid-scroll-wrapper,
+  .symptoms-horizontal-scroll {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    padding-bottom: 8px !important;
+    gap: 8px !important;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+  }
+
+  .symp-grid-scroll-wrapper .symp-chip,
+  .symptoms-horizontal-scroll .symp-chip {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    scroll-snap-align: start;
+  }
+
+  .symp-grid-scroll-wrapper::-webkit-scrollbar,
+  .symptoms-horizontal-scroll::-webkit-scrollbar {
+    height: 4px;
+    display: block !important;
+  }
+
+  .symp-grid-scroll-wrapper::-webkit-scrollbar-track,
+  .symptoms-horizontal-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .symp-grid-scroll-wrapper::-webkit-scrollbar-thumb,
+  .symptoms-horizontal-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+  }
+}
+
 .symp-chip {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -1520,7 +1568,8 @@ nav ul li a.active {
   transform: scale(1.05);
 }
 
-.flow-label {
+.flow-label,
+.flow-lbl {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-faint);
@@ -3593,20 +3642,6 @@ nav ul li a:focus-visible,
   }
 }
 
-/* ──── SYMPTOM PILL TRACK (mobile) ──── */
-@media (max-width: 639px) {
-  .symp-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    width: 100%;
-  }
-
-  .symp-grid .symp-chip {
-    flex: 0 0 auto;
-    max-width: 100%;
-  }
-}
 
 /* ──── HEATMAP RESPONSIVE GUARD ──── */
 .heatmap-scroll {
