@@ -118,12 +118,14 @@ export default function InsightsPage() {
   const { user } = useUser()
   const { offlineClient } = useOffline()
 
-  const [cycleData, setCycleData] = useState(null)
+const [cycleData, setCycleData] = useState(null)
   const [pcodRisk, setPcodRisk] = useState(null)
   const [dailyLogs, setDailyLogs] = useState([])
   const [copied, setCopied] = useState(false)
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
+  const [showCopyFallback, setShowCopyFallback] = useState(false)
+  const [fallbackText, setFallbackText] = useState('')
 
   useEffect(() => {
     setMounted(true)
@@ -279,7 +281,7 @@ export default function InsightsPage() {
         document.body.appendChild(textArea)
         textArea.focus()
         textArea.select()
-        const successful = document.execCommand('copy')
+       const successful = document.execCommand('copy')
         document.body.removeChild(textArea)
         if (successful) {
           setCopied(true)
@@ -288,8 +290,11 @@ export default function InsightsPage() {
           throw new Error('Fallback copy failed')
         }
       }
-    } catch (err) {
+   } catch (err) {
       console.error('Could not copy summary', err)
+      toast.error('Could not copy automatically. Please copy the text manually below.')
+      setFallbackText(summaryText)
+      setShowCopyFallback(true)
     }
   }
 
@@ -420,6 +425,45 @@ export default function InsightsPage() {
               <span>{t('exportCsv')}</span>
             </button>
           </div>
+
+          {/* ── Visible copy fallback, shown only when automatic clipboard copy fails ── */}
+          {showCopyFallback && (
+            <div style={{
+              background: CARD_BG,
+              border: CARD_BORDER,
+              borderRadius: 16,
+              padding: '1rem 1.25rem',
+              marginBottom: '1.5rem',
+            }}>
+              <p style={{ color: TEXT_PRIMARY, fontSize: '0.85rem', marginBottom: 8 }}>
+                Automatic copy didn't work. Select the text below and copy it manually:
+              </p>
+              <textarea
+                readOnly
+                value={fallbackText}
+                onClick={(e) => e.target.select()}
+                style={{
+                  width: '100%',
+                  minHeight: 100,
+                  padding: '10px',
+                  borderRadius: 10,
+                  border: CARD_BORDER,
+                  background: 'rgba(255,255,255,0.05)',
+                  color: TEXT_PRIMARY,
+                  fontSize: '0.82rem',
+                  fontFamily: 'monospace',
+                  resize: 'vertical',
+                }}
+              />
+              <button
+                onClick={() => setShowCopyFallback(false)}
+                className="export-btn"
+                style={{ width: 'auto', padding: '6px 14px', marginTop: 8, fontSize: '0.8rem' }}
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
 
           {/* ── Cycle Length Trend ── */}
           <SectionCard
