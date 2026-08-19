@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import { getPrimaryPartnerNudges, getSharedInsights } from '@/lib/actions/partner'
 import { requestNotificationPermission, getNotificationPermissionStatus, sendDeviceNotification, PUSH_STATES } from '@/lib/utils/notifications'
 import NotificationPreferences from '@/components/settings/NotificationPreferences'
+import ConfirmationModal from '@/components/modals/ConfirmationModal'
 
 const PREFERENCE_ITEMS = [
   {
@@ -45,6 +46,7 @@ export default function NotificationSettings() {
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
   const [devicePermission, setDevicePermission] = useState('default')
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
 
   // Notification Preferences State (persisted in localStorage)
   const [preferences, setPreferences] = useState({
@@ -184,7 +186,11 @@ export default function NotificationSettings() {
 
   const handleClearAllNotifications = () => {
     setNotifications([])
-    toast.success('All notifications cleared')
+    setShowClearConfirm(false)
+    toast.success('All notifications cleared', { duration: 5000 })
+    // Note: this clears the locally-rendered feed for this session only.
+    // Partner love notes/nudges remain in the database and may reappear
+    // on next load, since the feed is rebuilt from partner_nudges each time.
   }
 
   const formatTime = (timeStr) => {
@@ -232,10 +238,11 @@ export default function NotificationSettings() {
             </button>
           )}
 
-          {notifications.length > 0 && (
+                  {notifications.length > 0 && (
             <button
               type="button"
-              onClick={handleClearAllNotifications}
+              // onClick={() => setShowClearConfirm(true)}
+              onClick={() => { alert('CLICKED'); setShowClearConfirm(true) }}
               className="flex-1 sm:flex-none text-xs font-semibold text-red-200 hover:text-white bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 px-3 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
             >
               <Trash2 className="w-3.5 h-3.5 text-red-300" />
@@ -244,6 +251,18 @@ export default function NotificationSettings() {
           )}
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={showClearConfirm}
+        onClose={() => setShowClearConfirm(false)}
+        onConfirm={handleClearAllNotifications}
+        title="Clear all notifications?"
+        description="This will clear your notification feed for this session. Partner love notes and alerts are not permanently deleted and may reappear on next load."
+        confirmText="Clear All"
+        cancelText="Cancel"
+        isDanger={false}
+        requireKeyword={false}
+      />
 
       {/* Device Push Permission Card */}
       <div className="p-3.5 sm:p-5 rounded-2xl bg-gradient-to-r from-rose-950/90 via-purple-950/80 to-slate-900/90 border border-rose-400/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 shadow-lg min-w-0">
