@@ -441,7 +441,7 @@ const [cycleData, setCycleData] = useState(null)
               marginBottom: '1.5rem',
             }}>
               <p style={{ color: TEXT_PRIMARY, fontSize: '0.85rem', marginBottom: 8 }}>
-                Automatic copy didn't work. Select the text below and copy it manually:
+                Automatic copy didn&apos;t work. Select the text below and copy it manually:
               </p>
               <textarea
                 readOnly
