@@ -18,6 +18,7 @@ import { useTranslations } from 'next-intl'
 import SymptomPhaseInsights from '@/components/dashboard/SymptomPhaseInsights'
 import { formatDateForCSV } from '@/lib/utils'
 import { normaliseRiskResult } from '@/lib/pcod-risk-result'
+import { copyToClipboard } from '@/lib/clipboard'
 import SectionCard, { IconBadge } from '@/components/ui/SectionCard'
 
 const WeightTrendChart = dynamic(() => import('@/components/dashboard/WeightTrendChart'), {
@@ -250,7 +251,6 @@ const [cycleData, setCycleData] = useState(null)
 
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
   const recentSymptomNames = new Set()
   dailyLogs.forEach(log => {
     if (!log || !log.date) return
@@ -271,32 +271,11 @@ const [cycleData, setCycleData] = useState(null)
 - Avg Cycle Length: ${avgCycle} Days
 - Recent PCOD Risk: ${riskLevelWord}
 - Logged Symptoms (Last 30 Days): ${recentSymptomsText}`
-
-    try {
-      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-        await navigator.clipboard.writeText(summaryText)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      } else {
-        const textArea = document.createElement('textarea')
-        textArea.value = summaryText
-        textArea.style.position = 'fixed'
-        textArea.style.left = '-999999px'
-        textArea.style.top = '-999999px'
-        document.body.appendChild(textArea)
-        textArea.focus()
-        textArea.select()
-       const successful = document.execCommand('copy')
-        document.body.removeChild(textArea)
-        if (successful) {
-          setCopied(true)
-          setTimeout(() => setCopied(false), 2000)
-        } else {
-          throw new Error('Fallback copy failed')
-        }
-      }
-   } catch (err) {
-      console.error('Could not copy summary', err)
+    const ok = await copyToClipboard(summaryText)
+    if (ok) {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } else {
       toast.error('Could not copy automatically. Please copy the text manually below.')
       setFallbackText(summaryText)
       setShowCopyFallback(true)
