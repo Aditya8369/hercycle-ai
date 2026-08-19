@@ -34,22 +34,31 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          echo "Adding ECSoC26 label to PR #$PR_NUMBER..."
-          gh pr edit "$PR_NUMBER" --add-label "ECSoC26" --repo "$GITHUB_REPOSITORY" || true
+          # Helper function to ensure label exists before applying
+          ensure_label() {
+            local label_name="$1"
+            local color="$2"
+            gh label create "$label_name" --color "$color" --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
+            gh pr edit "$PR_NUMBER" --add-label "$label_name" --repo "$GITHUB_REPOSITORY" 2>/dev/null || \
+            gh api -X POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/labels" -f "labels[]=$label_name" 2>/dev/null || true
+          }
+
+          echo "Ensuring and applying ECSoC26 label to PR #$PR_NUMBER..."
+          ensure_label "ECSoC26" "e11d48"
 
           FILES_CHANGED=$(gh pr view "$PR_NUMBER" --json files --jq '.files[].path' --repo "$GITHUB_REPOSITORY" 2>/dev/null || echo "")
 
           if echo "$FILES_CHANGED" | grep -qE "^(app/|components/|public/|messages/)"; then
-            gh pr edit "$PR_NUMBER" --add-label "frontend" --repo "$GITHUB_REPOSITORY" || true
+            ensure_label "frontend" "3b82f6"
           fi
           if echo "$FILES_CHANGED" | grep -qE "^(app/api/|lib/|supabase/)"; then
-            gh pr edit "$PR_NUMBER" --add-label "backend" --repo "$GITHUB_REPOSITORY" || true
+            ensure_label "backend" "10b981"
           fi
           if echo "$FILES_CHANGED" | grep -qE "^(docs/|\.md)"; then
-            gh pr edit "$PR_NUMBER" --add-label "documentation" --repo "$GITHUB_REPOSITORY" || true
+            ensure_label "documentation" "8b5cf6"
           fi
-          if echo "$FILES_CHANGED" | grep -qE "^(e2e/|tests/)"; then
-            gh pr edit "$PR_NUMBER" --add-label "e2e-testing" --repo "$GITHUB_REPOSITORY" || true
+          if echo "$FILES_CHANGED" | grep -qE "^(e2e/|tests/|scripts/)"; then
+            ensure_label "e2e-testing" "f59e0b"
           fi
 
       - name: Attempt Branch Sync with Main
@@ -59,9 +68,10 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           echo "Attempting branch update from main for PR #$PR_NUMBER..."
-          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/update-branch" -X PUT || true
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/update-branch" -X PUT 2>/dev/null || true
 
       - name: Post Maintainer Verification Comment
+        if: github.event.action == 'opened'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
