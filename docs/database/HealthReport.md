@@ -36,3 +36,8 @@ This report summarizes the health, security, and verification results of the dat
 * Production build `npm run build` succeeds with zero errors.
 * Obsolete Supabase Auth remnants and dead server helpers removed.
 * Centralized logger replacing console statements is operational and sanitizes sensitive credentials/personal data.
+
+### 5. Foreign Key CASCADE & Referential Integrity Audit (Pass)
+* Explicit foreign key `ON DELETE CASCADE` rules enforced across all dependent health tables (`user_profiles`, `cycles`, `daily_logs`, `weight_entries`, `challenge_progress`, `user_badges`, `user_push_subscriptions`, `pairing_attempts`).
+* Guarantees zero dangling records when parent user records are deleted or updated.
+
