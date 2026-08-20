@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 import { getAuthUserId, ensureUserExists } from '@/lib/clerk-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { crudLimiter } from '@/lib/rateLimiter'
@@ -7,17 +6,18 @@ import { CHALLENGES, MONTHLY_BADGES, getMonthKey } from '@/lib/challenges-data'
 import { resolveRequestDay, startOfMonthISO } from '@/lib/request-day'
 import { parseDateValue } from '@/lib/date-utils'
 import { calculateBestStreak } from '@/lib/challenge-streaks'
+import { jsonSuccess, jsonError } from '@/lib/api-helpers'
 
 export async function GET(request) {
   try {
     await crudLimiter.check(request)
   } catch (rateLimitError) {
-    return NextResponse.json({ success: false, message: 'Too many requests, please slow down.' }, { status: 429 })
+    return jsonError('Too many requests, please slow down.', 429)
   }
 
   try {
     const userId = await getAuthUserId()
-    if (!userId) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 })
+    if (!userId) return jsonError('Unauthorized', 401)
     await ensureUserExists(userId)
 
     // Anchor the month to the caller's calendar day.
@@ -40,7 +40,7 @@ export async function GET(request) {
 
     if (error) {
       logger.error(`Database error fetching monthly recap for user ${userId}:`, error.message)
-      return NextResponse.json({ success: false, message: error.message }, { status: 500 })
+      return jsonError(error.message, 500)
     }
 
     const rows = monthRows || []
@@ -68,13 +68,10 @@ export async function GET(request) {
     }
 
     logger.info(`Fetched monthly recap for user ${userId}, month ${monthKey}`)
-    return NextResponse.json({
-      success: true,
-      data: { monthKey, points, activeDays, totalCompletions: rows.length, badges: [...earnedThisMonth, ...toAward] },
-    })
+    return jsonSuccess({ monthKey, points, activeDays, totalCompletions: rows.length, badges: [...earnedThisMonth, ...toAward] })
   } catch (err) {
     logger.error('Error fetching monthly recap:', err.message || err)
-    return NextResponse.json({ success: false, message: `Internal Server Error: ${err.message || err}` }, { status: 500 })
+    return jsonError(`Internal Server Error: ${err.message || err}`, 500)
   }
 }
 
