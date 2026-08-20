@@ -1,5 +1,4 @@
 import { validateEnv } from "@/lib/env";
-import { NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getAuthUserId } from '@/lib/clerk-server'
 import { aiLimiter, getRateLimitIdentifier } from '@/lib/rateLimiter'
@@ -7,6 +6,7 @@ import { logger } from '@/lib/logger'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { z } from 'zod'
 import { pruneMessageHistory } from '@/lib/chat-utils';
+import { jsonSuccess, jsonError } from '@/lib/api-helpers'
 
 const TIMEOUT_MS = 6000; // 6 seconds timeout per AI attempt to keep chat snappy
 
@@ -67,7 +67,7 @@ function getSmartLocalResponse(message, language = 'en', context = {}) {
   }
 
   return isHindi
-    ? 'मैं आपके स्वास्थ्य और माहवारी से जुड़े प्रश्नों में मदद के लिए यहाँ हूँ। अपनी माहवारी के लक्षण या सुझाव के बारे में पूछें। 💕'
+    ? 'मैं आपके स्वास्थ्य और माहवारी से जुड़े प्रश्नों में मदद के लिए यहाँ हूँ। अपनी माहवारी के लक्षण या सुझाव के बारे बारे में पूछें। 💕'
     : 'I am here to support you with menstrual health, cycle tracking tips, nutrition, and symptom care. How can I help you today? 💕';
 }
 
@@ -160,17 +160,14 @@ export async function POST(request) {
     await aiLimiter.check(request);
   } catch (rateLimitError) {
     console.warn(`[Rate Limit] Chat endpoint: ${rateLimitError.message}`);
-    return NextResponse.json(
-      { success: false, error: 'Too many requests, please slow down. AI chat is rate limited.' },
-      { status: 429 }
-    );
+    return jsonError('Too many requests, please slow down. AI chat is rate limited.', 429)
   }
 
   try {
     const userId = await getAuthUserId()
     if (!userId) {
       logger.warn('Unauthenticated access attempt to AI Chat API');
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return jsonError('Unauthorized', 401)
     }
 
     let json;
@@ -178,20 +175,20 @@ export async function POST(request) {
       json = await request.json();
     } catch (parseError) {
       logger.warn(`Malformed JSON payload in AI Chat API: ${parseError.message}`);
-      return NextResponse.json({ success: false, error: 'Bad Request: Invalid JSON payload' }, { status: 400 });
+      return jsonError('Bad Request: Invalid JSON payload', 400)
     }
 
     const result = chatPayloadSchema.safeParse(json)
     if (!result.success) {
       logger.warn(`Invalid request payload on AI Chat API: ${result.error.message}`);
-      return NextResponse.json({ success: false, error: 'Bad Request', details: result.error.errors }, { status: 400 })
+      return jsonError('Bad Request', 400, null, result.error.errors)
     }
 
     const { message, context, history = [] } = result.data
     language = result.data.language || 'en'
 
     if (!message || message.trim().length === 0) {
-      return NextResponse.json({ error: "Message content cannot be empty" }, { status: 400 });
+      return jsonError("Message content cannot be empty", 400)
     }
 
     let userProfile = null;
@@ -208,7 +205,7 @@ export async function POST(request) {
     }
 
     if (userProfile && userProfile.allow_ai_analysis === false) {
-      return NextResponse.json({ success: true, response: 'Privacy mode enabled' });
+      return jsonSuccess({ response: 'Privacy mode enabled' })
     }
 
     let systemPrompt = `You are a helpful menstrual health assistant. Provide empathetic, accurate health guidance.`;
@@ -255,10 +252,10 @@ export async function POST(request) {
     }
 
     logger.info(`Successful chat assistant response generated for user ${userId}`);
-    return NextResponse.json({ success: true, response: responseText });
+    return jsonSuccess({ response: responseText })
   } catch (error) {
     logger.error('AI Chat Route Error:', error);
     const fallback = getSmartLocalResponse(json?.message || '', language, json?.context);
-    return NextResponse.json({ success: true, response: fallback });
+    return jsonSuccess({ response: fallback })
   }
 }

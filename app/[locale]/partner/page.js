@@ -323,17 +323,24 @@ export default function PartnerPage() {
                   </div>
                   <h2 className="text-lg font-semibold text-white">Today&apos;s Symptoms</h2>
                 </div>
-                {insights.symptoms && insights.symptoms.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {insights.symptoms.map((sym, i) => (
-                      <span key={i} className="bg-white/10 px-3 py-1 rounded-full text-sm text-white">
-                        {sym}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-white/50 text-sm italic">No symptoms logged today</p>
-                )}
+                {(() => {
+                  const partnerSymptoms = Array.isArray(insights?.symptoms)
+                    ? insights.symptoms
+                    : typeof insights?.symptoms === 'string' && insights.symptoms.trim()
+                      ? [insights.symptoms.trim()]
+                      : []
+                  return partnerSymptoms.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {partnerSymptoms.map((sym, i) => (
+                        <span key={i} className="bg-white/10 px-3 py-1 rounded-full text-sm text-white">
+                          {sym}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-white/50 text-sm italic">No symptoms logged today</p>
+                  )
+                })()}
               </div>
             )}
 

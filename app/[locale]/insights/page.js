@@ -177,8 +177,13 @@ const [cycleData, setCycleData] = useState(null)
   SYMPTOM_LIST.forEach(s => { symptomCounts[s] = 0 })
   dailyLogs.forEach(log => {
     if (!log) return
-    const syms = Array.isArray(log.symptoms) ? log.symptoms : []
+    const syms = Array.isArray(log.symptoms)
+      ? log.symptoms
+      : typeof log.symptoms === 'string' && log.symptoms.trim()
+        ? [log.symptoms.trim()]
+        : []
     syms.forEach(s => {
+      if (typeof s !== 'string') return
       const key = SYMPTOM_LIST.find(k => k.toLowerCase() === s.toLowerCase())
       if (key) symptomCounts[key] = (symptomCounts[key] || 0) + 1
     })
@@ -253,8 +258,13 @@ const [cycleData, setCycleData] = useState(null)
     if (!log || !log.date) return
     const logDate = new Date(log.date)
     if (isNaN(logDate.getTime()) || logDate < thirtyDaysAgo) return
-    const syms = Array.isArray(log.symptoms) ? log.symptoms : []
+    const syms = Array.isArray(log.symptoms)
+      ? log.symptoms
+      : typeof log.symptoms === 'string' && log.symptoms.trim()
+        ? [log.symptoms.trim()]
+        : []
     syms.forEach(s => {
+      if (typeof s !== 'string') return
       const key = SYMPTOM_LIST.find(k => k.toLowerCase() === s.toLowerCase())
       if (key) recentSymptomNames.add(tSymp(key))
     })
