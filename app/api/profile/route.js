@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getAuthUserId } from '@/lib/clerk-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { logger } from '@/lib/logger'
+import { jsonSuccess, jsonError } from '@/lib/api-helpers'
 
 const profileSchema = z.object({
   age: z
@@ -46,7 +46,7 @@ export async function GET(request) {
   try {
     const userId = await getAuthUserId()
     if (!userId) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return jsonError('Unauthorized', 401)
     }
 
     const supabase = getSupabaseAdmin()
@@ -58,13 +58,13 @@ export async function GET(request) {
 
     if (error) {
       logger.error('Error fetching user profile:', error)
-      return NextResponse.json({ success: false, error: 'Database error' }, { status: 500 })
+      return jsonError('Database error', 500)
     }
 
-    return NextResponse.json({ success: true, profile: data || {} }, { status: 200 })
+    return jsonSuccess({ profile: data || {}, ...(data || {}) })
   } catch (err) {
     logger.error('Profile GET error:', err)
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 })
+    return jsonError('Internal Server Error', 500)
   }
 }
 
@@ -72,7 +72,7 @@ export async function POST(request) {
   try {
     const userId = await getAuthUserId()
     if (!userId) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return jsonError('Unauthorized', 401)
     }
 
     let body
@@ -80,20 +80,17 @@ export async function POST(request) {
       body = await request.json()
     } catch (parseError) {
       logger.warn(`Malformed JSON payload in profile POST: ${parseError.message}`)
-      return NextResponse.json({ success: false, error: 'Bad Request: Invalid JSON payload' }, { status: 400 })
+      return jsonError('Bad Request: Invalid JSON payload', 400)
     }
 
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
-      return NextResponse.json({ success: false, error: 'Invalid payload' }, { status: 400 })
+      return jsonError('Invalid payload', 400)
     }
 
     const parseResult = profileSchema.safeParse(body)
     if (!parseResult.success) {
       const firstIssue = parseResult.error.issues[0]
-      return NextResponse.json(
-        { success: false, error: firstIssue?.message || 'Invalid payload' },
-        { status: 400 }
-      )
+      return jsonError(firstIssue?.message || 'Invalid payload', 400)
     }
 
     const validatedData = parseResult.data
@@ -117,15 +114,15 @@ export async function POST(request) {
 
     if (error) {
       logger.error('Error saving user profile:', error)
-      return NextResponse.json({ success: false, error: 'Database error' }, { status: 500 })
+      return jsonError('Database error', 500)
     }
 
     const savedProfile = Array.isArray(data) ? (data[0] || profileRecord) : (data || profileRecord)
 
-    return NextResponse.json({ success: true, profile: savedProfile }, { status: 200 })
+    return jsonSuccess({ profile: savedProfile, ...savedProfile })
   } catch (err) {
     logger.error('Profile POST error:', err)
-    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 })
+    return jsonError('Internal Server Error', 500)
   }
 }
 

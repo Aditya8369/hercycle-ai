@@ -35,6 +35,7 @@ import {
   describePattern,
   gradeConfidence,
   normaliseSymptomName,
+  normalizeSymptomsList,
   toDisplayName,
 } from '../lib/symptom-correlation.js'
 
@@ -125,6 +126,16 @@ section('symptom name normalisation')
   check(toDisplayName('cramps'), 'Cramps', 'display form is title-cased')
   check(toDisplayName('back pain'), 'Back Pain', 'every word is title-cased')
   check(toDisplayName(''), '', 'an empty name has an empty display form')
+
+  // normalizeSymptomsList normalises non-array inputs into valid string arrays
+  checkDeep(normalizeSymptomsList(['Cramps', 'Headache']), ['Cramps', 'Headache'], 'arrays pass through')
+  checkDeep(normalizeSymptomsList('Cramps'), ['Cramps'], 'single string is wrapped in an array')
+  checkDeep(normalizeSymptomsList('Cramps, Headache'), ['Cramps', 'Headache'], 'comma-separated string is split')
+  checkDeep(normalizeSymptomsList('["Cramps", "Headache"]'), ['Cramps', 'Headache'], 'JSON array string is parsed')
+  checkDeep(normalizeSymptomsList('{Cramps,Headache}'), ['Cramps', 'Headache'], 'Postgres array string is parsed')
+  checkDeep(normalizeSymptomsList(null), [], 'null returns empty array')
+  checkDeep(normalizeSymptomsList(undefined), [], 'undefined returns empty array')
+  checkDeep(normalizeSymptomsList(123), [], 'number returns empty array')
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -453,8 +464,15 @@ section('empty and degenerate inputs')
   const nulls = analyseSymptomPhases(null, null)
   check(nulls.totalDays, 0, 'null inputs are handled without throwing')
 
+  const singleString = analyseSymptomPhases(
+    [{ date: '2026-07-02', symptoms: 'Cramps' }],
+    CYCLES
+  )
+  check(singleString.totalDays, 1, 'single string symptoms field counts as exposure')
+  check(singleString.symptoms[0].symptom, 'cramps', 'a single string symptoms field is parsed into a valid symptom')
+
   const junkSymptoms = analyseSymptomPhases(
-    [{ date: '2026-07-02', symptoms: 'Cramps' }, { date: '2026-07-03', symptoms: [null, 7, ''] }],
+    [{ date: '2026-07-02', symptoms: 123 }, { date: '2026-07-03', symptoms: [null, 7, ''] }],
     CYCLES
   )
   check(
