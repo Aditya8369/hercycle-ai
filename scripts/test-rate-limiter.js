@@ -278,6 +278,24 @@ check(consume('user:boundary', { limit: 1, intervalMs: testInterval, now: baseTi
 check(consume('user:boundary', { limit: 1, intervalMs: testInterval, now: baseTime + testInterval }).allowed, true, 'request exactly at window reset is allowed')
 
 // ───────────────────────────────────────────────────────────────────────────
+section('aiLimiter (20 msgs / 5 min) sliding window rate limiting')
+
+resetInMemoryRateLimits()
+const aiUserKey = 'ai:user_ai_test_caller'
+const fiveMinMs = 5 * 60 * 1000
+
+// 20 requests allowed
+for (let i = 1; i <= 20; i++) {
+  const res = consume(aiUserKey, { limit: 20, intervalMs: fiveMinMs })
+  check(res.allowed, true, `AI request ${i} of 20 allowed within 5 min window`)
+}
+
+// 21st request rejected
+const breachRes = consume(aiUserKey, { limit: 20, intervalMs: fiveMinMs })
+check(breachRes.allowed, false, 'AI request 21 rejected after breaching 20 msg threshold')
+check(breachRes.remaining, 0, 'Remaining count is 0 when rate limit exceeded')
+
+// ───────────────────────────────────────────────────────────────────────────
 if (failed > 0) {
   console.error(`\n❌ ${failed} assertion(s) failed, ${passed} passed.`)
   process.exit(1)

@@ -157,13 +157,10 @@ export async function POST(request) {
   // ============ RATE LIMITING ============
   try {
     const identifier = await getRateLimitIdentifier(request);
-    await aiLimiter.check(request);
+    await aiLimiter.check(request, identifier);
   } catch (rateLimitError) {
     console.warn(`[Rate Limit] Chat endpoint: ${rateLimitError.message}`);
-    return NextResponse.json(
-      { success: false, error: 'Too many requests, please slow down. AI chat is rate limited.' },
-      { status: 429 }
-    );
+    return jsonError('Too many requests, please slow down. AI chat is rate limited.', 429);
   }
 
   try {
