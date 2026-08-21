@@ -1,6 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { aiLimiter, getRateLimitIdentifier } from '@/lib/rateLimiter'
+import { jsonError } from '@/lib/api-helpers'
 
 const COACH_FALLBACKS = {
   Menstrual: "Her energy is naturally low during the menstrual phase. Bring her a warm heating pad, prepare herbal chamomile tea, and take care of heavy chores so she can rest.",
@@ -45,10 +47,20 @@ Guidelines:
 }
 
 export async function POST(req) {
+  // ============ RATE LIMITING ============
+  try {
+    const identifier = await getRateLimitIdentifier(req);
+    await aiLimiter.check(req, identifier);
+  } catch (rateLimitError) {
+    console.warn(`[Rate Limit] Partner coach endpoint: ${rateLimitError.message}`);
+    return jsonError('Too many requests, please slow down. AI partner coach is rate limited.', 429);
+  }
+  // =======================================
+
   try {
     const { userId } = await auth()
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return jsonError('Unauthorized', 401)
     }
 
     let parsedBody;
