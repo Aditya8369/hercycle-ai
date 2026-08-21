@@ -1,6 +1,8 @@
 import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { aiLimiter, getRateLimitIdentifier } from '@/lib/rateLimiter'
+import { jsonError } from '@/lib/api-helpers'
 
 const COACH_FALLBACKS = {
   Menstrual: "Her energy is naturally low during the menstrual phase. Bring her a warm heating pad, prepare herbal chamomile tea, and take care of heavy chores so she can rest.",
@@ -9,8 +11,14 @@ const COACH_FALLBACKS = {
   Luteal: "Progesterone is high, which can cause fatigue, bloating, or emotional sensitivity. Be extra patient, offer soothing hugs, and avoid overwhelming plans."
 }
 
-async function callGeminiCoach(query, phase, cycleDay, symptoms, history = []) {
+async function callGeminiCoach(query, phase, cycleDay, rawSymptoms, history = []) {
   if (!process.env.GEMINI_API_KEY) return null
+
+  const safeSymptoms = Array.isArray(rawSymptoms)
+    ? rawSymptoms.filter((s) => typeof s === 'string' && s.trim())
+    : typeof rawSymptoms === 'string' && rawSymptoms.trim()
+      ? [rawSymptoms.trim()]
+      : []
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
@@ -20,7 +28,7 @@ async function callGeminiCoach(query, phase, cycleDay, symptoms, history = []) {
 Current Context:
 - Cycle Phase: ${phase}
 - Cycle Day: ${cycleDay}
-- Active Symptoms: ${symptoms.length > 0 ? symptoms.join(', ') : 'None reported'}
+- Active Symptoms: ${safeSymptoms.length > 0 ? safeSymptoms.join(', ') : 'None reported'}
 
 Guidelines:
 - Provide concise (2-4 sentences max), warm, actionable, and supportive advice tailored for a partner.
@@ -39,10 +47,20 @@ Guidelines:
 }
 
 export async function POST(req) {
+  // ============ RATE LIMITING ============
+  try {
+    const identifier = await getRateLimitIdentifier(req);
+    await aiLimiter.check(req, identifier);
+  } catch (rateLimitError) {
+    console.warn(`[Rate Limit] Partner coach endpoint: ${rateLimitError.message}`);
+    return jsonError('Too many requests, please slow down. AI partner coach is rate limited.', 429);
+  }
+  // =======================================
+
   try {
     const { userId } = await auth()
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return jsonError('Unauthorized', 401)
     }
 
     let parsedBody;
@@ -54,10 +72,16 @@ export async function POST(req) {
     }
     const { phase = 'Follicular', cycleDay = 1, symptoms = [], query = '' } = parsedBody
 
+    const safeSymptoms = Array.isArray(symptoms)
+      ? symptoms.filter((s) => typeof s === 'string' && s.trim())
+      : typeof symptoms === 'string' && symptoms.trim()
+        ? [symptoms.trim()]
+        : []
+
     // 1. Initial Briefing request (no query)
     if (!query || !query.trim()) {
       const defaultBriefing = COACH_FALLBACKS[phase] || COACH_FALLBACKS.Follicular
-      const extraSymptoms = symptoms.length > 0 ? ` Active symptoms logged today: ${symptoms.join(', ')}.` : ''
+      const extraSymptoms = safeSymptoms.length > 0 ? ` Active symptoms logged today: ${safeSymptoms.join(', ')}.` : ''
       return NextResponse.json({
         reply: `${defaultBriefing}${extraSymptoms}`,
         phase,
@@ -66,7 +90,7 @@ export async function POST(req) {
     }
 
     // 2. Chatbot Question: Attempt Gemini AI
-    const geminiReply = await callGeminiCoach(query, phase, cycleDay, symptoms)
+    const geminiReply = await callGeminiCoach(query, phase, cycleDay, safeSymptoms)
     if (geminiReply) {
       return NextResponse.json({ reply: geminiReply, phase, cycleDay })
     }

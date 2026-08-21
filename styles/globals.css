@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* High Contrast Theme Overrides */
+html.high-contrast {
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+}
+
+html.high-contrast body {
+  background-color: #000000;
+  color: #FFFFFF;
+}
+
+html.high-contrast a, 
+html.high-contrast button {
+  outline: 2px solid transparent;
+}
+
+html.high-contrast button:focus-visible, 
+html.high-contrast a:focus-visible {
+  outline: 3px solid #FFFF00 !important;
+  outline-offset: 2px;
+}
+
+html.high-contrast .bg-white, 
+html.high-contrast .bg-gray-50, 
+html.high-contrast .bg-gray-900 {
+  background-color: #121212 !important;
+  border-color: #FFFFFF !important;
+  color: #FFFFFF !important;
+}
