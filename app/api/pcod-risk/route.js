@@ -11,7 +11,6 @@ import {
   riskUnavailable,
 } from '@/lib/pcod-risk-result'
 
-
 export async function GET(request) {
   // ============ RATE LIMITING ============
   try {
@@ -40,7 +39,15 @@ export async function GET(request) {
     const cachedRisk = pcodRiskCache.get(cacheKey);
     if (cachedRisk !== undefined) {
       logger.info(`Cache hit for PCOD risk assessment for user ${userId}`);
-      return NextResponse.json({ success: true, data: cachedRisk })
+      return NextResponse.json(
+        { success: true, data: cachedRisk },
+        {
+          status: 200,
+          headers: {
+            'Cache-Control': 'private, max-age=120, stale-while-revalidate=300',
+          },
+        }
+      )
     }
 
     const supabaseAdmin = getSupabaseAdmin()
@@ -51,10 +58,6 @@ export async function GET(request) {
       .order('start_date', { ascending: false })
       .limit(12)
 
-    // A failed query must not fall through. `cycles || []` reads as "no
-    // history", and calculatePCODRisk answers "no history" with a score of 0 /
-    // LOW RISK — so a transient database error used to be reported as a
-    // genuine, reassuring assessment, and then cached for five minutes.
     if (cyclesError) {
       logger.error(`Database error fetching cycles for user ${userId} PCOD risk:`, cyclesError.message);
       return NextResponse.json(
@@ -80,9 +83,6 @@ export async function GET(request) {
 
     const risk = normaliseRiskResult(await calculatePCODRisk(cycles || [], logs || []))
 
-    // The ML microservice is allowed to answer instead of the rule-based
-    // engine, so the shape is verified rather than assumed. An unrecognisable
-    // payload is a failure, not a low-risk reading.
     if (!risk) {
       logger.error(`PCOD risk calculation returned an unusable result for user ${userId}`);
       return NextResponse.json(
@@ -91,19 +91,20 @@ export async function GET(request) {
       )
     }
 
-    // Only a real computation is cached. Caching a failure would serve it back
-    // without touching the database for the next five minutes.
+    // Only a real computation is cached.
     pcodRiskCache.set(cacheKey, risk);
 
     logger.info(`Successfully calculated PCOD risk assessment for user ${userId}`);
-    return NextResponse.json({ success: true, data: risk })
+    return NextResponse.json(
+      { success: true, data: risk },
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'private, max-age=120, stale-while-revalidate=300',
+        },
+      }
+    )
   } catch (error) {
-    // No fabricated `data` here. The previous implementation returned a
-    // hard-coded score of 25 and the tier "LOW RISK" with HTTP 200, which the
-    // UI could not distinguish from a real assessment.
-    //
-    // The exception text stays in the log rather than being echoed to the
-    // client, where it leaked Postgres error strings and connection details.
     logger.error('Error calculating PCOD risk:', error.message || error)
     return NextResponse.json(
       riskUnavailable(RISK_UNAVAILABLE_REASONS.BACKEND),
