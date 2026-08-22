@@ -34,7 +34,7 @@ jobs:
         run: corepack enable
 
       - name: Install dependencies
-  run: yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile
 
       - name: Provide placeholder env for CI when secrets are missing
         shell: bash
