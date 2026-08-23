@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { eventBus } from '@/lib/events'
 import { pcodRiskCache } from '@/lib/cache'
 import { endsOnOrAfterStart, isoCalendarDate, optionalIsoCalendarDate } from '@/lib/date-schemas'
-import { jsonSuccess, jsonError } from '@/lib/api-helpers'
+import { jsonSuccess, jsonError, getPaginationParams, formatPaginatedResponse } from '@/lib/api-helpers'
 
 /**
  * Physiologically valid cycle length: 15–90 days covers all clinical edge cases
@@ -44,7 +44,7 @@ const cyclePatchSchema = z
     { message: 'end_date must be on or after start_date', path: ['end_date'] }
   );
 
-  /**
+/**
  * Maps a Postgres CHECK constraint violation (code 23514) to a clean,
  * user-facing message. Falls back to the raw error for anything else.
  */
@@ -80,21 +80,55 @@ export async function GET(request) {
 
     await ensureUserExists(userId)
 
+    const url = new URL(request.url)
+    const { limit, cursor } = getPaginationParams(url.searchParams, 12, 100)
+
     const supabaseAdmin = getSupabaseAdmin()
-    const { data: cycles, error } = await supabaseAdmin
+
+    // Query total count for metadata tracking
+    const { count: totalCount, error: countError } = await supabaseAdmin
+      .from('cycles')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+
+    if (countError) {
+      logger.error(`Error counting cycles for user ${userId}:`, countError.message);
+    }
+
+    let query = supabaseAdmin
       .from('cycles')
       .select('*')
       .eq('user_id', userId)
       .order('start_date', { ascending: false })
-      .limit(12)
+      .order('id', { ascending: false })
+      .limit(limit)
+
+    if (cursor) {
+      // Decode cursor assuming format: `${start_date}_${id}` or similar composite cursor
+      const [cursorDate, cursorId] = cursor.split('_')
+      if (cursorDate && cursorId) {
+        query = query.or(`start_date.lt.${cursorDate},and(start_date.eq.${cursorDate},id.lt.${cursorId})`)
+      }
+    }
+
+    const { data: cycles, error } = await query
 
     if (error && error.code !== 'PGRST116') {
       logger.error(`Error querying cycles for user ${userId}:`, error.message);
       return jsonSuccess({ cycles: [], nextPeriodDate: null, confidence: null, averageCycleLength: 28 })
     }
 
-    logger.info(`Successfully fetched cycles for user ${userId}`);
-    return jsonSuccess({ cycles: cycles || [] })
+    const rows = cycles || []
+    logger.info(`Successfully fetched ${rows.length} cycles for user ${userId}`);
+
+    const paginatedResult = formatPaginatedResponse(
+      rows,
+      limit,
+      totalCount || rows.length,
+      (item) => `${item.start_date}_${item.id}`
+    )
+
+    return NextResponse.json(paginatedResult, { status: 200 })
   } catch (error) {
     logger.error('Error fetching cycles:', error.message || error);
     return jsonError(`Failed to fetch cycles: ${error.message || error}`, 500)
