@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { eventBus } from '@/lib/events'
 import { isoCalendarDate } from '@/lib/date-schemas'
 import { sanitizeSymptomList, sanitizeText, getPaginationParams, formatPaginatedResponse } from '@/lib/api-helpers'
+import { pcodRiskCache } from '@/lib/cache'
 
 const logPostSchema = z.object({
   // Shape alone is not enough: the old `/^\d{4}-\d{2}-\d{2}$/` accepted
@@ -209,7 +210,14 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: `Failed to log day: ${error.message}` }, { status: 500 })
     }
 
-    logger.info(`Successfully upserted daily log for user ${userId}`);
+       logger.info(`Successfully upserted daily log for user ${userId}`);
+
+    // Daily logs (symptoms) feed into the PCOD risk calculation alongside
+    // cycles, so a new log must invalidate the cache the same way cycle
+    // updates already do — otherwise a freshly-logged symptom can be
+    // invisible to the risk score for up to the cache's 120s TTL.
+    pcodRiskCache.invalidate(`pcod-risk:${userId}`);
+    pcodRiskCache.invalidate(userId);
 
     // Emit event for daily logs update
     eventBus.emit('daily_logs:updated', { userId });
