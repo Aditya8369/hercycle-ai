@@ -210,7 +210,14 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: `Failed to log day: ${error.message}` }, { status: 500 })
     }
 
-    logger.info(`Successfully upserted daily log for user ${userId}`);
+       logger.info(`Successfully upserted daily log for user ${userId}`);
+
+    // Daily logs (symptoms) feed into the PCOD risk calculation alongside
+    // cycles, so a new log must invalidate the cache the same way cycle
+    // updates already do — otherwise a freshly-logged symptom can be
+    // invisible to the risk score for up to the cache's 120s TTL.
+    pcodRiskCache.invalidate(`pcod-risk:${userId}`);
+    pcodRiskCache.invalidate(userId);
 
     // Invalidate cached PCOD risk calculation immediately when new daily logs are submitted
     if (typeof pcodRiskCache.invalidatePattern === 'function') {
