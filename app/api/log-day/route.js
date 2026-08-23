@@ -219,6 +219,13 @@ export async function POST(request) {
     pcodRiskCache.invalidate(`pcod-risk:${userId}`);
     pcodRiskCache.invalidate(userId);
 
+    // Invalidate cached PCOD risk calculation immediately when new daily logs are submitted
+    if (typeof pcodRiskCache.invalidatePattern === 'function') {
+      pcodRiskCache.invalidatePattern(`pcod-risk:${userId}`);
+    } else {
+      pcodRiskCache.invalidate(`pcod-risk:${userId}`);
+    }
+
     // Emit event for daily logs update
     eventBus.emit('daily_logs:updated', { userId });
 
