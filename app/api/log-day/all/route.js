@@ -58,7 +58,9 @@ export async function GET(request) {
         page,
         limit,
         total: count ?? null,
+        totalCount: count ?? null,
         hasMore: count != null ? from + limit < count : (data || []).length === limit,
+        nextCursor: count != null && from + limit < count ? page + 1 : null,
       },
     })
   } catch (error) {

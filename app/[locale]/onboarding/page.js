@@ -93,11 +93,11 @@ export default function OnboardingPage() {
           ) : (
             <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="text-center">
-                <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-4">
-                  <Users className="w-8 h-8 text-purple-300" />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                  <Users className="w-7 h-7 sm:w-8 sm:h-8 text-purple-300" />
                 </div>
-                <h2 className="text-xl font-bold text-white">Enter Pairing Code</h2>
-                <p className="text-sm text-white/70 mt-1">Ask your partner to generate a 12-character code in their Settings.</p>
+                <h2 className="text-lg sm:text-xl font-bold text-white">Enter Pairing Code</h2>
+                <p className="text-xs sm:text-sm text-white/70 mt-1">Ask your partner to generate a 12-character code in their Settings.</p>
               </div>
 
               <div>
@@ -112,23 +112,23 @@ export default function OnboardingPage() {
                     setPairingCode(value);
                   }}
                   placeholder="e.g. A1B2C3D4E5F6"
-                  className="w-full bg-black/20 border border-white/20 rounded-xl px-4 py-3 text-white text-center text-2xl tracking-widest uppercase focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 placeholder:text-white/20 placeholder:tracking-normal placeholder:text-base"
+                  className="w-full bg-black/20 border border-white/20 rounded-xl px-3 py-2.5 sm:px-4 sm:py-3 text-white text-center text-lg sm:text-2xl tracking-wider sm:tracking-widest uppercase focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 placeholder:text-white/20 placeholder:tracking-normal placeholder:text-sm sm:placeholder:text-base"
                   maxLength={12}
                 />
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-2 sm:gap-3 pt-2">
                 <button
                   onClick={() => setSelectedRole(null)}
                   disabled={isLoading}
-                  className="flex-1 px-4 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors text-sm font-semibold disabled:opacity-50"
+                  className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors text-xs sm:text-sm font-semibold disabled:opacity-50"
                 >
                   Back
                 </button>
                 <button
                   onClick={handleJoinPartner}
                   disabled={isLoading || pairingCode.length !== 12}
-                  className="flex-[2] flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white transition-all text-sm font-semibold disabled:opacity-50"
+                  className="flex-[2] flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white transition-all text-xs sm:text-sm font-semibold disabled:opacity-50"
                 >
                   {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
                   Connect Account

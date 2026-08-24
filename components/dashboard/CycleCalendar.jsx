@@ -46,6 +46,7 @@ export default function CycleCalendar({
   currentMonth = '',
   onPrevMonth = () => {},
   onNextMonth = () => {},
+  onToday = () => {},
   averageCycleLength = 28,
   daysUntilNext = null,
   onDayClick = () => {},
@@ -127,9 +128,27 @@ export default function CycleCalendar({
     <div className="cycle-card glass">
       <div className="cycle-card-header">
         <h3>{currentMonth}</h3>
-        <div className="month-nav">
-          <button onClick={onPrevMonth} aria-label="Previous month">‹</button>
-          <button onClick={onNextMonth} aria-label="Next month">›</button>
+        <div className="month-nav" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button 
+            type="button"
+            onClick={onToday} 
+            aria-label="Jump to current month"
+            style={{
+              padding: '4px 10px',
+              fontSize: '0.75rem',
+              fontWeight: '600',
+              borderRadius: '9999px',
+              background: 'rgba(232, 82, 126, 0.15)',
+              border: '1px solid rgba(232, 82, 126, 0.35)',
+              color: 'var(--foreground, #fff)',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+          >
+            Today
+          </button>
+          <button type="button" onClick={onPrevMonth} aria-label="Previous month">‹</button>
+          <button type="button" onClick={onNextMonth} aria-label="Next month">›</button>
         </div>
       </div>
 

@@ -13,7 +13,11 @@ const suites = [
   { id: 4, name: 'Suite 4: Health Insights, Analytics & Data Export', file: 'suite4_insights_analytics.test.mjs' },
   { id: 5, name: 'Suite 5: Daily Challenges, Badges & Monthly Recap', file: 'suite5_challenges_badges.test.mjs' },
   { id: 6, name: 'Suite 6: Partner Companion, Daily Care Quests & RBAC Flow', file: 'suite6_partner_quests_rbac.test.mjs' },
-  { id: 7, name: 'Suite 7: Internationalization (i18n) Parity & Algorithm Edge Cases', file: 'suite7_i18n_resilience_edgecases.test.mjs' }
+  { id: 7, name: 'Suite 7: Internationalization (i18n) Parity & Algorithm Edge Cases', file: 'suite7_i18n_resilience_edgecases.test.mjs' },
+  { id: 8, name: 'Suite 8: Markdown Live Editor & Draft Autosave', file: 'suite8_markdown_drafts.test.mjs' },
+  { id: 9, name: 'Suite 9: GDPR-Compliant Data Export & Deletion Tool', file: 'suite9_privacy_gdpr.test.mjs' },
+  { id: 10, name: 'Suite 10: OAuth 2.0 Provider Management Dashboard', file: 'suite10_oauth_dashboard.test.mjs' },
+  { id: 11, name: 'Suite 11: Multi-Language Calendar Integration & Custom Events', file: 'suite11_multilang_calendar.test.mjs' }
 ];
 
 function isServerRunning(port = 3000) {
