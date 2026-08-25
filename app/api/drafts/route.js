@@ -51,6 +51,7 @@ export async function POST(req) {
     }
 
     const { title = '', content = '', categoryId = '', draftType = 'forum_post' } = body;
+    const sanitizedCategoryId = (typeof categoryId === 'string' && categoryId.trim()) ? categoryId.trim() : null;
 
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
@@ -58,9 +59,9 @@ export async function POST(req) {
       .upsert({
         user_id: userId,
         draft_type: draftType,
-        title,
-        content,
-        category_id: categoryId,
+        title: typeof title === 'string' ? title : '',
+        content: typeof content === 'string' ? content : '',
+        category_id: sanitizedCategoryId,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' })
       .select()
