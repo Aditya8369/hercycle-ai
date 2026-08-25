@@ -305,6 +305,7 @@ export default function MarkdownEditor({
             onClick={() => applyFormat('bold')}
             className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
             title="Bold (**text**)"
+            aria-label="Format as bold"
           >
             <Bold size={16} />
           </button>
@@ -313,6 +314,7 @@ export default function MarkdownEditor({
             onClick={() => applyFormat('italic')}
             className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
             title="Italic (*text*)"
+            aria-label="Format as italic"
           >
             <Italic size={16} />
           </button>
@@ -321,6 +323,7 @@ export default function MarkdownEditor({
             onClick={() => applyFormat('strikethrough')}
             className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
             title="Strikethrough (~~text~~)"
+            aria-label="Format as strikethrough"
           >
             <Strikethrough size={16} />
           </button>
@@ -332,6 +335,7 @@ export default function MarkdownEditor({
             onClick={() => applyFormat('h1')}
             className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors"
             title="Heading 1 (#)"
+            aria-label="Heading level 1"
           >
             <Heading1 size={16} />
           </button>
@@ -340,6 +344,7 @@ export default function MarkdownEditor({
             onClick={() => applyFormat('h2')}
             className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors"
             title="Heading 2 (##)"
+            aria-label="Heading level 2"
           >
             <Heading2 size={16} />
           </button>
@@ -348,6 +353,7 @@ export default function MarkdownEditor({
             onClick={() => applyFormat('h3')}
             className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs transition-colors"
             title="Heading 3 (###)"
+            aria-label="Heading level 3"
           >
             <Heading3 size={16} />
           </button>
@@ -359,6 +365,7 @@ export default function MarkdownEditor({
             onClick={() => applyFormat('bullet')}
             className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
             title="Bullet List (-)"
+            aria-label="Insert bullet list"
           >
             <List size={16} />
           </button>
@@ -367,6 +374,7 @@ export default function MarkdownEditor({
             onClick={() => applyFormat('numbered')}
             className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
             title="Numbered List (1.)"
+            aria-label="Insert numbered list"
           >
             <ListOrdered size={16} />
           </button>
@@ -375,6 +383,7 @@ export default function MarkdownEditor({
             onClick={() => applyFormat('quote')}
             className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
             title="Blockquote (>)"
+            aria-label="Insert blockquote"
           >
             <Quote size={16} />
           </button>
@@ -386,6 +395,7 @@ export default function MarkdownEditor({
             onClick={() => applyFormat('code')}
             className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
             title="Code Block (```)"
+            aria-label="Insert code block"
           >
             <Code size={16} />
           </button>
@@ -394,6 +404,7 @@ export default function MarkdownEditor({
             onClick={() => applyFormat('link')}
             className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
             title="Insert Link ([title](url))"
+            aria-label="Insert markdown link"
           >
             <LinkIcon size={16} />
           </button>
@@ -402,6 +413,7 @@ export default function MarkdownEditor({
             onClick={() => applyFormat('table')}
             className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors"
             title="Insert Table"
+            aria-label="Insert markdown table"
           >
             <TableIcon size={16} />
           </button>
@@ -436,6 +448,7 @@ export default function MarkdownEditor({
               onClick={clearDraft}
               className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded transition-colors"
               title="Discard draft"
+              aria-label="Discard draft"
             >
               <Trash2 size={15} />
             </button>
@@ -454,6 +467,7 @@ export default function MarkdownEditor({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
               title="Edit Mode"
+              aria-label="Switch to edit mode"
             >
               <Edit3 size={13} />
               <span className="hidden sm:inline">Write</span>
@@ -468,6 +482,7 @@ export default function MarkdownEditor({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
               title="Side-by-side Live Preview"
+              aria-label="Switch to split edit and preview mode"
             >
               <Columns size={13} />
               <span className="hidden sm:inline">Split</span>
@@ -482,6 +497,7 @@ export default function MarkdownEditor({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
               title="Preview Only"
+              aria-label="Switch to preview only mode"
             >
               <Eye size={13} />
               <span className="hidden sm:inline">Preview</span>
