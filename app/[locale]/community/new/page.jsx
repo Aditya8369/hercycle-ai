@@ -15,7 +15,8 @@ import Footer from '@/components/layout/Footer';
 import MarkdownEditor from '@/components/editor/MarkdownEditor';
 
 export default function NewPostPage({ params }) {
-  const { locale } = React.use(params);
+  const resolvedParams = params && typeof params.then === 'function' ? React.use(params) : (params || {});
+  const locale = resolvedParams.locale || 'en';
   const t = useTranslations('Community');
   const router = useRouter();
   const searchParams = useSearchParams();

@@ -4,7 +4,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 
 export default function MarkdownRenderer({ content, className = '' }) {
-  if (!content || !content.trim()) {
+  if (!content || typeof content !== 'string' || !content.trim()) {
     return (
       <div className="text-slate-400 dark:text-slate-500 italic text-sm py-4">
         Nothing to preview yet. Start typing on the left...

@@ -51,16 +51,19 @@ export async function POST(req) {
     }
 
     const { title = '', content = '', categoryId = '', draftType = 'forum_post' } = body;
+    const ALLOWED_DRAFT_TYPES = ['forum_post', 'comment', 'article'];
+    const validDraftType = (typeof draftType === 'string' && ALLOWED_DRAFT_TYPES.includes(draftType)) ? draftType : 'forum_post';
+    const sanitizedCategoryId = (typeof categoryId === 'string' && categoryId.trim()) ? categoryId.trim() : null;
 
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .from('user_drafts')
       .upsert({
         user_id: userId,
-        draft_type: draftType,
-        title,
-        content,
-        category_id: categoryId,
+        draft_type: validDraftType,
+        title: typeof title === 'string' ? title : '',
+        content: typeof content === 'string' ? content : '',
+        category_id: sanitizedCategoryId,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' })
       .select()
