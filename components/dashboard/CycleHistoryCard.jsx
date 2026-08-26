@@ -9,16 +9,20 @@ export default function CycleHistoryCard({ cycleData }) {
   const t = useTranslations('CycleHistory');
   const [filter, setFilter] = useState('All');
   
-  const cycles = cycleData?.cycles || [];
+  const cycles = Array.isArray(cycleData?.cycles) ? cycleData.cycles : [];
   
-  // Sort cycles by start_date descending
-  const sortedCycles = [...cycles].sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+  // Sort valid cycles by start_date descending
+  const sortedCycles = [...cycles]
+    .filter(cycle => cycle && cycle.start_date && !Number.isNaN(new Date(cycle.start_date).getTime()))
+    .sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
   
   // Group by year
   const groupedCycles = sortedCycles.reduce((acc, cycle) => {
     const year = new Date(cycle.start_date).getFullYear();
-    if (!acc[year]) acc[year] = [];
-    acc[year].push(cycle);
+    if (Number.isFinite(year)) {
+      if (!acc[year]) acc[year] = [];
+      acc[year].push(cycle);
+    }
     return acc;
   }, {});
 

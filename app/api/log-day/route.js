@@ -6,7 +6,8 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { eventBus } from '@/lib/events'
 import { isoCalendarDate } from '@/lib/date-schemas'
-import { sanitizeSymptomList, sanitizeText } from '@/lib/api-helpers'
+import { sanitizeSymptomList, sanitizeText, getPaginationParams, formatPaginatedResponse } from '@/lib/api-helpers'
+import { pcodRiskCache } from '@/lib/cache'
 
 const logPostSchema = z.object({
   // Shape alone is not enough: the old `/^\d{4}-\d{2}-\d{2}$/` accepted
@@ -20,7 +21,7 @@ const logPostSchema = z.object({
   encrypted_data: z.any().optional()
 })
 
-// GET /api/log-day?date=... — fetch a single day's log
+// GET /api/log-day — fetch a single day's log (via ?date=...) or paginated lists of daily logs
 export async function GET(request) {
   // ============ RATE LIMITING ============
   try {
@@ -43,39 +44,93 @@ export async function GET(request) {
 
     await ensureUserExists(userId)
 
-    const { searchParams } = new URL(request.url)
-    const date = searchParams.get('date')
-
-    if (!date) {
-      return NextResponse.json({ success: false, message: 'Bad Request: Missing date.' }, { status: 400 })
-    }
+    const url = new URL(request.url)
+    const dateParam = url.searchParams.get('date')
 
     const supabaseAdmin = getSupabaseAdmin()
-    const { data, error } = await supabaseAdmin
+
+    // If a specific date is requested, retain single-item lookup behavior
+    if (dateParam) {
+      const { data, error } = await supabaseAdmin
+        .from('daily_logs')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('date', dateParam)
+        .maybeSingle()
+
+      if (error) {
+        logger.error(`Database error fetching daily log for user ${userId}:`, error.message);
+        return NextResponse.json({ success: false, message: error.message }, { status: 500 })
+      }
+
+      logger.info(`Successfully fetched daily log for user ${userId}`);
+      // Re-sanitize on the way out too, so rows written before this endpoint
+      // enforced sanitization can't still surface raw markup to the client.
+      const safeData = data
+        ? {
+            ...data,
+            symptoms: sanitizeSymptomList(data.symptoms),
+            mood: data.mood ? sanitizeText(data.mood) : data.mood,
+            flow: data.flow ? sanitizeText(data.flow) : data.flow,
+            cervical_discharge: data.cervical_discharge ? sanitizeText(data.cervical_discharge) : data.cervical_discharge,
+          }
+        : null
+      return NextResponse.json({ success: true, data: safeData })
+    }
+
+    // Otherwise, support paginated multi-record fetching via Issue #590 requirements
+    const { limit, cursor } = getPaginationParams(url.searchParams, 30, 100)
+
+    const { count: totalCount, error: countError } = await supabaseAdmin
+      .from('daily_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+
+    if (countError) {
+      logger.error(`Error counting daily logs for user ${userId}:`, countError.message);
+    }
+
+    let query = supabaseAdmin
       .from('daily_logs')
       .select('*')
       .eq('user_id', userId)
-      .eq('date', date)
-      .maybeSingle()
+      .order('date', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(limit)
+
+    if (cursor) {
+      const [cursorDate, cursorId] = cursor.split('_')
+      if (cursorDate && cursorId) {
+        query = query.or(`date.lt.${cursorDate},and(date.eq.${cursorDate},id.lt.${cursorId})`)
+      }
+    }
+
+    const { data: logs, error } = await query
 
     if (error) {
-      logger.error(`Database error fetching daily log for user ${userId}:`, error.message);
+      logger.error(`Error querying daily logs list for user ${userId}:`, error.message);
       return NextResponse.json({ success: false, message: error.message }, { status: 500 })
     }
 
-    logger.info(`Successfully fetched daily log for user ${userId}`);
-    // Re-sanitize on the way out too, so rows written before this endpoint
-    // enforced sanitization can't still surface raw markup to the client.
-    const safeData = data
-      ? {
-        ...data,
-        symptoms: sanitizeSymptomList(data.symptoms),
-        mood: data.mood ? sanitizeText(data.mood) : data.mood,
-        flow: data.flow ? sanitizeText(data.flow) : data.flow,
-        cervical_discharge: data.cervical_discharge ? sanitizeText(data.cervical_discharge) : data.cervical_discharge,
-      }
-      : null
-    return NextResponse.json({ success: true, data: safeData })
+    const rows = logs || []
+    logger.info(`Successfully fetched ${rows.length} daily logs for user ${userId}`);
+
+    const sanitizedRows = rows.map(item => ({
+      ...item,
+      symptoms: sanitizeSymptomList(item.symptoms),
+      mood: item.mood ? sanitizeText(item.mood) : item.mood,
+      flow: item.flow ? sanitizeText(item.flow) : item.flow,
+      cervical_discharge: item.cervical_discharge ? sanitizeText(item.cervical_discharge) : item.cervical_discharge,
+    }))
+
+    const paginatedResult = formatPaginatedResponse(
+      sanitizedRows,
+      limit,
+      totalCount || sanitizedRows.length,
+      (item) => `${item.date}_${item.id}`
+    )
+
+    return NextResponse.json(paginatedResult, { status: 200 })
   } catch (error) {
     logger.error('Error fetching day log:', error.message || error);
     return NextResponse.json({ success: false, message: `Failed to fetch daily log: ${error.message || error}` }, { status: 500 })
@@ -155,7 +210,21 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: `Failed to log day: ${error.message}` }, { status: 500 })
     }
 
-    logger.info(`Successfully upserted daily log for user ${userId}`);
+       logger.info(`Successfully upserted daily log for user ${userId}`);
+
+    // Daily logs (symptoms) feed into the PCOD risk calculation alongside
+    // cycles, so a new log must invalidate the cache the same way cycle
+    // updates already do — otherwise a freshly-logged symptom can be
+    // invisible to the risk score for up to the cache's 120s TTL.
+    pcodRiskCache.invalidate(`pcod-risk:${userId}`);
+    pcodRiskCache.invalidate(userId);
+
+    // Invalidate cached PCOD risk calculation immediately when new daily logs are submitted
+    if (typeof pcodRiskCache.invalidatePattern === 'function') {
+      pcodRiskCache.invalidatePattern(`pcod-risk:${userId}`);
+    } else {
+      pcodRiskCache.invalidate(`pcod-risk:${userId}`);
+    }
 
     // Emit event for daily logs update
     eventBus.emit('daily_logs:updated', { userId });

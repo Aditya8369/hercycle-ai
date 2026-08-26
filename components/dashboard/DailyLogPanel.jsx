@@ -55,9 +55,14 @@ export default function DailyLogPanel({
   // actually enforces it.
   const MAX_CUSTOM_SYMPTOM_LENGTH = 50
   const MAX_CUSTOM_SYMPTOMS = 20
+  const safeSelectedSymptoms = Array.isArray(selectedSymptoms)
+    ? selectedSymptoms
+    : typeof selectedSymptoms === 'string' && selectedSymptoms.trim()
+      ? [selectedSymptoms.trim()]
+      : []
 
   const baseSymptoms = ['Cramps', 'Headache', 'Bloating', 'Fatigue', 'Acne', 'Nausea']
-  const customSymptoms = selectedSymptoms.filter(s => !baseSymptoms.includes(s))
+  const customSymptoms = safeSelectedSymptoms.filter(s => !baseSymptoms.includes(s))
   const allDisplaySymptoms = [...baseSymptoms, ...customSymptoms]
 
   const handleAddCustom = (e) => {
@@ -65,7 +70,7 @@ export default function DailyLogPanel({
     const trimmed = customInput.trim().slice(0, MAX_CUSTOM_SYMPTOM_LENGTH)
     if (!trimmed) return
     if (customSymptoms.length >= MAX_CUSTOM_SYMPTOMS) return
-    if (!selectedSymptoms.includes(trimmed)) {
+    if (!safeSelectedSymptoms.includes(trimmed)) {
       toggleSymptom(trimmed)
     }
     setCustomInput('')
@@ -83,7 +88,7 @@ export default function DailyLogPanel({
 
         <div className="symp-grid symp-grid-scroll-wrapper">
           {allDisplaySymptoms.map(symptom => {
-            const active = selectedSymptoms.includes(symptom)
+            const active = safeSelectedSymptoms.includes(symptom)
             const isCustom = !baseSymptoms.includes(symptom)
             const icon = symptomIcons[symptom] || "📌"
 
@@ -150,9 +155,9 @@ export default function DailyLogPanel({
           <span>Selected Today</span>
 
           <strong>
-            {selectedSymptoms.length === 0
+            {safeSelectedSymptoms.length === 0
               ? 'None'
-              : `${selectedSymptoms.length} Selected`}
+              : `${safeSelectedSymptoms.length} Selected`}
           </strong>
         </div>
       </div>
