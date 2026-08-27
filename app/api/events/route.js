@@ -32,6 +32,15 @@ export async function GET(req) {
   }
 }
 
+const ALLOWED_CATEGORIES = ['reminder', 'habit', 'donation', 'health'];
+const ALLOWED_RECURRENCE = ['none', 'daily', 'weekly', 'monthly', 'yearly'];
+
+function isValidDate(dateStr) {
+  if (!dateStr || typeof dateStr !== 'string') return false;
+  const time = new Date(dateStr).getTime();
+  return !Number.isNaN(time);
+}
+
 export async function POST(req) {
   try {
     await crudLimiter.check(req);
@@ -62,13 +71,20 @@ export async function POST(req) {
       time_zone = 'UTC',
     } = body;
 
-    if (!title || !title.trim()) {
+    if (!title || typeof title !== 'string' || !title.trim()) {
       return NextResponse.json({ error: 'Event title is required' }, { status: 400 });
     }
 
-    if (!start_time) {
-      return NextResponse.json({ error: 'Event start time is required' }, { status: 400 });
+    if (!start_time || !isValidDate(start_time)) {
+      return NextResponse.json({ error: 'Valid event start time is required' }, { status: 400 });
     }
+
+    if (end_time && !isValidDate(end_time)) {
+      return NextResponse.json({ error: 'Invalid event end time' }, { status: 400 });
+    }
+
+    const validCategory = ALLOWED_CATEGORIES.includes(category) ? category : 'reminder';
+    const validRecurrence = ALLOWED_RECURRENCE.includes(recurrence_rule) ? recurrence_rule : 'none';
 
     const supabase = getSupabaseAdmin();
     const { data: event, error } = await supabase
@@ -77,12 +93,12 @@ export async function POST(req) {
         {
           user_id: userId,
           title: title.trim(),
-          description: description.trim(),
+          description: typeof description === 'string' ? description.trim() : '',
           start_time,
           end_time: end_time || null,
-          recurrence_rule,
-          category,
-          time_zone,
+          recurrence_rule: validRecurrence,
+          category: validCategory,
+          time_zone: typeof time_zone === 'string' ? time_zone : 'UTC',
           created_at: new Date().toISOString(),
         },
       ])
@@ -103,6 +119,12 @@ export async function POST(req) {
 
 export async function PUT(req) {
   try {
+    await crudLimiter.check(req);
+  } catch (rateLimitError) {
+    return NextResponse.json({ error: 'Too many requests, please slow down.' }, { status: 429 });
+  }
+
+  try {
     const userId = await getAuthUserId();
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -121,21 +143,28 @@ export async function PUT(req) {
       return NextResponse.json({ error: 'Event ID is required' }, { status: 400 });
     }
 
-    const supabase = getSupabaseAdmin();
-    const updatePayload = {
-      title,
-      description,
-      start_time,
-      end_time,
-      recurrence_rule,
-      category,
-      time_zone,
-    };
+    if (start_time !== undefined && !isValidDate(start_time)) {
+      return NextResponse.json({ error: 'Invalid event start time' }, { status: 400 });
+    }
 
-    // Remove undefined values
-    Object.keys(updatePayload).forEach(
-      (key) => updatePayload[key] === undefined && delete updatePayload[key]
-    );
+    if (end_time !== undefined && end_time !== null && !isValidDate(end_time)) {
+      return NextResponse.json({ error: 'Invalid event end time' }, { status: 400 });
+    }
+
+    const supabase = getSupabaseAdmin();
+    const updatePayload = {};
+
+    if (title !== undefined) updatePayload.title = typeof title === 'string' ? title.trim() : '';
+    if (description !== undefined) updatePayload.description = typeof description === 'string' ? description.trim() : '';
+    if (start_time !== undefined) updatePayload.start_time = start_time;
+    if (end_time !== undefined) updatePayload.end_time = end_time;
+    if (recurrence_rule !== undefined) {
+      updatePayload.recurrence_rule = ALLOWED_RECURRENCE.includes(recurrence_rule) ? recurrence_rule : 'none';
+    }
+    if (category !== undefined) {
+      updatePayload.category = ALLOWED_CATEGORIES.includes(category) ? category : 'reminder';
+    }
+    if (time_zone !== undefined) updatePayload.time_zone = typeof time_zone === 'string' ? time_zone : 'UTC';
 
     const { data: updated, error } = await supabase
       .from('events')
@@ -158,6 +187,12 @@ export async function PUT(req) {
 }
 
 export async function DELETE(req) {
+  try {
+    await crudLimiter.check(req);
+  } catch (rateLimitError) {
+    return NextResponse.json({ error: 'Too many requests, please slow down.' }, { status: 429 });
+  }
+
   try {
     const userId = await getAuthUserId();
     if (!userId) {
