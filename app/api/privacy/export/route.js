@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server';
 import { getAuthUserId } from '@/lib/clerk-server';
 import { getSupabaseAdmin } from '@/lib/supabase-admin';
 import { logger } from '@/lib/logger';
@@ -14,20 +15,20 @@ export async function GET(request) {
     await crudLimiter.check(request);
   } catch (rateLimitError) {
     logger.warn(`[Rate Limit] Privacy export endpoint: ${rateLimitError.message}`);
-    return new Response(JSON.stringify({ error: 'Too many requests, please slow down.' }), {
-      status: 429,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(
+      { success: false, error: 'Too many requests, please slow down.' },
+      { status: 429 }
+    );
   }
 
   try {
     const userId = await getAuthUserId();
     if (!userId) {
       logger.warn('Unauthenticated access attempt to Privacy Export API');
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     const supabaseAdmin = getSupabaseAdmin();
@@ -86,14 +87,20 @@ export async function GET(request) {
         });
 
         const formatCsvDateFields = (row) => {
-          if (!row) return row;
+          if (!row || typeof row !== 'object') return row;
           const formattedRow = { ...row };
           Object.entries(formattedRow).forEach(([key, value]) => {
             if (value === null || value === undefined || value === '') return;
             if (typeof value === 'object' && !(value instanceof Date)) return;
+            if (typeof value !== 'string' && typeof value !== 'number' && !(value instanceof Date)) return;
             const k = key.toLowerCase();
             if (k === 'date' || k.endsWith('_date') || k.endsWith('_at') || k.endsWith('timestamp')) {
-              formattedRow[key] = formatDateForCSV(value);
+              try {
+                const formatted = formatDateForCSV(value);
+                if (formatted && formatted !== 'Invalid Date') {
+                  formattedRow[key] = formatted;
+                }
+              } catch (e) {}
             }
           });
           return formattedRow;
@@ -141,9 +148,9 @@ export async function GET(request) {
     });
   } catch (err) {
     logger.error(`Privacy Export Route Error: ${err.message}`, err.stack);
-    return new Response(JSON.stringify({ error: 'Failed to export privacy data' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return NextResponse.json(
+      { success: false, error: 'Failed to export privacy data' },
+      { status: 500 }
+    );
   }
 }
