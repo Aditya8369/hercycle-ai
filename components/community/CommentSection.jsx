@@ -112,7 +112,23 @@ export default function CommentSection({ postId, initialComments = [] }) {
           },
           body: JSON.stringify({ itemType: 'comment', itemId: comment.id, voteValue: value })
         });
-        if (!res.ok) throw new Error('Failed to vote');
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          setUpvotes(previousUpvotes);
+          setUserVote(previousVote);
+          toast.error(data?.error || t('vote_failed') || 'Vote failed');
+          return;
+        }
+
+        // Reconcile with what the database reported, when it reported
+        // anything. `resolved: false` means the RPC returned no payload, so
+        // the optimistic value is the best we have.
+        if (data?.resolved && typeof data.currentVote === 'number' && data.currentVote !== newVote) {
+          const correction = data.currentVote - newVote;
+          setUpvotes(prev => prev + correction);
+          setUserVote(data.currentVote);
+        }
       } catch (error) {
         setUpvotes(previousUpvotes);
         setUserVote(previousVote);

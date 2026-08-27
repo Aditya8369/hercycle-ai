@@ -11,6 +11,7 @@ import PartnerSharing from '@/components/settings/PartnerSharing'
 import NotificationSettings from '@/components/layout/NotificationSettings'
 import { useTranslations } from 'next-intl'
 import { useTheme } from '@/lib/ThemeContext'
+import { collectFullExport } from '@/lib/user-export'
 
 export default function SettingsPage() {
   const t = useTranslations('PrivacyData')
@@ -26,9 +27,18 @@ export default function SettingsPage() {
     setIsExporting(true)
     const toastId = toast.loading('Preparing your export...')
     try {
-      const res = await fetch('/api/user/export')
-      if (!res.ok) throw new Error('Export failed')
-      const blob = await res.blob()
+      // The endpoint is paged now, so a single request would save a
+      // truncated copy of the user's health data and call it complete.
+      const collected = await collectFullExport((pageUrl) => fetch(pageUrl))
+      if (!collected.complete) {
+        toast.error('Your export was too large to download in one go. Please try again.', { id: toastId })
+        return
+      }
+
+      const blob = new Blob(
+        [JSON.stringify({ profile: collected.profile, cycles: collected.cycles, logs: collected.logs }, null, 2)],
+        { type: 'application/json' }
+      )
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url

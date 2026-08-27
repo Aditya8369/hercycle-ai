@@ -6,6 +6,7 @@ import * as Switch from '@radix-ui/react-switch'
 import { Download, AlertTriangle, X, Shield } from 'lucide-react'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
 import toast from 'react-hot-toast'
+import { collectFullExport } from '@/lib/user-export'
 
 export default function PrivacyModal({ trigger, initialProfile, onDeleteAccount }) {
   const [allowAI, setAllowAI] = useState(true)
@@ -52,11 +53,17 @@ export default function PrivacyModal({ trigger, initialProfile, onDeleteAccount 
     setIsExporting(true)
     const toastId = toast.loading('Preparing your data...')
     try {
-      const res = await fetchWithTimeout('/api/user/export')
-      if (!res.ok) {
-        throw new Error('Failed to export data')
+      // Paged endpoint: walk every page before writing the file, or the
+      // download silently ends mid-history.
+      const collected = await collectFullExport((pageUrl) => fetchWithTimeout(pageUrl))
+      if (!collected.complete) {
+        throw new Error('Export was truncated')
       }
-      const blob = await res.blob()
+
+      const blob = new Blob(
+        [JSON.stringify({ profile: collected.profile, cycles: collected.cycles, logs: collected.logs }, null, 2)],
+        { type: 'application/json' }
+      )
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
