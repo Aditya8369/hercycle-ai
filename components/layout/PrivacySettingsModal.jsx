@@ -6,6 +6,7 @@ import * as Switch from '@radix-ui/react-switch'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
 import toast from 'react-hot-toast'
 import { Download } from 'lucide-react'
+import { collectFullExport } from '@/lib/user-export'
 
 export default function PrivacySettingsContent() {
   const { getToken } = useAuth()
@@ -57,15 +58,20 @@ export default function PrivacySettingsContent() {
     const toastId = toast.loading('Preparing your data...')
     try {
       const token = await getToken()
-      const res = await fetchWithTimeout('/api/user/export', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-      if (!res.ok) {
-        throw new Error('Failed to export data')
+
+      // Paged endpoint: every page has to be fetched before the file is
+      // written, or the user saves a partial history believing it is whole.
+      const collected = await collectFullExport((pageUrl) =>
+        fetchWithTimeout(pageUrl, { headers: { Authorization: `Bearer ${token}` } })
+      )
+      if (!collected.complete) {
+        throw new Error('Export was truncated')
       }
-      const blob = await res.blob()
+
+      const blob = new Blob(
+        [JSON.stringify({ profile: collected.profile, cycles: collected.cycles, logs: collected.logs }, null, 2)],
+        { type: 'application/json' }
+      )
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
