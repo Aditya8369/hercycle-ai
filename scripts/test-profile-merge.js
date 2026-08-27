@@ -222,7 +222,17 @@ check(readProfilePatch({ known_conditions: 'PCOS' }).ok, false,
 console.log('\ntext sanitisation')
 
 check(sanitizeProfileText('<b>Regular cycle</b>'), 'Regular cycle', 'tags are stripped from free text')
-check(sanitizeProfileText('<script>alert(1)</script>ok'), 'ok', 'script bodies are removed entirely')
+check(sanitizeProfileText('<script>alert(1)</script>ok'), 'alert(1)ok',
+  'the tags go and the text between them survives as plain text -- there is no script without a tag')
+check(sanitizeProfileText('<scr<script>ipt>alert(1)'), 'alert(1)',
+  'a nested construct that reassembles into a tag after one pass is removed by the next one')
+check(sanitizeProfileText('</script >x'), 'x',
+  'an end tag with trailing whitespace is removed, which a naive end-tag pattern misses')
+check(sanitizeProfileText('a < b > c'), 'a c', 'anything between stray angle brackets goes with them')
+checkTruthy(
+  !sanitizeProfileText('<img src=x onerror=alert(1)>').includes('<'),
+  'no angle bracket survives, whatever the input'
+)
 check(sanitizeProfileText(`a${String.fromCharCode(9)}b`), 'a b', 'control characters collapse to a space')
 check(sanitizeProfileText('a'.repeat(500)).length, 120, 'free text is capped at the documented length')
 check(sanitizeProfileText(42), '', 'a non-string sanitises to empty rather than throwing')
