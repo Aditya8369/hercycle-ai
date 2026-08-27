@@ -1,48 +1,33 @@
-import { z } from 'zod'
 import { getAuthUserId } from '@/lib/clerk-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { logger } from '@/lib/logger'
+import { crudLimiter } from '@/lib/rateLimiter'
 import { jsonSuccess, jsonError } from '@/lib/api-helpers'
+import {
+  buildInsertRecord,
+  buildUpdateRecord,
+  mergeProfile,
+  readProfilePatch,
+} from '@/lib/profile-merge'
 
-const profileSchema = z.object({
-  age: z
-    .union([z.number(), z.string()])
-    .nullable()
-    .optional()
-    .transform((val) => (val === '' || val === null || val === undefined ? null : Number(val)))
-    .refine((val) => val === null || (Number.isFinite(val) && val >= 1 && val <= 120), {
-      message: 'Age must be a valid number between 1 and 120',
-    }),
-  weight_kg: z
-    .union([z.number(), z.string()])
-    .nullable()
-    .optional()
-    .transform((val) => (val === '' || val === null || val === undefined ? null : Number(val)))
-    .refine((val) => val === null || (Number.isFinite(val) && val >= 1 && val <= 500), {
-      message: 'Weight must be a valid number between 1 and 500 kg',
-    }),
-  height_cm: z
-    .union([z.number(), z.string()])
-    .nullable()
-    .optional()
-    .transform((val) => (val === '' || val === null || val === undefined ? null : Number(val)))
-    .refine((val) => val === null || (Number.isFinite(val) && val >= 1 && val <= 300), {
-      message: 'Height must be a valid number between 1 and 300 cm',
-    }),
-  cycleLength: z
-    .union([z.number(), z.string()])
-    .nullable()
-    .optional()
-    .transform((val) => (val === '' || val === null || val === undefined ? null : Number(val)))
-    .refine((val) => val === null || (Number.isFinite(val) && val >= 15 && val <= 60), {
-      message: 'Cycle length must be between 15 and 60 days',
-    }),
-  known_conditions: z.array(z.string()).optional().default([]),
-  cycle_goal: z.string().nullable().optional(),
-  allow_ai_analysis: z.boolean().optional().default(true),
-})
+/**
+ * Postgres unique-violation. Raised when two concurrent first-time saves both
+ * find no row and both try to insert; the loser retries as an update.
+ */
+const UNIQUE_VIOLATION = '23505'
+
+/** Columns the client is allowed to read back. */
+const PROFILE_COLUMNS =
+  'user_id, age, weight_kg, height_cm, cycle_length, known_conditions, cycle_goal, allow_ai_analysis, updated_at'
 
 export async function GET(request) {
+  try {
+    await crudLimiter.check(request)
+  } catch (rateLimitError) {
+    logger.warn(`[Rate Limit] Profile GET endpoint: ${rateLimitError.message}`)
+    return jsonError('Too many requests, please slow down.', 429)
+  }
+
   try {
     const userId = await getAuthUserId()
     if (!userId) {
@@ -68,7 +53,32 @@ export async function GET(request) {
   }
 }
 
+/**
+ * Applies a partial profile update.
+ *
+ * This route used to parse the body with a Zod schema carrying `.default(...)`
+ * values and then upsert the whole row it built from the result. Because every
+ * caller sends a subset, that wrote defaults over columns nobody mentioned:
+ *
+ *  - `PrivacySettingsModal` posts only `{ allow_ai_analysis }`, so toggling the
+ *    AI switch cleared the user's age, weight, height, conditions and goal;
+ *  - `HealthProfileSettings` posts no `allow_ai_analysis`, so saving the health
+ *    form flipped a stored opt-*out* back to `true` and re-enabled the model
+ *    call that `app/api/chat/route.js` gates on that flag.
+ *
+ * `readProfilePatch` now reports only the columns the body actually mentions,
+ * and the write path below touches only those. An absent key cannot reach the
+ * database; an explicit `null` still can, because clearing a field is a real
+ * instruction and has to remain expressible.
+ */
 export async function POST(request) {
+  try {
+    await crudLimiter.check(request)
+  } catch (rateLimitError) {
+    logger.warn(`[Rate Limit] Profile POST endpoint: ${rateLimitError.message}`)
+    return jsonError('Too many requests, please slow down.', 429)
+  }
+
   try {
     const userId = await getAuthUserId()
     if (!userId) {
@@ -83,46 +93,85 @@ export async function POST(request) {
       return jsonError('Bad Request: Invalid JSON payload', 400)
     }
 
-    if (!body || typeof body !== 'object' || Array.isArray(body)) {
-      return jsonError('Invalid payload', 400)
-    }
-
-    const parseResult = profileSchema.safeParse(body)
-    if (!parseResult.success) {
-      const firstIssue = parseResult.error.issues[0]
-      return jsonError(firstIssue?.message || 'Invalid payload', 400)
-    }
-
-    const validatedData = parseResult.data
-
-    const profileRecord = {
-      user_id: userId,
-      age: validatedData.age,
-      weight_kg: validatedData.weight_kg,
-      height_cm: validatedData.height_cm,
-      known_conditions: validatedData.known_conditions || [],
-      cycle_goal: validatedData.cycle_goal || null,
-      allow_ai_analysis: validatedData.allow_ai_analysis,
-      updated_at: new Date().toISOString()
+    const { ok, patch, errors, touched } = readProfilePatch(body)
+    if (!ok) {
+      return jsonError(errors[0], 400, null, errors.length > 1 ? errors : null)
     }
 
     const supabase = getSupabaseAdmin()
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .upsert(profileRecord, { onConflict: 'user_id' })
-      .select()
+    const saved = await writeProfilePatch(supabase, userId, patch)
 
-    if (error) {
-      logger.error('Error saving user profile:', error)
+    if (!saved.ok) {
+      logger.error('Error saving user profile:', saved.error)
       return jsonError('Database error', 500)
     }
 
-    const savedProfile = Array.isArray(data) ? (data[0] || profileRecord) : (data || profileRecord)
+    logger.info(`Profile updated for user ${userId} (fields: ${touched.join(', ')})`)
 
-    return jsonSuccess({ profile: savedProfile, ...savedProfile })
+    const profile = saved.profile
+    return jsonSuccess({ profile, ...profile, updatedFields: touched })
   } catch (err) {
     logger.error('Profile POST error:', err)
     return jsonError('Internal Server Error', 500)
   }
 }
 
+/**
+ * Writes `patch` for `userId`, touching no other column.
+ *
+ * `UPDATE` is attempted first because it names only the patched columns, so a
+ * concurrent write to a *different* field cannot be clobbered — which an
+ * upsert of a whole row would do. `INSERT` runs only when no row matched, and
+ * a unique violation from a racing first-time save falls back to `UPDATE`.
+ *
+ * @param {object} supabase Supabase admin client
+ * @param {string} userId
+ * @param {object} patch from `readProfilePatch`
+ * @returns {Promise<{ ok: true, profile: object } | { ok: false, error: object }>}
+ */
+async function writeProfilePatch(supabase, userId, patch) {
+  const updated = await supabase
+    .from('user_profiles')
+    .update(buildUpdateRecord(patch))
+    .eq('user_id', userId)
+    .select(PROFILE_COLUMNS)
+
+  if (updated.error) {
+    return { ok: false, error: updated.error }
+  }
+
+  if (Array.isArray(updated.data) && updated.data.length > 0) {
+    return { ok: true, profile: updated.data[0] }
+  }
+
+  const insertRecord = buildInsertRecord(userId, patch)
+  const inserted = await supabase
+    .from('user_profiles')
+    .insert(insertRecord)
+    .select(PROFILE_COLUMNS)
+
+  if (!inserted.error) {
+    const row = Array.isArray(inserted.data) ? inserted.data[0] : inserted.data
+    return { ok: true, profile: row || insertRecord }
+  }
+
+  if (inserted.error.code !== UNIQUE_VIOLATION) {
+    return { ok: false, error: inserted.error }
+  }
+
+  // Another request created the row between our UPDATE and our INSERT. Re-run
+  // the update so the patch still lands, and merge locally if the retry also
+  // returns no representation.
+  const retried = await supabase
+    .from('user_profiles')
+    .update(buildUpdateRecord(patch))
+    .eq('user_id', userId)
+    .select(PROFILE_COLUMNS)
+
+  if (retried.error) {
+    return { ok: false, error: retried.error }
+  }
+
+  const row = Array.isArray(retried.data) ? retried.data[0] : retried.data
+  return { ok: true, profile: mergeProfile(row, patch) }
+}
