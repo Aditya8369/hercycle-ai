@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Droplet, Settings, X } from 'lucide-react';
 import { getTodayISO } from '@/lib/date-utils';
+import { RECORD_STATUS, clampNumber, readDailyRecord, writeDailyRecord } from '@/lib/daily-storage';
+import useDailyReset from '@/lib/useDailyReset';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -24,34 +26,66 @@ function getTodayString() {
   return getTodayISO();
 }
 
+// Bounds the settings modal already enforces on save. They are repeated on the
+// *read* path because the modal's validation was being thrown away on the next
+// page load: `{ ...DEFAULT_SETTINGS, ...JSON.parse(raw) }` spread whatever was
+// stored straight over the defaults. A stored `cupCapacity: 0` then reached
+// `Math.round(dailyGoal / cupCapacity)`, and a stored `dailyGoal: 0` made the
+// ring's `strokeDashoffset` NaN, which renders as no ring at all.
+const GOAL_BOUNDS = { min: 500, max: 5000, fallback: DEFAULT_SETTINGS.dailyGoal, integer: true };
+const CAPACITY_BOUNDS = { min: 50, max: 1000, fallback: DEFAULT_SETTINGS.cupCapacity, integer: true };
+
+/**
+ * Normalises a stored settings payload. Never returns a value that can produce
+ * a division by zero or a non-finite percentage downstream.
+ */
+function sanitizeSettings(stored) {
+  const source = stored && typeof stored === 'object' ? stored : {};
+
+  return {
+    dailyGoal: clampNumber(source.dailyGoal, GOAL_BOUNDS),
+    cupCapacity: clampNumber(source.cupCapacity, CAPACITY_BOUNDS),
+    cupStyle: CUP_STYLES.includes(source.cupStyle) ? source.cupStyle : DEFAULT_SETTINGS.cupStyle,
+  };
+}
+
 function loadSettings() {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
-  } catch (_) {}
-  return { ...DEFAULT_SETTINGS };
+  // Settings are not day-scoped, so any stored date is accepted; only the
+  // values are validated.
+  const { value } = readDailyRecord(SETTINGS_KEY, {
+    sanitize: sanitizeSettings,
+    fallback: () => ({ ...DEFAULT_SETTINGS }),
+    onNewDay: (settings) => settings,
+  });
+
+  return value;
 }
 
 function saveSettings(settings) {
-  try {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  } catch (_) {}
+  writeDailyRecord(SETTINGS_KEY, sanitizeSettings(settings), { today: getTodayString() });
 }
 
-function loadCount() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(INTAKE_KEY));
-    if (saved && saved.date === getTodayString()) return saved.count;
-    // New day — reset but write the key so NotificationPreferences reads 0
-    localStorage.setItem(INTAKE_KEY, JSON.stringify({ date: getTodayString(), count: 0 }));
-  } catch (_) {}
-  return 0;
+function loadCount(maxGlasses) {
+  const ceiling = Number.isFinite(maxGlasses) ? maxGlasses : 16;
+
+  const { value, status } = readDailyRecord(INTAKE_KEY, {
+    sanitize: (stored) => clampNumber(stored.count, { min: 0, max: ceiling, fallback: 0, integer: true }),
+    fallback: () => 0,
+    // A record from another day resets to zero rather than carrying forward.
+    onNewDay: () => 0,
+    today: getTodayString(),
+  });
+
+  // Write the reset back immediately so NotificationPreferences, which reads
+  // this key directly to decide whether to nudge, sees today's zero rather
+  // than yesterday's total.
+  if (status !== RECORD_STATUS.CURRENT) saveCount(0);
+
+  return value;
 }
 
 function saveCount(count) {
-  try {
-    localStorage.setItem(INTAKE_KEY, JSON.stringify({ date: getTodayString(), count }));
-  } catch (_) {}
+  writeDailyRecord(INTAKE_KEY, { count }, { today: getTodayString() });
 }
 
 function clamp(value, min, max) {
@@ -352,10 +386,21 @@ export default function HydrationTracker({ phaseKey }) {
 
   // Load from localStorage on mount (client only)
   useEffect(() => {
-    setSettings(loadSettings());
-    setCount(loadCount());
+    const restored = loadSettings();
+    setSettings(restored);
+    setCount(loadCount(clamp(Math.round(restored.dailyGoal / restored.cupCapacity), 4, 16)));
     setMounted(true);
   }, []);
+
+  // Without this the ring kept yesterday's glasses for as long as the tab
+  // stayed open, and the next click stamped today's date onto them.
+  useDailyReset(
+    useCallback(() => {
+      setCount(0);
+      saveCount(0);
+    }, []),
+    { watchKeys: [INTAKE_KEY] }
+  );
 
   const numGlasses = clamp(Math.round(settings.dailyGoal / settings.cupCapacity), 4, 16);
   const currentMl = count * settings.cupCapacity;
@@ -370,10 +415,11 @@ export default function HydrationTracker({ phaseKey }) {
   }, [count, numGlasses]);
 
   const handleSaveSettings = useCallback((newSettings) => {
-    setSettings(newSettings);
-    saveSettings(newSettings);
+    const validated = sanitizeSettings(newSettings);
+    setSettings(validated);
+    saveSettings(validated);
     // Clamp count if numGlasses shrank
-    const newNumGlasses = clamp(Math.round(newSettings.dailyGoal / newSettings.cupCapacity), 4, 16);
+    const newNumGlasses = clamp(Math.round(validated.dailyGoal / validated.cupCapacity), 4, 16);
     if (count > newNumGlasses) {
       setCount(newNumGlasses);
       saveCount(newNumGlasses);
