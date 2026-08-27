@@ -60,8 +60,29 @@ export default function PostCard({ post, locale }) {
         })
       });
 
+      const data = await res.json().catch(() => null);
+
       if (!res.ok) {
-        throw new Error('Failed to vote');
+        // Revert, and say *why*. A shared "failed to vote" gave the same
+        // message for "you are voting too fast", "that post was deleted" and
+        // "the database is down".
+        setUpvotes(previousUpvotes);
+        setUserVote(previousVote);
+        toast.error(
+          data?.error ||
+            t('vote_failed') ||
+            'Failed to register vote. Please try again.'
+        );
+        return;
+      }
+
+      // The route reports what the database actually did. `resolved: false`
+      // means the RPC succeeded but said nothing, so the optimistic guess
+      // stands rather than being overwritten with a value we do not have.
+      if (data?.resolved && typeof data.currentVote === 'number' && data.currentVote !== newVote) {
+        const correction = data.currentVote - newVote;
+        setUpvotes(prev => prev + correction);
+        setUserVote(data.currentVote);
       }
     } catch (error) {
       // Revert on failure
