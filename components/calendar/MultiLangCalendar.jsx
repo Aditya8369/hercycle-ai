@@ -292,7 +292,7 @@ export default function MultiLangCalendar({ locale = 'en' }) {
             <button
               type="button"
               onClick={prevMonth}
-              className="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"
+              className="min-w-[36px] min-h-[36px] p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors"
               aria-label="Previous Month"
             >
               <ChevronLeft size={16} />
@@ -300,14 +300,14 @@ export default function MultiLangCalendar({ locale = 'en' }) {
             <button
               type="button"
               onClick={jumpToToday}
-              className="px-2.5 py-1 text-xs font-semibold text-pink-600 dark:text-pink-400 hover:bg-pink-500/10 rounded-xl"
+              className="min-h-[36px] px-3 py-1 text-xs font-semibold text-pink-600 dark:text-pink-400 hover:bg-pink-500/10 rounded-xl flex items-center justify-center transition-colors"
             >
               {locale === 'hi' ? 'आज' : 'Today'}
             </button>
             <button
               type="button"
               onClick={nextMonth}
-              className="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"
+              className="min-w-[36px] min-h-[36px] p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors"
               aria-label="Next Month"
             >
               <ChevronRight size={16} />
@@ -318,7 +318,7 @@ export default function MultiLangCalendar({ locale = 'en' }) {
           <button
             type="button"
             onClick={openCreateModal}
-            className="flex items-center gap-1.5 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-2xl text-xs font-semibold shadow-md shadow-pink-500/20 transition-all"
+            className="flex items-center justify-center gap-1.5 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 min-h-[36px] rounded-2xl text-xs font-semibold shadow-md shadow-pink-500/20 transition-all"
           >
             <Plus size={16} /> {locale === 'hi' ? 'नया इवेंट' : 'Add Event'}
           </button>
@@ -352,8 +352,18 @@ export default function MultiLangCalendar({ locale = 'en' }) {
               return (
                 <div
                   key={d.toISOString()}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={format(d, 'EEEE, MMMM d, yyyy')}
+                  aria-pressed={isSelected}
                   onClick={() => setSelectedDate(d)}
-                  className={`h-20 p-2 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedDate(d);
+                    }
+                  }}
+                  className={`h-20 p-2 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between focus:outline-none focus:ring-2 focus:ring-pink-500 ${
                     isSelected
                       ? 'border-pink-500 bg-pink-500/10 shadow-sm'
                       : isCurrentDay

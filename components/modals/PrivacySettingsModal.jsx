@@ -122,7 +122,7 @@ export default function PrivacySettingsModal({ trigger, initialProfile, isOpen, 
               Privacy & Data Control
             </Dialog.Title>
             <Dialog.Close asChild>
-              <button className="text-slate-400 hover:text-white transition-colors p-1" aria-label="Close">
+              <button type="button" className="text-slate-400 hover:text-white transition-colors p-1" aria-label="Close dialog">
                 <X className="w-5 h-5" />
               </button>
             </Dialog.Close>
@@ -141,6 +141,7 @@ export default function PrivacySettingsModal({ trigger, initialProfile, isOpen, 
                 checked={allowAI}
                 onCheckedChange={handleToggleAI}
                 disabled={isUpdating}
+                aria-label="Toggle AI analysis and personalized guidance"
                 className={`w-[42px] h-[25px] rounded-full relative outline-none cursor-pointer disabled:opacity-50 transition-colors ${
                   allowAI ? 'bg-pink-500' : 'bg-slate-700'
                 }`}
@@ -161,8 +162,10 @@ export default function PrivacySettingsModal({ trigger, initialProfile, isOpen, 
                 Request a complete download of your personal data including health profile, cycle history, symptoms, forum posts, comments, and challenge achievements in JSON & CSV formats.
               </p>
               <button
+                type="button"
                 onClick={handleExportData}
                 disabled={isExporting}
+                aria-label="Export GDPR data bundle"
                 className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-5 py-2.5 rounded-xl transition-colors font-medium text-sm disabled:opacity-50 w-full sm:w-auto justify-center"
               >
                 {isExporting ? (
@@ -193,7 +196,9 @@ export default function PrivacySettingsModal({ trigger, initialProfile, isOpen, 
 
               {!showDeleteConfirm ? (
                 <button
+                  type="button"
                   onClick={() => setShowDeleteConfirm(true)}
+                  aria-label="Initiate delete my account flow"
                   className="flex items-center gap-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 px-4 py-2 rounded-xl transition-colors font-medium text-sm"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -209,12 +214,15 @@ export default function PrivacySettingsModal({ trigger, initialProfile, isOpen, 
                     value={deleteConfirmationText}
                     onChange={(e) => setDeleteConfirmationText(e.target.value)}
                     placeholder='Type "DELETE"'
+                    aria-label="Confirmation input to delete account"
                     className="w-full bg-slate-900 border border-red-800 rounded-lg p-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-red-500"
                   />
                   <div className="flex items-center gap-2 pt-1">
                     <button
+                      type="button"
                       onClick={handleDeleteAccount}
                       disabled={isDeleting || deleteConfirmationText.trim().toUpperCase() !== 'DELETE'}
+                      aria-label="Confirm permanent account deletion"
                       className="flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-xl font-medium text-sm transition-colors disabled:opacity-50"
                     >
                       {isDeleting ? (
@@ -227,10 +235,12 @@ export default function PrivacySettingsModal({ trigger, initialProfile, isOpen, 
                       )}
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         setShowDeleteConfirm(false);
                         setDeleteConfirmationText('');
                       }}
+                      aria-label="Cancel account deletion"
                       className="bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 px-4 rounded-xl font-medium text-sm transition-colors"
                     >
                       Cancel
@@ -242,7 +252,7 @@ export default function PrivacySettingsModal({ trigger, initialProfile, isOpen, 
 
             <div className="flex justify-end pt-2">
               <Dialog.Close asChild>
-                <button className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2.5 rounded-xl font-medium text-sm transition-colors">
+                <button type="button" aria-label="Close dialog" className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2.5 rounded-xl font-medium text-sm transition-colors">
                   Close
                 </button>
               </Dialog.Close>
