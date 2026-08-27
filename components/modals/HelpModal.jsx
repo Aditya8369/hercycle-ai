@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import fetchWithTimeout from '@/lib/fetch-with-timeout';
 import ModalShell from '@/components/ui/ModalShell';
+import { MAX_MESSAGE_LENGTH } from '@/lib/feedback-payload';
 
 const faqs = [
   { question: "How is PCOD risk calculated?", answer: "Our AI model analyzes your symptoms, menstrual cycle data, and lifestyle factors to estimate your risk. It is not a substitute for professional medical advice." },
@@ -24,6 +25,10 @@ export default function HelpModal({ isOpen, onClose }) {
       setError('Message cannot be empty');
       return;
     }
+    if (message.trim().length > MAX_MESSAGE_LENGTH) {
+      setError(`Message must be ${MAX_MESSAGE_LENGTH} characters or fewer`);
+      return;
+    }
 
     setIsSubmitting(true);
     setError('');
@@ -32,10 +37,19 @@ export default function HelpModal({ isOpen, onClose }) {
       const res = await fetchWithTimeout('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, type })
+        body: JSON.stringify({ message: message.trim(), type })
       });
 
-      if (!res.ok) throw new Error('Failed to submit feedback');
+      // The route now distinguishes "your message was rejected" (400) from
+      // "Discord is unreachable" (502/503), and says which in the body. A
+      // blanket "an error occurred" threw that away and left the user with no
+      // idea whether retrying would help.
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setError(data?.error || 'Failed to submit feedback. Please try again.');
+        return;
+      }
 
       setSuccess(true);
       setMessage('');
@@ -105,6 +119,7 @@ export default function HelpModal({ isOpen, onClose }) {
               >
                 <option value="bug">Report a Bug</option>
                 <option value="feature">Feature Request</option>
+                <option value="general">General Feedback</option>
               </select>
             </div>
             <div>
@@ -115,10 +130,14 @@ export default function HelpModal({ isOpen, onClose }) {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Tell us what went wrong or what you'd like to see..."
                 rows={4}
+                maxLength={MAX_MESSAGE_LENGTH}
                 aria-invalid={error ? 'true' : undefined}
-                aria-describedby={error ? 'feedback-error' : undefined}
+                aria-describedby={error ? 'feedback-error feedback-count' : 'feedback-count'}
                 className="w-full bg-black/50 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               ></textarea>
+              <p id="feedback-count" className="text-white/40 text-xs mt-1 text-right tabular-nums">
+                {message.length} / {MAX_MESSAGE_LENGTH}
+              </p>
               {/* A validation message that is only visible is invisible to a
                   screen-reader user, who is told nothing about why submit
                   appeared to do nothing. */}
