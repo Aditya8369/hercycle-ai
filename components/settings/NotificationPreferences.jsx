@@ -9,6 +9,7 @@ import {
   getNotificationPermissionStatus,
 } from '@/lib/utils/notifications'
 import { getTodayISO } from '@/lib/date-utils'
+import { clampNumber, readDailyRecord } from '@/lib/daily-storage'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -71,15 +72,21 @@ function calcEstimatedReminders(startTime, endTime, repeatMinutes) {
 
 /** Read today's water count from localStorage */
 function getTodayWaterCount() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(WATER_KEY))
-    // The user's calendar day, not the UTC one — reading the UTC day here reset
-    // the water counter at 05:30 in the morning for the app's primary market
-    // and mid-afternoon for users in the Pacific.
-    const today = getTodayISO()
-    if (saved && saved.date === today) return saved.count
-  } catch (_) {}
-  return 0
+  // The user's calendar day, not the UTC one — reading the UTC day here reset
+  // the water counter at 05:30 in the morning for the app's primary market
+  // and mid-afternoon for users in the Pacific.
+  //
+  // `readDailyRecord` also coerces the stored count, which the hand-rolled
+  // version returned verbatim: a corrupted `count` propagated straight into
+  // `remaining` and the nudge arithmetic below.
+  const { value } = readDailyRecord(WATER_KEY, {
+    sanitize: (stored) => clampNumber(stored.count, { min: 0, max: 99, fallback: 0, integer: true }),
+    fallback: () => 0,
+    onNewDay: () => 0,
+    today: getTodayISO(),
+  })
+
+  return value
 }
 
 // ─── DarkSelect — custom dropdown (native <select> ignores option colors on ──

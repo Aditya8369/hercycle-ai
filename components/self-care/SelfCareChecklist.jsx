@@ -1,9 +1,11 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Check, Plus, Trash2, Pencil, X } from 'lucide-react';
 import { getTodayISO } from '@/lib/date-utils';
+import { readDailyRecord, writeDailyRecord } from '@/lib/daily-storage';
+import useDailyReset from '@/lib/useDailyReset';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -22,43 +24,75 @@ function makeDefaultTasks() {
   return DEFAULT_TASK_DEFS.map((def) => ({ ...def, completed: false }));
 }
 
-function loadTasks() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return makeDefaultTasks();
+/** Most custom tasks a list may hold, so storage cannot grow without bound. */
+const MAX_TASKS = 50;
 
-    const saved = JSON.parse(raw);
-    const today = getTodayISO();
+/**
+ * Turns a stored task list into one that is safe to render.
+ *
+ * The previous version accepted `saved.tasks` as long as it was an array, so a
+ * malformed entry with no `id` produced duplicate React keys and a row that
+ * could never be deleted -- `deleteTask` filters on `id`, and `undefined ===
+ * undefined` matches every such row at once.
+ */
+function sanitizeTasks(stored) {
+  const raw = Array.isArray(stored?.tasks) ? stored.tasks : [];
+  const seen = new Set();
+  const tasks = [];
 
-    let tasks = Array.isArray(saved.tasks) ? saved.tasks : makeDefaultTasks();
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') continue;
+    if (typeof entry.id !== 'string' || entry.id.trim() === '') continue;
+    if (seen.has(entry.id)) continue;
 
-    // Ensure all default tasks are present (in case new defaults were added later)
-    const existingIds = new Set(tasks.map((t) => t.id));
-    const missingDefaults = DEFAULT_TASK_DEFS
-      .filter((d) => !existingIds.has(d.id))
-      .map((d) => ({ ...d, completed: false }));
-    if (missingDefaults.length > 0) {
-      tasks = [...missingDefaults, ...tasks];
-    }
+    const isDefault = entry.isDefault === true;
+    // A default task is rendered from `labelKey`; a custom one from `label`.
+    // An entry carrying neither has nothing to show.
+    if (isDefault && typeof entry.labelKey !== 'string') continue;
+    if (!isDefault && (typeof entry.label !== 'string' || entry.label.trim() === '')) continue;
 
-    // Daily reset: preserve tasks but clear completed state for a new day
-    if (saved.date !== today) {
-      tasks = tasks.map((t) => ({ ...t, completed: false }));
-    }
+    seen.add(entry.id);
+    tasks.push({
+      id: entry.id,
+      isDefault,
+      labelKey: isDefault ? entry.labelKey : undefined,
+      label: isDefault ? undefined : entry.label.trim().slice(0, 80),
+      completed: entry.completed === true,
+    });
 
-    return tasks;
-  } catch (_) {
-    return makeDefaultTasks();
+    if (tasks.length >= MAX_TASKS) break;
   }
+
+  return withDefaults(tasks);
+}
+
+/** Ensures every default task is present, in case new ones were added later. */
+function withDefaults(tasks) {
+  const existingIds = new Set(tasks.map((t) => t.id));
+  const missing = DEFAULT_TASK_DEFS
+    .filter((d) => !existingIds.has(d.id))
+    .map((d) => ({ ...d, completed: false }));
+
+  return missing.length > 0 ? [...missing, ...tasks] : tasks;
+}
+
+/** Keeps the list but clears every tick, which is what a new day means here. */
+function clearCompletion(tasks) {
+  return tasks.map((t) => ({ ...t, completed: false }));
+}
+
+function loadTasks() {
+  const { value } = readDailyRecord(STORAGE_KEY, {
+    sanitize: sanitizeTasks,
+    fallback: makeDefaultTasks,
+    onNewDay: clearCompletion,
+  });
+
+  return value;
 }
 
 function saveTasks(tasks) {
-  try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ date: getTodayISO(), tasks })
-    );
-  } catch (_) {}
+  writeDailyRecord(STORAGE_KEY, { tasks }, { today: getTodayISO() });
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -80,6 +114,21 @@ export default function SelfCareChecklist() {
     setTasks(loadTasks());
     setMounted(true);
   }, []);
+
+  // The list stays on screen across midnight on a tab nobody closed, so the
+  // ticks have to be cleared while the page is open rather than only on the
+  // next mount. Without this the next interaction saved yesterday's ticks
+  // under today's date.
+  useDailyReset(
+    useCallback(() => {
+      setTasks((current) => {
+        const rolled = clearCompletion(current);
+        saveTasks(rolled);
+        return rolled;
+      });
+    }, []),
+    { watchKeys: [STORAGE_KEY] }
+  );
 
   // Auto-focus the edit input whenever editing starts
   useEffect(() => {
@@ -103,9 +152,14 @@ export default function SelfCareChecklist() {
   const addTask = () => {
     const label = newTaskLabel.trim();
     if (!label) return;
+    if (tasks.length >= MAX_TASKS) return;
+
+    // `custom-${Date.now()}` collides for two tasks added inside the same
+    // millisecond, and a duplicate id makes both rows share a React key and
+    // both disappear when either is deleted.
     const newTask = {
-      id: `custom-${Date.now()}`,
-      label,
+      id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      label: label.slice(0, 80),
       isDefault: false,
       completed: false,
     };
@@ -331,7 +385,7 @@ export default function SelfCareChecklist() {
         <button
           type="button"
           onClick={addTask}
-          disabled={!newTaskLabel.trim()}
+          disabled={!newTaskLabel.trim() || tasks.length >= MAX_TASKS}
           aria-label={t('checklistAdd')}
           className="btn-pill px-3 sm:px-4 py-2.5 text-sm disabled:opacity-40 disabled:cursor-not-allowed shrink-0 flex items-center gap-1.5"
         >
