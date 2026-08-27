@@ -20,6 +20,7 @@ export default function HealthProfileSettings() {
     age: '',
     weight_kg: '',
     height_cm: '',
+    cycle_length: '',
     known_conditions: [],
     cycle_goal: ''
   })
@@ -38,6 +39,7 @@ export default function HealthProfileSettings() {
           age: data.profile.age !== null && data.profile.age !== undefined ? data.profile.age : '',
           weight_kg: data.profile.weight_kg !== null && data.profile.weight_kg !== undefined ? data.profile.weight_kg : '',
           height_cm: data.profile.height_cm !== null && data.profile.height_cm !== undefined ? data.profile.height_cm : '',
+          cycle_length: data.profile.cycle_length !== null && data.profile.cycle_length !== undefined ? data.profile.cycle_length : '',
           known_conditions: data.profile.known_conditions || [],
           cycle_goal: data.profile.cycle_goal || ''
         })
@@ -76,10 +78,15 @@ export default function HealthProfileSettings() {
     e.preventDefault()
     setSaving(true)
     try {
+      // Only the fields this form owns. `allow_ai_analysis` is deliberately
+      // absent: the API treats an omitted key as "leave it alone", so saving
+      // here can no longer overwrite the consent choice made in Privacy
+      // settings.
       const payload = {
         age: formData.age ? parseInt(formData.age, 10) : null,
         weight_kg: formData.weight_kg ? parseFloat(formData.weight_kg) : null,
         height_cm: formData.height_cm ? parseFloat(formData.height_cm) : null,
+        cycle_length: formData.cycle_length ? parseInt(formData.cycle_length, 10) : null,
         known_conditions: formData.known_conditions,
         cycle_goal: formData.cycle_goal
       }
@@ -98,6 +105,7 @@ export default function HealthProfileSettings() {
             age: data.profile.age !== null && data.profile.age !== undefined ? data.profile.age : '',
             weight_kg: data.profile.weight_kg !== null && data.profile.weight_kg !== undefined ? data.profile.weight_kg : '',
             height_cm: data.profile.height_cm !== null && data.profile.height_cm !== undefined ? data.profile.height_cm : '',
+            cycle_length: data.profile.cycle_length !== null && data.profile.cycle_length !== undefined ? data.profile.cycle_length : '',
             known_conditions: data.profile.known_conditions || [],
             cycle_goal: data.profile.cycle_goal || ''
           })
@@ -172,6 +180,28 @@ export default function HealthProfileSettings() {
               className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-pink-500/50"
               placeholder="e.g. 165"
             />
+          </div>
+
+          <div className="space-y-2 sm:col-span-2">
+            <label htmlFor="profile-cycle-length" className="text-sm font-medium text-white/90">
+              Average Cycle Length (days)
+            </label>
+            <input
+              id="profile-cycle-length"
+              type="number"
+              name="cycle_length"
+              value={formData.cycle_length}
+              onChange={handleChange}
+              step="1"
+              min="15"
+              max="60"
+              aria-describedby="profile-cycle-length-hint"
+              className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-pink-500/50"
+              placeholder="e.g. 28"
+            />
+            <p id="profile-cycle-length-hint" className="text-xs text-white/50">
+              Leave blank to let predictions rely purely on your logged history.
+            </p>
           </div>
         </div>
 
