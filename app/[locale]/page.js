@@ -37,6 +37,7 @@ import FeaturesSection from '@/components/dashboard/FeaturesSection'
 import PCOSMythFactCard from '@/components/dashboard/PCOSMythFactCard'
 import { isEncryptionFailure } from '@/lib/encryption-policy'
 import { getTodayISO, eachDayISO, addDaysISO } from '@/lib/date-utils'
+import { readChatResponse } from '@/lib/chat-fallback'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
@@ -310,14 +311,14 @@ const HerCycleApp = () => {
       const data = await response.json()
       setIsTyping(false)
 
-      if (data?.response) {
-        setChatMessages(prev => [...prev, { role: 'ai', text: data.response }])
-      } else {
-        setChatMessages(prev => [...prev, {
-          role: 'ai',
-          text: tChat('error')
-        }])
-      }
+      // `data.response` sits under `data.data` since the API envelope was
+      // standardised, so this check read `undefined` and swapped in the generic
+      // error string for replies that had actually succeeded.
+      const reply = readChatResponse(data)
+      setChatMessages(prev => [...prev, {
+        role: 'ai',
+        text: reply.text || tChat('error')
+      }])
     } catch (error) {
       setIsTyping(false)
       setChatMessages(prev => [...prev, {
