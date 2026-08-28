@@ -7,6 +7,13 @@ import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { z } from 'zod'
 import { pruneMessageHistory } from '@/lib/chat-utils';
 import { jsonSuccess, jsonError } from '@/lib/api-helpers'
+import {
+  MAX_HISTORY_TURNS,
+  SOURCE_FALLBACK,
+  SOURCE_MODEL,
+  buildFallbackReply,
+  normaliseChatHistory,
+} from '@/lib/chat-fallback'
 
 const TIMEOUT_MS = 6000; // 6 seconds timeout per AI attempt to keep chat snappy
 
@@ -14,7 +21,12 @@ const chatPayloadSchema = z.object({
   language: z.string().max(20).optional(),
   message: z.string().min(1).max(2000),
   context: z.any().optional(),
-  history: z.array(z.any()).optional()
+  // Capped here rather than relying on `pruneMessageHistory` downstream: the
+  // pruner runs *after* the whole array has been parsed and mapped, so an
+  // unbounded history was already fully materialised — and one `null` element
+  // threw inside that map, which was charged as a provider failure and spent
+  // the Groq retry before the local fallback was reached.
+  history: z.array(z.any()).max(MAX_HISTORY_TURNS).optional()
 }).passthrough()
 
 const withTimeout = async (fn, ms) => {
@@ -26,50 +38,6 @@ const withTimeout = async (fn, ms) => {
     clearTimeout(timeoutId);
   }
 };
-
-function getSmartLocalResponse(message, language = 'en', context = {}) {
-  const query = (message || '').toLowerCase();
-  const isHindi = language === 'hi' || language === 'हि';
-
-  if (query.includes('eat') || query.includes('food') || query.includes('nutrition') || query.includes('diet') || query.includes('snack')) {
-    return isHindi
-      ? 'माहवारी के दौरान आयरन युक्त भोजन (जैसे पालक, दालें, मेवे), डार्क चॉकलेट और गर्म हर्बल चाय लें। प्रोसेस्ड और अत्यधिक नमकीन खाने से बचें।'
-      : 'During your period, focus on iron-rich foods (spinach, lentils, pumpkin seeds), magnesium (dark chocolate), and warm herbal teas like ginger or chamomile. Stay hydrated and limit excess salt/sugar to minimize bloating! 🥗🍫';
-  }
-
-  if (query.includes('cramp') || query.includes('pain') || query.includes('ache') || query.includes('hurt')) {
-    return isHindi
-      ? 'माहवारी के दर्द (क्रैम्प्स) में गर्म पानी की थैली (हीटिंग पैड) से सिकाई करें, पर्याप्त पानी पिएं और हल्के खिंचाव (स्ट्रेचिंग) करें। यदि दर्द अत्यधिक हो तो डॉक्टर से परामर्श लें।'
-      : 'For cramp relief, try a warm heating pad on your lower abdomen, gentle stretching/yoga, drinking warm chamomile or ginger tea, and staying hydrated. If severe, consult your doctor! 🌸';
-  }
-
-  if (query.includes('pcos') || query.includes('pcod')) {
-    return isHindi
-      ? 'PCOD/PCOS एक हार्मोनल स्थिति है। संतुलित आहार, नियमित व्यायाम और तनाव प्रबंधन इसे नियंत्रित करने में सहायक होते हैं।'
-      : 'PCOD/PCOS is a common hormonal condition. It can be managed effectively with a low-glycemic balanced diet, regular exercise, consistent sleep, and medical guidance. 🩺';
-  }
-
-  if (query.includes('next period') || query.includes('predicted') || query.includes('when')) {
-    if (context?.nextPeriodDate) {
-      return isHindi
-        ? `आपकी अगली माहवारी की अनुमानित तारीख ${context.nextPeriodDate} है।`
-        : `Based on your cycle history, your next period is predicted around ${context.nextPeriodDate}. 💕`;
-    }
-    return isHindi
-      ? 'नियमित रूप से अपनी माहवारी लॉग करें ताकि हम सटीक अनुमान लगा सकें।'
-      : 'Keep tracking your daily cycle data so we can generate accurate predictions for your next period! 📅';
-  }
-
-  if (query.includes('hello') || query.includes('hi') || query.includes('hey') || query.includes('hie')) {
-    return isHindi
-      ? 'नमस्ते! मैं आपकी स्वास्थ्य सहायक हूँ। आप मुझसे अपनी माहवारी, पोषण या स्वास्थ्य के बारे में कुछ भी पूछ सकती हैं। 💕'
-      : 'Hello! I am your HerCycle health assistant. Ask me anything about your cycle, nutrition, symptoms, or wellness tips! 💕';
-  }
-
-  return isHindi
-    ? 'मैं आपके स्वास्थ्य और माहवारी से जुड़े प्रश्नों में मदद के लिए यहाँ हूँ। अपनी माहवारी के लक्षण या सुझाव के बारे बारे में पूछें। 💕'
-    : 'I am here to support you with menstrual health, cycle tracking tips, nutrition, and symptom care. How can I help you today? 💕';
-}
 
 /**
  * Primary AI Call: Google Gemini API
@@ -152,6 +120,15 @@ async function callGroq(message, systemPrompt, history = [], signal) {
 
 export async function POST(request) {
   validateEnv();
+
+  // Hoisted above the try/catch that reads them.
+  //
+  // These lived *inside* the `try`, and the `catch` at the bottom read
+  // `json?.message`. `let` is block-scoped and optional chaining does not
+  // rescue an undeclared binding, so every trip through that handler threw
+  // `ReferenceError: json is not defined` — the fallback written to keep the
+  // assistant answering was the one thing guaranteeing it could not.
+  let requestBody = null;
   let language = 'en';
 
   // ============ RATE LIMITING ============
@@ -170,22 +147,23 @@ export async function POST(request) {
       return jsonError('Unauthorized', 401)
     }
 
-    let json;
     try {
-      json = await request.json();
+      requestBody = await request.json();
     } catch (parseError) {
       logger.warn(`Malformed JSON payload in AI Chat API: ${parseError.message}`);
       return jsonError('Bad Request: Invalid JSON payload', 400)
     }
 
-    const result = chatPayloadSchema.safeParse(json)
+    const result = chatPayloadSchema.safeParse(requestBody)
     if (!result.success) {
       logger.warn(`Invalid request payload on AI Chat API: ${result.error.message}`);
       return jsonError('Bad Request', 400, null, result.error.errors)
     }
 
-    const { message, context, history = [] } = result.data
+    const { message, context } = result.data
     language = result.data.language || 'en'
+    // Unusable turns are dropped before an adapter can throw on them.
+    const history = normaliseChatHistory(result.data.history)
 
     if (!message || message.trim().length === 0) {
       return jsonError("Message content cannot be empty", 400)
@@ -205,7 +183,7 @@ export async function POST(request) {
     }
 
     if (userProfile && userProfile.allow_ai_analysis === false) {
-      return jsonSuccess({ response: 'Privacy mode enabled' })
+      return jsonSuccess({ response: 'Privacy mode enabled', source: SOURCE_FALLBACK, intent: 'privacy' })
     }
 
     let systemPrompt = `You are a helpful menstrual health assistant. Provide empathetic, accurate health guidance.`;
@@ -237,8 +215,11 @@ export async function POST(request) {
 
     systemPrompt += `\n\nImportant: Keep responses under 100 words. Be supportive and conversational.`;
 
-    // Try Gemini -> Groq -> Local smart response
+    // Try Gemini -> Groq -> local canned reply.
     let responseText = null;
+    let source = SOURCE_MODEL;
+    let intent = null;
+
     try {
       responseText = await withTimeout((sig) => callGemini(message, systemPrompt, history, sig), TIMEOUT_MS);
     } catch (geminiErr) {
@@ -246,16 +227,35 @@ export async function POST(request) {
       try {
         responseText = await withTimeout((sig) => callGroq(message, systemPrompt, history, sig), TIMEOUT_MS);
       } catch (groqErr) {
-        logger.warn(`Groq call failed: ${groqErr.message}. Using intelligent health fallback...`);
-        responseText = getSmartLocalResponse(message, language, context);
+        logger.warn(`Groq call failed: ${groqErr.message}. Using the local health fallback...`);
+        const fallback = buildFallbackReply(message, language, context);
+        responseText = fallback.text;
+        source = SOURCE_FALLBACK;
+        intent = fallback.intent;
       }
     }
 
-    logger.info(`Successful chat assistant response generated for user ${userId}`);
-    return jsonSuccess({ response: responseText })
+    // `source` lets the caller say so. A canned paragraph about heating pads
+    // was previously returned with the same shape and the same 200 as a
+    // generated answer, so neither the UI nor the user could tell that no
+    // model had read the question.
+    logger.info(`Chat response for user ${userId} (source: ${source}${intent ? `, intent: ${intent}` : ''})`);
+    return jsonSuccess({ response: responseText, source, ...(intent ? { intent } : {}) })
   } catch (error) {
     logger.error('AI Chat Route Error:', error);
-    const fallback = getSmartLocalResponse(json?.message || '', language, json?.context);
-    return jsonSuccess({ response: fallback })
+
+    // `requestBody` is hoisted, so this handler can actually run. It is still
+    // whatever the client sent — unvalidated, possibly null — which is why
+    // every accessor below tolerates that.
+    const fallback = buildFallbackReply(requestBody?.message, language, requestBody?.context);
+
+    // A server fault is reported as one. Returning 200 here made an outage
+    // indistinguishable from advice; the reply is still carried so the chat UI
+    // has something to show rather than an empty bubble.
+    return jsonError('The assistant is temporarily unavailable.', 503, 'ASSISTANT_UNAVAILABLE', {
+      response: fallback.text,
+      source: SOURCE_FALLBACK,
+      intent: fallback.intent,
+    })
   }
 }
