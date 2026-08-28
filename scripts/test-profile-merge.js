@@ -198,7 +198,8 @@ check(readProfilePatch({ cycleLength: 31 }).patch.cycle_length, 31,
 check(readProfilePatch({ cycle_length: 31 }).patch.cycle_length, 31,
   'the snake_case spelling onboarding uses maps to the same column')
 check(readProfilePatch({ cycle_length: 14 }).ok, false, 'a cycle length below 15 days is rejected')
-check(readProfilePatch({ cycle_length: 61 }).ok, false, 'a cycle length above 60 days is rejected')
+check(readProfilePatch({ cycle_length: 91 }).ok, false, 'a cycle length above 90 days is rejected')
+check(readProfilePatch({ cycle_length: 75 }).ok, true, 'a cycle length of 75 days is accepted')
 check(readProfilePatch({ cycleLength: 45, cycle_length: 28 }).patch.cycle_length, 28,
   'when both spellings are sent the canonical column name wins')
 
