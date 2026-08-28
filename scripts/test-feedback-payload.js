@@ -212,6 +212,8 @@ console.log('\nupstream failures are not reported as our 500')
 
 check(describeWebhookFailure(429).status, 503, 'a Discord rate limit becomes a 503, not a 500')
 checkTruthy(describeWebhookFailure(429).retryable, 'and is described as worth retrying')
+check(describeWebhookFailure(504).status, 504, 'a timeout returns 504 Gateway Timeout')
+checkTruthy(describeWebhookFailure(504).retryable, 'a 504 timeout is retryable')
 check(describeWebhookFailure(400).status, 502, 'a rejected payload becomes a 502')
 check(describeWebhookFailure(400).retryable, false, 'and is not described as worth retrying')
 check(describeWebhookFailure(500).status, 502, 'a Discord outage becomes a 502')
