@@ -7,6 +7,7 @@ import { MessageCircle, X } from 'lucide-react'
 import ChatAssistant from '@/components/dashboard/ChatAssistant'
 import { useOffline } from '@/lib/OfflineContext'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
+import { readChatResponse } from '@/lib/chat-fallback'
 
 export default function ChatFAB() {
   const pathname = usePathname()
@@ -103,9 +104,16 @@ export default function ChatFAB() {
       })
       const data = await res.json()
       setIsTyping(false)
-      if (data.success) {
-        setChatMessages(prev => [...prev, { role: 'ai', text: data.response }])
-      }
+
+      // Read through `readChatResponse`, not `data.response`. The route was
+      // moved to the standard `jsonSuccess` envelope, which nests the reply
+      // under `data`, and this caller was never updated -- so `data.response`
+      // was `undefined` and every assistant turn rendered as an empty bubble.
+      const reply = readChatResponse(data)
+      setChatMessages(prev => [...prev, {
+        role: 'ai',
+        text: reply.text || tChat('error'),
+      }])
     } catch {
       setIsTyping(false)
       setChatMessages(prev => [...prev, {
