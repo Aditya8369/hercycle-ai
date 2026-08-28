@@ -22,6 +22,9 @@ const isPublicRoute = createRouteMatcher([
   '/auth/login(.*)',
   '/auth/signup(.*)',
   '/auth/callback(.*)',
+  '/:locale/dashboard(.*)',
+  '/dashboard(.*)',
+  '/api/dashboard(.*)',
   '/api/webhooks(.*)',
   '/manifest.json'
 ]);
