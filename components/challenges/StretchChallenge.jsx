@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react'
 import ChallengeCard from './ChallengeCard'
 import { CHALLENGES } from '@/lib/challenges-data'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
+import { describeProgressOutcome, readProgressResponse } from '@/lib/challenge-progress'
+import toast from 'react-hot-toast'
 
 export default function StretchChallenge({ initialProgress, target, onUpdate }) {
   const [progress, setProgress] = useState(initialProgress)
@@ -23,7 +25,18 @@ export default function StretchChallenge({ initialProgress, target, onUpdate }) 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ challenge_type: 'stretch', increment: target }),
-      }).then((r) => r.json()).then((json) => json.success && onUpdate?.(json.data))
+      })
+        .then((r) => r.json())
+        .then((json) => {
+          const result = readProgressResponse(json)
+          const outcome = describeProgressOutcome(result)
+          if (outcome) toast[outcome.tone === 'error' ? 'error' : 'success'](outcome.message)
+          if (result.ok) onUpdate?.(result.data)
+        })
+        // A finished ten-minute stretch that the server rejected used to
+        // disappear in silence: the timer stopped, nothing was saved, and
+        // nothing said so.
+        .catch(() => toast.error('Could not save your stretch. Please try again.'))
     }
   }, [progress, target, running, onUpdate])
 
