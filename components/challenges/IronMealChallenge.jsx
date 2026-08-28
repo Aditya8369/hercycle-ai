@@ -2,6 +2,8 @@
 import ChallengeCard from './ChallengeCard'
 import { CHALLENGES } from '@/lib/challenges-data'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
+import { describeProgressOutcome, readProgressResponse } from '@/lib/challenge-progress'
+import toast from 'react-hot-toast'
 
 export default function IronMealChallenge({ initialProgress, target, onUpdate }) {
   const completed = initialProgress >= target
@@ -11,8 +13,15 @@ export default function IronMealChallenge({ initialProgress, target, onUpdate })
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ challenge_type: 'iron', increment: 1 }),
     })
-    const json = await res.json()
-    if (json.success) onUpdate?.(json.data)
+    // Read through `readProgressResponse`. This used to be a bare
+    // `if (json.success)` with no `else`, so a rejected write did nothing at
+    // all -- the tap registered, the server said no, and the card sat there
+    // unchanged. That is how a challenge the database refused outright could
+    // stay broken for the life of a deployment.
+    const result = readProgressResponse(await res.json())
+    const outcome = describeProgressOutcome(result)
+    if (outcome) toast[outcome.tone === 'error' ? 'error' : 'success'](outcome.message)
+    if (result.ok) onUpdate?.(result.data)
   }
   return (
     <ChallengeCard

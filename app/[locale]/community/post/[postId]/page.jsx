@@ -10,6 +10,7 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import { ArrowLeft, User } from 'lucide-react';
 import { renderStoredAlias } from '@/lib/alias-display';
+import { DEFAULT_COMMENT_PAGE_SIZE, buildCommentPage, isForumId } from '@/lib/comment-thread';
 
 import MarkdownRenderer from '@/components/editor/MarkdownRenderer';
 
@@ -20,6 +21,14 @@ export default async function PostPage({ params }) {
   const dateLocale = locale === 'hi' ? hi : enUS;
   const t = await getTranslations('Community');
   const supabase = getSupabaseAdmin();
+
+  // A `postId` from the URL is untrusted. Handing a non-UUID to a `uuid`
+  // column makes Postgres raise 22P02, which is a database error for what is
+  // simply a bad link — this is a 404 either way, so answer it as one before
+  // the query.
+  if (!isForumId(postId)) {
+    notFound();
+  }
 
   // Fetch post details
   const { data: post, error: postError } = await supabase
@@ -35,12 +44,26 @@ export default async function PostPage({ params }) {
     notFound();
   }
 
-  // Fetch initial comments
-  const { data: comments } = await supabase
+  // Fetch the first page of comments.
+  //
+  // This had no `.limit()` at all, so every comment ever written on a post was
+  // selected, serialised into the RSC payload and shipped to the browser on
+  // first paint. On a support forum, a "how did you manage the diagnosis"
+  // thread is exactly the kind of post that accumulates hundreds of replies.
+  // `limit + 1` is the look-ahead row that answers `hasMore`; the client pages
+  // the rest through GET /api/forum/comments.
+  const { data: commentRows } = await supabase
     .from('forum_comments')
-    .select('*')
+    .select('id, post_id, author_alias, content, upvotes, created_at')
     .eq('post_id', postId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(DEFAULT_COMMENT_PAGE_SIZE + 1);
+
+  // The reader's own votes are not hydrated here: this page is cached
+  // (`revalidate = 60`) and shared between viewers, so a per-viewer field must
+  // not be baked into it. The client fills them in from the API instead.
+  const commentPage = buildCommentPage(commentRows || [], DEFAULT_COMMENT_PAGE_SIZE);
 
   return (
     <div className="page">
@@ -80,7 +103,12 @@ export default async function PostPage({ params }) {
           <MarkdownRenderer content={post.content} />
         </div>
 
-        <CommentSection postId={postId} initialComments={comments || []} />
+        <CommentSection
+          postId={postId}
+          initialComments={commentPage.comments}
+          initialHasMore={commentPage.hasMore}
+          initialCursor={commentPage.nextCursor}
+        />
       </div>
       <Footer />
     </div>

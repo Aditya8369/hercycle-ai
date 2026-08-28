@@ -3,6 +3,8 @@ import { useState } from 'react'
 import ChallengeCard from './ChallengeCard'
 import { CHALLENGES } from '@/lib/challenges-data'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
+import { describeProgressOutcome, readProgressResponse } from '@/lib/challenge-progress'
+import toast from 'react-hot-toast'
 
 export default function WaterChallenge({ initialProgress, target, onUpdate }) {
   const [progress, setProgress] = useState(initialProgress)
@@ -16,10 +18,13 @@ export default function WaterChallenge({ initialProgress, target, onUpdate }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ challenge_type: 'water', increment: ml }),
       })
-      const json = await res.json()
-      if (json.success) {
-        setProgress(json.data.progress_value)
-        onUpdate?.(json.data)
+      const result = readProgressResponse(await res.json())
+      const outcome = describeProgressOutcome(result)
+      if (outcome) toast[outcome.tone === 'error' ? 'error' : 'success'](outcome.message)
+
+      if (result.ok) {
+        setProgress(result.data.progress_value)
+        onUpdate?.(result.data)
       }
     } finally {
       setLoading(false)
