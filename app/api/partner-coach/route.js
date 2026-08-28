@@ -1,59 +1,83 @@
 import { auth } from '@clerk/nextjs/server'
-import { NextResponse } from 'next/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { aiLimiter, getRateLimitIdentifier } from '@/lib/rateLimiter'
-import { jsonError } from '@/lib/api-helpers'
+import { jsonSuccess, jsonError } from '@/lib/api-helpers'
+import { logger } from '@/lib/logger'
+import {
+  SOURCE_FALLBACK,
+  SOURCE_MODEL,
+  buildBriefing,
+  buildCoachFallback,
+  buildSystemPrompt,
+  buildUserPrompt,
+  normaliseCoachRequest,
+} from '@/lib/partner-coach'
 
-const COACH_FALLBACKS = {
-  Menstrual: "Her energy is naturally low during the menstrual phase. Bring her a warm heating pad, prepare herbal chamomile tea, and take care of heavy chores so she can rest.",
-  Follicular: "Her energy & stamina are rising during the follicular phase! Great time to plan an outdoor walk, a nice date night, or try a new recipe together.",
-  Ovulation: "Her confidence and social energy are at their peak during ovulation! Plan a fun social outing, express your appreciation, and enjoy vibrant conversations.",
-  Luteal: "Progesterone is high, which can cause fatigue, bloating, or emotional sensitivity. Be extra patient, offer soothing hugs, and avoid overwhelming plans."
-}
+/** Deadline for the model call, matching the chat route's per-attempt budget. */
+const TIMEOUT_MS = 8000
 
-async function callGeminiCoach(query, phase, cycleDay, rawSymptoms, history = []) {
+/**
+ * Calls Gemini for a coaching reply.
+ *
+ * Every value reaching the prompt has already been through
+ * `normaliseCoachRequest` — the phase is one of four literals, the day is a
+ * bounded integer, and the symptoms and question have had their quotes,
+ * brackets and newlines stripped. The route used to interpolate all four raw,
+ * with `phase` landing inside the *system* prompt's guideline block.
+ *
+ * Returns `null` on any failure; the caller falls back and says that it did.
+ *
+ * @param {{ phase: string, cycleDay: number, symptoms: string[], query: string, history: Array<{role: string, text: string}> }} context
+ * @returns {Promise<string|null>}
+ */
+async function callGeminiCoach(context) {
   if (!process.env.GEMINI_API_KEY) return null
 
-  const safeSymptoms = Array.isArray(rawSymptoms)
-    ? rawSymptoms.filter((s) => typeof s === 'string' && s.trim())
-    : typeof rawSymptoms === 'string' && rawSymptoms.trim()
-      ? [rawSymptoms.trim()]
-      : []
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
   try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
-    const systemPrompt = `You are HerCycle's AI Partner Coach — an empathetic, expert, and practical advisor helping a partner support their partner during her menstrual cycle.
-Current Context:
-- Cycle Phase: ${phase}
-- Cycle Day: ${cycleDay}
-- Active Symptoms: ${safeSymptoms.length > 0 ? safeSymptoms.join(', ') : 'None reported'}
+    const systemPrompt = buildSystemPrompt(context)
+    const userPrompt = buildUserPrompt(context.query)
 
-Guidelines:
-- Provide concise (2-4 sentences max), warm, actionable, and supportive advice tailored for a partner.
-- Focus on practical support (comfort foods, massage, rest, emotional patience, date ideas).
-- Always be encouraging, respectful, and empathetic.`
+    // History is actually passed now. `callGeminiCoach` has always declared a
+    // `history` parameter and the caller never supplied one, so a follow-up
+    // like "what about at night?" was answered with no idea what it referred
+    // to, even though the partner could see the previous turn on screen.
+    const chat = model.startChat({
+      history: [
+        { role: 'user', parts: [{ text: systemPrompt }] },
+        { role: 'model', parts: [{ text: 'Understood. I will give warm, practical support advice.' }] },
+        ...context.history.map((turn) => ({
+          role: turn.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: turn.text }],
+        })),
+      ],
+    })
 
-    const prompt = `Partner asks: "${query}"\nProvide a warm, expert, concise response for how to support her right now.`
+    const result = await chat.sendMessage(userPrompt, { signal: controller.signal })
+    const text = result?.response?.text?.()
 
-    const result = await model.generateContent([systemPrompt, prompt])
-    const response = await result.response
-    return response.text()
+    return typeof text === 'string' && text.trim() ? text.trim() : null
   } catch (err) {
-    console.error("Gemini Partner Coach API error:", err)
+    logger.warn(`Gemini Partner Coach call failed: ${err.message || err}`)
     return null
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
 
 export async function POST(req) {
   // ============ RATE LIMITING ============
   try {
-    const identifier = await getRateLimitIdentifier(req);
-    await aiLimiter.check(req, identifier);
+    const identifier = await getRateLimitIdentifier(req)
+    await aiLimiter.check(req, identifier)
   } catch (rateLimitError) {
-    console.warn(`[Rate Limit] Partner coach endpoint: ${rateLimitError.message}`);
-    return jsonError('Too many requests, please slow down. AI partner coach is rate limited.', 429);
+    logger.warn(`[Rate Limit] Partner coach endpoint: ${rateLimitError.message}`)
+    return jsonError('Too many requests, please slow down. AI partner coach is rate limited.', 429)
   }
   // =======================================
 
@@ -63,62 +87,64 @@ export async function POST(req) {
       return jsonError('Unauthorized', 401)
     }
 
-    let parsedBody;
+    let body
     try {
-      parsedBody = await req.json();
+      body = await req.json()
     } catch (parseError) {
-      console.warn(`Malformed JSON payload in partner-coach: ${parseError.message}`);
-      return NextResponse.json({ reply: "I'm here to help you support her! Try asking about cramp relief, food ideas, or mood support." }, { status: 400 });
+      logger.warn(`Malformed JSON payload in partner-coach: ${parseError.message}`)
+      return jsonError('Bad Request: Invalid JSON payload', 400)
     }
-    const { phase = 'Follicular', cycleDay = 1, symptoms = [], query = '' } = parsedBody
 
-    const safeSymptoms = Array.isArray(symptoms)
-      ? symptoms.filter((s) => typeof s === 'string' && s.trim())
-      : typeof symptoms === 'string' && symptoms.trim()
-        ? [symptoms.trim()]
-        : []
+    // One call applies every field's policy. Previously the body was
+    // destructured with plain defaults — `phase = 'Follicular'` — which guards
+    // against a *missing* value and not at all against a hostile one.
+    const context = normaliseCoachRequest(body)
 
-    // 1. Initial Briefing request (no query)
-    if (!query || !query.trim()) {
-      const defaultBriefing = COACH_FALLBACKS[phase] || COACH_FALLBACKS.Follicular
-      const extraSymptoms = safeSymptoms.length > 0 ? ` Active symptoms logged today: ${safeSymptoms.join(', ')}.` : ''
-      return NextResponse.json({
-        reply: `${defaultBriefing}${extraSymptoms}`,
-        phase,
-        cycleDay
+    // 1. Opening briefing: no question asked, so no model call is needed.
+    if (!context.query) {
+      return jsonSuccess({
+        reply: buildBriefing(context.phase, context.symptoms),
+        phase: context.phase,
+        cycleDay: context.cycleDay,
+        source: SOURCE_FALLBACK,
+        intent: 'briefing',
       })
     }
 
-    // 2. Chatbot Question: Attempt Gemini AI
-    const geminiReply = await callGeminiCoach(query, phase, cycleDay, safeSymptoms)
+    // 2. A real question: ask the model.
+    const geminiReply = await callGeminiCoach(context)
     if (geminiReply) {
-      return NextResponse.json({ reply: geminiReply, phase, cycleDay })
+      return jsonSuccess({
+        reply: geminiReply,
+        phase: context.phase,
+        cycleDay: context.cycleDay,
+        source: SOURCE_MODEL,
+      })
     }
 
-    // 3. Robust Knowledge Fallback if Gemini API key not set or fails
-    const qLower = query.toLowerCase()
-    let reply = `During her ${phase} phase (Day ${cycleDay}), support her by listening actively, offering warm drinks, and giving her comforting care.`
+    // 3. No key, or the provider failed. `source` says so, rather than
+    //    presenting a keyword-table answer exactly like a generated one.
+    const fallback = buildCoachFallback(context.query, context.phase, context.cycleDay)
+    logger.info(`Partner coach fallback used (intent: ${fallback.intent}) for user ${userId}`)
 
-    if (qLower.includes('cramps') || qLower.includes('pain') || qLower.includes('ache')) {
-      reply = `For cramps during ${phase} phase (Day ${cycleDay}): Apply a warm heating pad to her lower abdomen or lower back, offer ginger/chamomile tea, and encourage restful positioning.`
-    } else if (qLower.includes('food') || qLower.includes('diet') || qLower.includes('snack') || qLower.includes('eat') || qLower.includes('chocolate')) {
-      reply = `Recommended treats for ${phase} phase: Magnesium-rich dark chocolate, iron-rich warm soups, fresh berries, and hydrating herbal teas.`
-    } else if (qLower.includes('mood') || qLower.includes('sad') || qLower.includes('pms') || qLower.includes('angry') || qLower.includes('cry')) {
-      reply = `During ${phase} phase (Day ${cycleDay}), hormone shifts (especially progesterone) can cause emotional sensitivity. Offer a warm hug, give her cozy space, and avoid taking emotional spikes personally.`
-    } else if (qLower.includes('date') || qLower.includes('out') || qLower.includes('fun') || qLower.includes('activity')) {
-      if (phase === 'Ovulation' || phase === 'Follicular') {
-        reply = `Energy is high in ${phase} phase! Great time for a romantic dinner date, an outdoor walk, or a fun movie night.`
-      } else {
-        reply = `Energy is lower in ${phase} phase. A cozy movie night at home with takeout and warm blankets is the best date idea!`
-      }
-    }
-
-    return NextResponse.json({ reply, phase, cycleDay })
-
+    return jsonSuccess({
+      reply: fallback.text,
+      phase: context.phase,
+      cycleDay: context.cycleDay,
+      source: SOURCE_FALLBACK,
+      intent: fallback.intent,
+    })
   } catch (error) {
-    console.error("Error in partner-coach API:", error)
-    return NextResponse.json({
-      reply: "I'm here to help you support her! Try asking about cramp relief, food ideas, or mood support."
+    logger.error(`Error in partner-coach API: ${error.message || error}`)
+
+    // A server fault is reported as one. This branch used to return 200 with a
+    // reassuring sentence, so an outage was indistinguishable from advice —
+    // and the malformed-JSON branch returned the *same* sentence with a 400,
+    // leaving the client unable to tell three outcomes apart by shape. The
+    // reply is still carried so the UI has something to show.
+    return jsonError('The partner coach is temporarily unavailable.', 503, 'COACH_UNAVAILABLE', {
+      reply: "I'm here to help you support her! Try asking about cramp relief, food ideas, or mood support.",
+      source: SOURCE_FALLBACK,
     })
   }
 }
