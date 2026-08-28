@@ -347,7 +347,7 @@ export default function SelfCareChecklist() {
                           type="button"
                           onClick={() => startEdit(task)}
                           aria-label={t('checklistEdit')}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white/70 hover:bg-white/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400/50"
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-white/50 sm:text-white/30 hover:text-white/70 hover:bg-white/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400/50"
                         >
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
@@ -355,7 +355,7 @@ export default function SelfCareChecklist() {
                           type="button"
                           onClick={() => deleteTask(task.id)}
                           aria-label={t('checklistDelete')}
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-rose-400 hover:bg-white/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400/50"
+                          className="w-7 h-7 rounded-lg flex items-center justify-center text-white/50 sm:text-white/30 hover:text-rose-400 hover:bg-white/10 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 transition-all focus:outline-none focus:ring-2 focus:ring-pink-400/50"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

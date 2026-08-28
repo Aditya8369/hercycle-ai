@@ -275,6 +275,7 @@ function SettingsModal({ settings, onSave, onClose, t }) {
           </div>
           <button
             ref={firstFocusRef}
+            type="button"
             onClick={onClose}
             aria-label={t('hydrationSettingsClose')}
             className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white/70 hover:text-white transition-all"
@@ -364,10 +365,11 @@ function SettingsModal({ settings, onSave, onClose, t }) {
         {/* Save button */}
         <button
           id="hydration-settings-save"
+          type="button"
           onClick={handleSave}
           className="w-full btn-pill py-2.5 text-sm font-semibold"
         >
-          {t('hydrationSettingsClose')}
+          {t('save') || 'Save Settings'}
         </button>
       </div>
     </div>
@@ -452,6 +454,7 @@ export default function HydrationTracker({ phaseKey }) {
           </div>
           <button
             id="hydration-settings-btn"
+            type="button"
             onClick={() => setShowSettings(true)}
             aria-label={t('openHydrationSettings')}
             title={t('openHydrationSettings')}
@@ -520,6 +523,7 @@ export default function HydrationTracker({ phaseKey }) {
                   return (
                     <button
                       key={i}
+                      type="button"
                       onClick={() => handleGlassClick(i)}
                       aria-label={ariaLabel}
                       aria-pressed={filled}

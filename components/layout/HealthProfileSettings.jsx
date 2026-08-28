@@ -141,8 +141,9 @@ export default function HealthProfileSettings() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-white/90">Age</label>
+            <label htmlFor="profile-age" className="text-sm font-medium text-white/90">Age</label>
             <input
+              id="profile-age"
               type="number"
               name="age"
               value={formData.age}
@@ -155,8 +156,9 @@ export default function HealthProfileSettings() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-white/90">Weight (kg)</label>
+            <label htmlFor="profile-weight" className="text-sm font-medium text-white/90">Weight (kg)</label>
             <input
+              id="profile-weight"
               type="number"
               name="weight_kg"
               value={formData.weight_kg}
@@ -169,8 +171,9 @@ export default function HealthProfileSettings() {
           </div>
           
           <div className="space-y-2 sm:col-span-2">
-            <label className="text-sm font-medium text-white/90">Height (cm)</label>
+            <label htmlFor="profile-height" className="text-sm font-medium text-white/90">Height (cm)</label>
             <input
+              id="profile-height"
               type="number"
               name="height_cm"
               value={formData.height_cm}
@@ -194,7 +197,7 @@ export default function HealthProfileSettings() {
               onChange={handleChange}
               step="1"
               min="15"
-              max="60"
+              max="90"
               aria-describedby="profile-cycle-length-hint"
               className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-pink-500/50"
               placeholder="e.g. 28"
@@ -213,6 +216,7 @@ export default function HealthProfileSettings() {
                 key={condition}
                 type="button"
                 onClick={() => handleConditionChange(condition)}
+                aria-pressed={formData.known_conditions.includes(condition)}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                   formData.known_conditions.includes(condition)
                     ? 'bg-pink-500 text-white border-pink-500 shadow-md shadow-pink-500/20'
@@ -226,8 +230,9 @@ export default function HealthProfileSettings() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium text-white/90">Primary Cycle Goal</label>
+          <label htmlFor="profile-cycle-goal" className="text-sm font-medium text-white/90">Primary Cycle Goal</label>
           <select
+            id="profile-cycle-goal"
             name="cycle_goal"
             value={formData.cycle_goal}
             onChange={handleChange}
