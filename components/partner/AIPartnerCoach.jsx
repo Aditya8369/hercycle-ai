@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Bot, Sparkles, Send, RefreshCw, User, X, MessageSquare } from 'lucide-react'
 import fetchWithTimeout, { TimeoutError } from '@/lib/fetch-with-timeout'
 import toast from 'react-hot-toast'
+import { MAX_HISTORY_TURNS, readCoachResponse } from '@/lib/partner-coach'
 
 // Dynamic suggestion chips per cycle phase
 const PHASE_SUGGESTIONS = {
@@ -68,12 +69,19 @@ export default function AIPartnerCoach({ phase = 'Follicular', cycleDay = 1, sym
         body: JSON.stringify({ phase, cycleDay, symptoms, query: '' })
       })
       const data = await res.json()
-      if (data.reply) {
+
+      // Read through `readCoachResponse`, not `data.reply`. The route now uses
+      // the standard `jsonSuccess` envelope like the rest of the API, which
+      // nests the payload under `data` -- and a 503 carries the canned reply
+      // under `details`, so the partner still sees something rather than an
+      // empty panel.
+      const briefing = readCoachResponse(data)
+      if (briefing.text) {
         setMessages([
           {
             id: 'briefing-' + Date.now(),
             sender: 'ai',
-            text: data.reply,
+            text: briefing.text,
             time: formatTime()
           }
         ])
@@ -101,17 +109,26 @@ export default function AIPartnerCoach({ phase = 'Follicular', cycleDay = 1, sym
     setIsTyping(true)
 
     try {
+      // The conversation so far is sent now. `callGeminiCoach` has always
+      // taken a `history` parameter and the route never passed one, so a
+      // follow-up like "what about at night?" was answered with no idea what
+      // it referred to -- even though the previous turn was on screen.
+      const history = messages
+        .slice(-MAX_HISTORY_TURNS)
+        .map((msg) => ({ role: msg.sender === 'ai' ? 'assistant' : 'user', text: msg.text }))
+
       const res = await fetchWithTimeout('/api/partner-coach', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phase, cycleDay, symptoms, query: queryText })
+        body: JSON.stringify({ phase, cycleDay, symptoms, query: queryText, history })
       })
       const data = await res.json()
 
+      const reply = readCoachResponse(data)
       const aiMsg = {
         id: 'ai-' + Date.now(),
         sender: 'ai',
-        text: data.reply || "I'm here to support you in helping her!",
+        text: reply.text || "I'm here to support you in helping her!",
         time: formatTime()
       }
 
