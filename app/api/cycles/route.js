@@ -6,7 +6,13 @@ import { z } from 'zod'
 import { eventBus } from '@/lib/events'
 import { pcodRiskCache } from '@/lib/cache'
 import { endsOnOrAfterStart, isoCalendarDate, optionalIsoCalendarDate } from '@/lib/date-schemas'
-import { jsonSuccess, jsonError, getPaginationParams, formatPaginatedResponse } from '@/lib/api-helpers'
+import { jsonSuccess, jsonError } from '@/lib/api-helpers'
+import {
+  buildCycleCursorFilter,
+  buildCyclePage,
+  emptyCyclePage,
+  parseCycleQuery,
+} from '@/lib/cycle-page'
 
 /**
  * Physiologically valid cycle length: 15–90 days covers all clinical edge cases
@@ -81,11 +87,15 @@ export async function GET(request) {
     await ensureUserExists(userId)
 
     const url = new URL(request.url)
-    const { limit, cursor } = getPaginationParams(url.searchParams, 12, 100)
+    // Both halves of the cursor are validated before they can reach a filter
+    // string -- an unusable cursor decodes to `null`, which serves the first
+    // page. See lib/cycle-page.js.
+    const { limit, cursor } = parseCycleQuery(url.searchParams)
 
     const supabaseAdmin = getSupabaseAdmin()
 
-    // Query total count for metadata tracking
+    // Total count is metadata, not the page. A failure here must not fail the
+    // read, so it is logged and the count is reported as unknown.
     const { count: totalCount, error: countError } = await supabaseAdmin
       .from('cycles')
       .select('*', { count: 'exact', head: true })
@@ -100,35 +110,35 @@ export async function GET(request) {
       .select('*')
       .eq('user_id', userId)
       .order('start_date', { ascending: false })
+      // `start_date` is not unique -- a duplicate write or a correction can
+      // share one -- so the id tie-break is what makes paging stable.
       .order('id', { ascending: false })
-      .limit(limit)
+      // One row more than asked for: its presence answers `hasMore` without a
+      // second scan of the same range.
+      .limit(limit + 1)
 
     if (cursor) {
-      // Decode cursor assuming format: `${start_date}_${id}` or similar composite cursor
-      const [cursorDate, cursorId] = cursor.split('_')
-      if (cursorDate && cursorId) {
-        query = query.or(`start_date.lt.${cursorDate},and(start_date.eq.${cursorDate},id.lt.${cursorId})`)
-      }
+      query = query.or(buildCycleCursorFilter(cursor))
     }
 
     const { data: cycles, error } = await query
 
     if (error && error.code !== 'PGRST116') {
       logger.error(`Error querying cycles for user ${userId}:`, error.message);
-      return jsonSuccess({ cycles: [], nextPeriodDate: null, confidence: null, averageCycleLength: 28 })
+      // Same envelope as the success path. The client reads
+      // `data.data.cycles` on every branch, and the two branches of this
+      // handler previously disagreed about whether that key existed.
+      return jsonSuccess(emptyCyclePage())
     }
 
     const rows = cycles || []
-    logger.info(`Successfully fetched ${rows.length} cycles for user ${userId}`);
+    const page = buildCyclePage(rows, limit, typeof totalCount === 'number' ? totalCount : null)
+    logger.info(`Successfully fetched ${page.cycles.length} cycles for user ${userId}`);
 
-    const paginatedResult = formatPaginatedResponse(
-      rows,
-      limit,
-      totalCount || rows.length,
-      (item) => `${item.start_date}_${item.id}`
-    )
-
-    return NextResponse.json(paginatedResult, { status: 200 })
+    // Through `jsonSuccess`, not a bare `NextResponse`: reaching past the
+    // shared helper is how this handler came to reference an identifier the
+    // file never imported, and how its shape drifted from the client's.
+    return jsonSuccess(page)
   } catch (error) {
     logger.error('Error fetching cycles:', error.message || error);
     return jsonError(`Failed to fetch cycles: ${error.message || error}`, 500)
