@@ -194,7 +194,7 @@ export default function HealthProfileSettings() {
               onChange={handleChange}
               step="1"
               min="15"
-              max="60"
+              max="90"
               aria-describedby="profile-cycle-length-hint"
               className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-pink-500/50"
               placeholder="e.g. 28"
