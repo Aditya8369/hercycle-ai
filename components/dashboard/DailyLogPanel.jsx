@@ -41,6 +41,8 @@ export default function DailyLogPanel({
   setSelectedMood = () => {},
   selectedFlow = null,
   setSelectedFlow = () => {},
+  notes = '',
+  setNotes = () => {},
   handleSaveLog = () => {},
   cycleData = null
 }) {
@@ -225,6 +227,46 @@ export default function DailyLogPanel({
               />
             );
           })}
+        </div>
+
+        <div style={{ marginTop: '1.25rem' }}>
+          <label
+            htmlFor="daily-log-notes"
+            className="flow-lbl flow-label"
+            style={{ display: 'block', marginBottom: '0.5rem' }}
+          >
+            {t('journalNotes')}
+          </label>
+          <textarea
+            id="daily-log-notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value.slice(0, 1000))}
+            placeholder={t('journalNotesPlaceholder')}
+            maxLength={1000}
+            rows={3}
+            style={{
+              width: '100%',
+              padding: '0.75rem',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              background: 'rgba(255, 255, 255, 0.05)',
+              color: '#ffffff',
+              fontSize: '0.9rem',
+              resize: 'vertical',
+              outline: 'none',
+              fontFamily: 'inherit',
+            }}
+          />
+          <div
+            style={{
+              textAlign: 'right',
+              fontSize: '0.75rem',
+              color: 'rgba(255, 255, 255, 0.5)',
+              marginTop: '4px',
+            }}
+          >
+            {notes ? notes.length : 0} / 1000
+          </div>
         </div>
 
         <button className="save-btn" onClick={handleSaveLog}>
