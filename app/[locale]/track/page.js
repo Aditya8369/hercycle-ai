@@ -92,6 +92,7 @@ export default function TrackPage() {
   const [selectedSymptoms, setSelectedSymptoms] = useState([])
   const [selectedMood, setSelectedMood] = useState(null)
   const [selectedFlow, setSelectedFlow] = useState(null)
+  const [selectedNotes, setSelectedNotes] = useState('')
   const [loading, setLoading] = useState(true)
 
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -118,6 +119,7 @@ export default function TrackPage() {
         if (data.data.symptoms) setSelectedSymptoms(data.data.symptoms)
         if (data.data.mood) setSelectedMood(data.data.mood)
         if (data.data.flow) setSelectedFlow(data.data.flow)
+        if (data.data.notes) setSelectedNotes(data.data.notes)
       }
     } catch (e) { console.error(e) }
   }, [offlineClient])
@@ -135,6 +137,7 @@ export default function TrackPage() {
         symptoms: selectedSymptoms,
         mood: selectedMood,
         flow: selectedFlow,
+        notes: selectedNotes,
       }
       const data = await offlineClient.saveDailyLog(logData)
       if (data.success) {
@@ -146,6 +149,7 @@ export default function TrackPage() {
         setSelectedSymptoms([])
         setSelectedMood(null)
         setSelectedFlow(null)
+        setSelectedNotes('')
         fetchCycleData()
       } else if (isEncryptionFailure(data)) {
         // Fail-closed: nothing was sent, so keep the form populated for retry
@@ -329,6 +333,8 @@ export default function TrackPage() {
               setSelectedMood={setSelectedMood}
               selectedFlow={selectedFlow}
               setSelectedFlow={setSelectedFlow}
+              notes={selectedNotes}
+              setNotes={setSelectedNotes}
               handleSaveLog={handleSaveLog}
               cycleData={cycleData}
               activeLang="EN"

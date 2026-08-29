@@ -10,14 +10,12 @@ import { sanitizeSymptomList, sanitizeText, getPaginationParams, formatPaginated
 import { pcodRiskCache } from '@/lib/cache'
 
 const logPostSchema = z.object({
-  // Shape alone is not enough: the old `/^\d{4}-\d{2}-\d{2}$/` accepted
-  // "2026-02-31" and "2026-13-45", and this route answered 200 for a day that
-  // does not exist.
   date: isoCalendarDate({ label: 'date' }),
   symptoms: z.array(z.string()).optional(),
   mood: z.string().nullable().optional(),
   flow: z.string().nullable().optional(),
   cervical_discharge: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
   encrypted_data: z.any().optional()
 })
 
@@ -73,6 +71,7 @@ export async function GET(request) {
             mood: data.mood ? sanitizeText(data.mood) : data.mood,
             flow: data.flow ? sanitizeText(data.flow) : data.flow,
             cervical_discharge: data.cervical_discharge ? sanitizeText(data.cervical_discharge) : data.cervical_discharge,
+            notes: data.notes ? sanitizeText(data.notes, 1000) : data.notes,
           }
         : null
       return NextResponse.json({ success: true, data: safeData })
@@ -121,6 +120,7 @@ export async function GET(request) {
       mood: item.mood ? sanitizeText(item.mood) : item.mood,
       flow: item.flow ? sanitizeText(item.flow) : item.flow,
       cervical_discharge: item.cervical_discharge ? sanitizeText(item.cervical_discharge) : item.cervical_discharge,
+      notes: item.notes ? sanitizeText(item.notes, 1000) : item.notes,
     }))
 
     const paginatedResult = formatPaginatedResponse(
@@ -173,7 +173,7 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: 'Bad Request', details: result.error.errors }, { status: 400 })
     }
 
-    const { date, symptoms, mood, flow, cervical_discharge, encrypted_data } = result.data
+    const { date, symptoms, mood, flow, cervical_discharge, notes, encrypted_data } = result.data
 
     // Sanitize every free-text field before it ever reaches the database:
     // strip HTML/script tags, trim whitespace, and cap custom-symptom
@@ -182,6 +182,7 @@ export async function POST(request) {
     const sanitizedMood = mood ? sanitizeText(mood) : null
     const sanitizedFlow = flow ? sanitizeText(flow) : null
     const sanitizedCervicalDischarge = cervical_discharge ? sanitizeText(cervical_discharge) : null
+    const sanitizedNotes = notes ? sanitizeText(notes, 1000) : null
 
     const supabaseAdmin = getSupabaseAdmin()
 
@@ -195,6 +196,7 @@ export async function POST(request) {
       mood: sanitizedMood,
       flow: sanitizedFlow,
       cervical_discharge: sanitizedCervicalDischarge,
+      notes: sanitizedNotes,
       updated_at: new Date().toISOString()
     }
     if (encrypted_data !== undefined && encrypted_data !== null) {
