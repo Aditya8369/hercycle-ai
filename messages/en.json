@@ -148,6 +148,8 @@
     "symptoms": "Today's Symptoms",
     "mood": "Today's Mood",
     "flow": "Flow Intensity",
+    "journalNotes": "Daily Journal / Notes",
+    "journalNotesPlaceholder": "Write any symptoms, feelings, or notes for today...",
     "save": "Save Log"
   },
   "onboarding": {
