@@ -734,5 +734,22 @@
     "confidence_moderate": "Some evidence",
     "confidence_low": "Early signal",
     "disclaimer": "These are patterns in what you logged, not a medical finding. Share them with a clinician rather than acting on them alone."
+  },
+  "CycleComparison": {
+    "title": "Compare This Cycle",
+    "subtitle": "How your current cycle compares against your previous 3 completed cycles.",
+    "insufficientData": "Log more cycles to see how your current cycle compares with your usual pattern.",
+    "cycleLengthLabel": "Cycle Length",
+    "symptomActivityLabel": "Symptom Activity",
+    "currentDay": "Day {day}",
+    "prev3AvgDays": "Previous 3-cycle avg: {avg} days",
+    "currentSymptomsCount": "{count} symptoms",
+    "prev3AvgSymptoms": "Previous 3-cycle avg: {avg} symptoms",
+    "longerThanUsual": "{diff} day(s) longer than usual",
+    "shorterThanUsual": "{diff} day(s) shorter than usual",
+    "sameAsUsual": "Approximately the same as usual",
+    "moreSymptomsThanUsual": "{diff} more symptoms than usual",
+    "fewerSymptomsThanUsual": "{diff} fewer symptoms than usual",
+    "sameSymptomsAsUsual": "Approximately the same symptom count"
   }
 }
