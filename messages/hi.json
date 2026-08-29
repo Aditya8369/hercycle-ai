@@ -734,5 +734,22 @@
     "confidence_moderate": "कुछ प्रमाण",
     "confidence_low": "शुरुआती संकेत",
     "disclaimer": "ये आपके लॉग किए गए डेटा के पैटर्न हैं, कोई चिकित्सकीय निष्कर्ष नहीं। इन पर स्वयं कार्रवाई करने के बजाय इन्हें डॉक्टर के साथ साझा करें।"
+  },
+  "CycleComparison": {
+    "title": "इस चक्र की तुलना करें",
+    "subtitle": "आपका वर्तमान चक्र आपके पिछले 3 पूर्ण चक्रों की तुलना में कैसा है।",
+    "insufficientData": "यह देखने के लिए कि आपका वर्तमान चक्र आपके सामान्य पैटर्न से कैसे तुलना करता है, और अधिक चक्र दर्ज करें।",
+    "cycleLengthLabel": "चक्र अवधि",
+    "symptomActivityLabel": "लक्षण गतिविधि",
+    "currentDay": "दिन {day}",
+    "prev3AvgDays": "पिछले 3 चक्रों का औसत: {avg} दिन",
+    "currentSymptomsCount": "{count} लक्षण",
+    "prev3AvgSymptoms": "पिछले 3 चक्रों का औसत: {avg} लक्षण",
+    "longerThanUsual": "सामान्य से {diff} दिन लंबा",
+    "shorterThanUsual": "सामान्य से {diff} दिन छोटा",
+    "sameAsUsual": "सामान्य के लगभग समान",
+    "moreSymptomsThanUsual": "सामान्य से {diff} अधिक लक्षण",
+    "fewerSymptomsThanUsual": "सामान्य से {diff} कम लक्षण",
+    "sameSymptomsAsUsual": "सामान्य लक्षणों की संख्या के लगभग समान"
   }
 }
