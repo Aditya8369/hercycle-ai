@@ -46,6 +46,7 @@ export default function DayLogDrawer({
   const [symptoms, setSymptoms] = useState([])
   const [mood, setMood] = useState(null)
   const [flow, setFlow] = useState(null)
+  const [notes, setNotes] = useState('')
 
   // Fetch the log for this specific date when the drawer opens
   useEffect(() => {
@@ -55,6 +56,7 @@ export default function DayLogDrawer({
     setSymptoms([])
     setMood(null)
     setFlow(null)
+    setNotes('')
 
     const fetchLog = async () => {
       try {
@@ -64,6 +66,7 @@ export default function DayLogDrawer({
           if (data.data.symptoms) setSymptoms(data.data.symptoms)
           if (data.data.mood) setMood(data.data.mood)
           if (data.data.flow) setFlow(data.data.flow)
+          if (data.data.notes) setNotes(data.data.notes)
         }
       } catch (err) {
         if (isCurrent) {
@@ -144,6 +147,7 @@ export default function DayLogDrawer({
         symptoms,
         mood,
         flow,
+        notes,
       }
       const data = await offlineClient.saveDailyLog(logData)
       if (data.success) {
@@ -227,6 +231,8 @@ export default function DayLogDrawer({
             setSelectedMood={setMood}
             selectedFlow={flow}
             setSelectedFlow={setFlow}
+            notes={notes}
+            setNotes={setNotes}
             handleSaveLog={handleSaveLog}
             cycleData={cycleData}
             activeLang="EN"

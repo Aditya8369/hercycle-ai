@@ -4,6 +4,7 @@ import { useUser } from '@clerk/nextjs'
 import generateReport from '@/lib/generateReport'
 import { useTranslations, useLocale } from 'next-intl'
 import { RISK_UNAVAILABLE_REASONS, normaliseRiskResult } from '@/lib/pcod-risk-result'
+import { useOffline } from '@/lib/OfflineContext'
 import toast from 'react-hot-toast'
 
 // ── Tier → visual tokens ──────────────────────────────────────────────────────
@@ -45,11 +46,12 @@ function SkeletonRow({ width = '100%' }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function PCODRiskCard({ pcodRisk, unavailableReason = null, loading, cycleCount = 0, cycles = [], recentSymptoms = [] }) {
+export default function PCODRiskCard({ pcodRisk, unavailableReason = null, loading, cycleCount = 0, cycles = [], recentSymptoms = [], dailyLogs = [] }) {
   // Animate gauge width on mount / data change
   const [gaugeWidth, setGaugeWidth] = useState(0)
   const [exporting, setExporting] = useState(false)
   const { user } = useUser()
+  const { offlineClient } = useOffline()
   const t = useTranslations('Risk')
   const tFactors = useTranslations('factors')
   const tRec = useTranslations('recommendations')
@@ -82,12 +84,25 @@ export default function PCODRiskCard({ pcodRisk, unavailableReason = null, loadi
     if (exporting) return
     setExporting(true)
     try {
+      let logsToPass = dailyLogs
+      if (!Array.isArray(logsToPass) || logsToPass.length === 0) {
+        try {
+          const logsRes = await offlineClient.fetchAllLogs()
+          if (logsRes?.success && Array.isArray(logsRes.data)) {
+            logsToPass = logsRes.data
+          }
+        } catch (err) {
+          console.warn('Could not fetch daily logs for report export:', err)
+        }
+      }
+
       await generateReport({
         userName: user?.fullName || user?.firstName || 'User',
         email: user?.primaryEmailAddress?.emailAddress || '',
         cycles,
         pcod: result,
         recentSymptoms,
+        dailyLogs: logsToPass || [],
         locale,
         currentPhase: label,
       })
