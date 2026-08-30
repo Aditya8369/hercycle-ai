@@ -8,6 +8,7 @@ import ConfirmationModal from '@/components/modals/ConfirmationModal'
 import toast from 'react-hot-toast'
 import { Download, AlertTriangle, Trash2, Shield, Sun, Moon } from 'lucide-react'
 import PartnerSharing from '@/components/settings/PartnerSharing'
+import CycleCsvImport from '@/components/settings/CycleCsvImport'
 import NotificationSettings from '@/components/layout/NotificationSettings'
 import { useTranslations } from 'next-intl'
 import { useTheme } from '@/lib/ThemeContext'
@@ -148,6 +149,11 @@ export default function SettingsPage() {
                 {isExporting ? t('exporting') : t('exportBtn')}
               </button>
             </section>
+
+            <hr className="border-white/10 relative z-10" />
+
+            {/* CSV Import Cycle History Section */}
+            <CycleCsvImport />
 
             <hr className="border-white/10 relative z-10" />
 

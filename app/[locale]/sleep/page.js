@@ -3,6 +3,7 @@
  *
  * Users can log nightly sleep (bed/wake time, quality, disturbances),
  * see stats overview, view weekly trend charts, and get personalized insights.
+ * Also includes the cycle-phase Sleep Recovery Tracker from upstream/main.
  */
 'use client'
 
@@ -12,6 +13,7 @@ import SleepLogForm from '@/components/sleep/SleepLogForm.jsx'
 import SleepLogList from '@/components/sleep/SleepLogList.jsx'
 import SleepQualityChart from '@/components/sleep/SleepQualityChart.jsx'
 import SleepInsights from '@/components/sleep/SleepInsights.jsx'
+import SleepRecoveryTracker from '@/components/dashboard/SleepRecoveryTracker'
 import { buildWeeklySummary, toDateString } from '@/lib/sleep-log-data.js'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
 import './sleep-tracker.css'
@@ -178,6 +180,11 @@ export default function SleepPage() {
             <SleepLogList entries={entries} onDelete={handleDeleteLog} />
           </>
         )}
+
+        {/* Cycle-Phase Sleep Recovery Tracker (upstream) */}
+        <section className="sleep-recovery-section">
+          <SleepRecoveryTracker />
+        </section>
 
         {/* Log sleep form modal */}
         {showForm && (
