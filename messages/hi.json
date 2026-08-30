@@ -757,8 +757,23 @@
     "longerThanUsual": "सामान्य से {diff} दिन लंबा",
     "shorterThanUsual": "सामान्य से {diff} दिन छोटा",
     "sameAsUsual": "सामान्य के लगभग समान",
-    "moreSymptomsThanUsual": "सामान्य से {diff} अधिक लक्षण",
-    "fewerSymptomsThanUsual": "सामान्य से {diff} कम लक्षण",
-    "sameSymptomsAsUsual": "सामान्य लक्षणों की संख्या के लगभग समान"
+    "moreSymptomsThanUsual": "{diff} अधिक लक्षण",
+    "fewerSymptomsThanUsual": "{diff} कम लक्षण",
+    "sameSymptomsAsUsual": "लगभग समान लक्षण"
+  },
+  "Community": {
+    "title": "गुमनाम समुदाय",
+    "subtitle": "PCOD, साइकिल ट्रैकिंग और मानसिक स्वास्थ्य पर चर्चा करने के लिए एक सुरक्षित, गुमनाम स्थान।",
+    "saved_posts": "सहेजी गई पोस्ट",
+    "no_saved_posts": "आपने अभी तक कोई चर्चा सहेज कर नहीं रखी है।",
+    "be_the_first_save": "किसी भी चर्चा पर बुकमार्क आइकन पर क्लिक करके पोस्ट सहेजें।",
+    "save_post": "पोस्ट सहेजें",
+    "remove_saved": "सहेजी गई पोस्ट हटाएं",
+    "saved_success": "पोस्ट आपके बुकमार्क में सहेज ली गई है",
+    "removed_success": "पोस्ट आपके बुकमार्क से हटा दी गई है",
+    "login_to_save": "पोस्ट सहेजने के लिए कृपया साइन इन करें",
+    "bookmark_error": "बुकमार्क अपडेट नहीं किया जा सका",
+    "view_saved": "सहेजी गई पोस्ट",
+    "back_to_discussions": "चर्चाओं पर वापस जाएं"
   }
 }

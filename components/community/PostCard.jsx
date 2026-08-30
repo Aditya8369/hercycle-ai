@@ -6,18 +6,70 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@clerk/nextjs';
 import { formatDistanceToNow } from 'date-fns';
 import { enUS, hi } from 'date-fns/locale';
-import { ArrowUp, ArrowDown, MessageSquare } from 'lucide-react';
+import { ArrowUp, ArrowDown, MessageSquare, Bookmark } from 'lucide-react';
 import fetchWithTimeout from '@/lib/fetch-with-timeout';
 import { renderStoredAlias } from '@/lib/alias-display';
 import toast from 'react-hot-toast';
 
-export default function PostCard({ post, locale }) {
+export default function PostCard({ post, locale, initialIsBookmarked = false, onBookmarkToggle }) {
 
   const dateLocale = locale === 'hi' ? hi : enUS;
   const t = useTranslations('Community');
   const [upvotes, setUpvotes] = useState(post.upvotes || 0);
   const [userVote, setUserVote] = useState(0); // 1 = upvote, -1 = downvote, 0 = none
-  const { getToken } = useAuth();
+  const [isBookmarked, setIsBookmarked] = useState(initialIsBookmarked || post.isBookmarked || false);
+  const [isBookmarking, setIsBookmarking] = useState(false);
+  const { isSignedIn, getToken } = useAuth();
+
+  const handleBookmark = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isSignedIn) {
+      toast.error(t('login_to_save') || 'Please sign in to save posts');
+      return;
+    }
+
+    if (isBookmarking) return;
+
+    const previousState = isBookmarked;
+    const newState = !previousState;
+
+    setIsBookmarked(newState);
+    setIsBookmarking(true);
+
+    try {
+      const token = await getToken();
+      const res = await fetchWithTimeout('/api/forum/bookmarks', {
+        method: newState ? 'POST' : 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ postId: post.id })
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setIsBookmarked(previousState);
+        toast.error(data?.error || t('bookmark_error') || 'Could not update bookmark');
+        return;
+      }
+
+      onBookmarkToggle?.(newState);
+      toast.success(
+        newState
+          ? (t('saved_success') || 'Post saved to your bookmarks')
+          : (t('removed_success') || 'Post removed from your bookmarks')
+      );
+    } catch (error) {
+      setIsBookmarked(previousState);
+      toast.error(t('bookmark_error') || 'Could not update bookmark');
+    } finally {
+      setIsBookmarking(false);
+    }
+  };
 
   const handleVote = async (e, value) => {
     e.preventDefault();
@@ -139,11 +191,26 @@ export default function PostCard({ post, locale }) {
             {post.content}
           </p>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-sm">
               <MessageSquare size={16} />
               <span>{t('reply') || 'Reply'}</span>
             </div>
+
+            <button
+              type="button"
+              onClick={handleBookmark}
+              disabled={isBookmarking}
+              className={`relative z-20 flex items-center gap-1.5 text-sm transition-colors ${
+                isBookmarked
+                  ? 'text-pink-600 dark:text-pink-400 font-medium'
+                  : 'text-slate-500 hover:text-pink-500 dark:text-slate-400 dark:hover:text-pink-400'
+              }`}
+              aria-label={isBookmarked ? (t('remove_saved') || 'Remove bookmark') : (t('save_post') || 'Save post')}
+            >
+              <Bookmark size={16} className={isBookmarked ? 'fill-current' : ''} aria-hidden="true" />
+              <span>{isBookmarked ? (t('saved') || 'Saved') : (t('save_post') || 'Save')}</span>
+            </button>
           </div>
         </div>
       </div>
