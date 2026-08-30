@@ -16,6 +16,7 @@ import Footer from '@/components/layout/Footer'
 import { useOffline } from '@/lib/OfflineContext'
 import { useTranslations } from 'next-intl'
 import SymptomPhaseInsights from '@/components/dashboard/SymptomPhaseInsights'
+import CycleComparisonCard from '@/components/dashboard/CycleComparisonCard'
 import { formatDateForCSV } from '@/lib/utils'
 import { normaliseRiskResult } from '@/lib/pcod-risk-result'
 import { copyToClipboard } from '@/lib/clipboard'
@@ -627,6 +628,12 @@ const [cycleData, setCycleData] = useState(null)
             cycles={cycles}
             averageCycleLength={avgCycle}
             loading={loading}
+          />
+
+          {/* ── Compare This Cycle ── */}
+          <CycleComparisonCard
+            cycles={cycles}
+            dailyLogs={dailyLogs}
           />
 
           {/* ── Mood Distribution ── */}

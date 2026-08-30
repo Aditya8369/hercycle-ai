@@ -161,6 +161,7 @@ const HerCycleApp = () => {
   const [selectedMood, setSelectedMood] = useState(null)
   const [selectedFlow, setSelectedFlow] = useState(null)
   const [selectedDischarge, setSelectedDischarge] = useState(null)
+  const [selectedNotes, setSelectedNotes] = useState('')
   const [saveTrigger, setSaveTrigger] = useState(0)
   const [cycleData, setCycleData] = useState(null)
   const [pcodRisk, setPcodRisk] = useState(null)
@@ -335,7 +336,8 @@ const HerCycleApp = () => {
         symptoms: selectedSymptoms,
         mood: selectedMood,
         flow: selectedFlow,
-        cervical_discharge: selectedDischarge
+        cervical_discharge: selectedDischarge,
+        notes: selectedNotes,
       }
       const data = await offlineClient.saveDailyLog(logData)
       if (data.success) {
@@ -348,6 +350,7 @@ const HerCycleApp = () => {
         setSelectedMood(null)
         setSelectedFlow(null)
         setSelectedDischarge(null)
+        setSelectedNotes('')
         setSaveTrigger(prev => prev + 1)
         fetchCycleData()
       } else if (isEncryptionFailure(data)) {
@@ -570,6 +573,8 @@ const HerCycleApp = () => {
             setSelectedMood={setSelectedMood}
             selectedFlow={selectedFlow}
             setSelectedFlow={setSelectedFlow}
+            notes={selectedNotes}
+            setNotes={setSelectedNotes}
             handleSaveLog={handleSaveLog}
             cycleData={cycleData}
             activeLang={activeLang}
