@@ -775,5 +775,11 @@
     "bookmark_error": "Could not update bookmark",
     "view_saved": "Saved Posts",
     "back_to_discussions": "Back to discussions"
+  },
+  "InstallPrompt": {
+    "title": "Install HerCycle AI",
+    "subtitle": "Get instant offline access and a full-screen app experience.",
+    "install": "Install App",
+    "dismiss": "Dismiss install prompt"
   }
 }

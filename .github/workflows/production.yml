@@ -20,13 +20,16 @@ jobs:
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
+          cache: yarn
 
-      - run: npm ci
+      - name: Enable Corepack
+        run: corepack enable
+
+      - run: yarn install --frozen-lockfile --ignore-engines
 
       - run: npm run build
