@@ -1,0 +1,64 @@
+/* ─── Wellness Goals — Styles ─────────────────────────────────────────────── */
+
+/* Goal item hover / active states */
+.wellness-goal-item {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+}
+
+.wellness-goal-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(232, 82, 126, 0.15);
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.wellness-goal-item:active {
+  transform: scale(0.98);
+}
+
+.wellness-goal-item[aria-pressed="true"] {
+  box-shadow: 0 2px 10px rgba(232, 82, 126, 0.2);
+}
+
+/* Weekly chart bar animation */
+.wellness-weekly-chart > div > div:first-child {
+  transition: height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Stat card subtle glow on hover */
+.wellness-goal-tracker > div:nth-child(2) > div:hover {
+  box-shadow: 0 0 20px rgba(192, 132, 252, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Skeleton loading pulse */
+@keyframes wellnessPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+.wellness-goal-tracker div[style*="animation: pulse"] {
+  animation: wellnessPulse 1.5s ease-in-out infinite !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .wellness-goal-tracker {
+    padding: 1rem !important;
+    border-radius: 16px !important;
+  }
+
+  .wellness-weekly-chart {
+    height: 80px !important;
+  }
+}
+
+/* Accessibility — focus ring for keyboard navigation */
+.wellness-goal-item:focus-visible {
+  outline: 2px solid var(--lavender, #c084fc);
+  outline-offset: 2px;
+}
+
+/* Smooth checkbox transition */
+.wellness-goal-item[aria-pressed] > div:first-child {
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
