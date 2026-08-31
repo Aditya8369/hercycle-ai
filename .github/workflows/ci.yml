@@ -22,19 +22,19 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v4
         with:
-          node-version: 24
-          cache: npm
+          node-version: 22
+          cache: yarn
 
       - name: Enable Corepack
         run: corepack enable
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --frozen-lockfile --ignore-engines
 
       - name: Provide placeholder env for CI when secrets are missing
         shell: bash
@@ -55,19 +55,39 @@ jobs:
           fi
 
           if [ -z "${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}" ]; then
-            echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=ci-clerk-pub" >> $GITHUB_ENV
+            echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Y2xlcmsuZXhhbXBsZS5jb20k" >> $GITHUB_ENV
           fi
 
           if [ -z "${CLERK_SECRET_KEY:-}" ]; then
-            echo "CLERK_SECRET_KEY=ci-clerk-secret" >> $GITHUB_ENV
+            echo "CLERK_SECRET_KEY=sk_test_ci_clerk_secret_key" >> $GITHUB_ENV
           fi
 
           if [ -z "${GEMINI_API_KEY:-}" ]; then
-            echo "GEMINI_API_KEY=ci-gemini" >> $GITHUB_ENV
+            echo "GEMINI_API_KEY=ci-gemini-placeholder-key" >> $GITHUB_ENV
           fi
 
           if [ -z "${GROQ_API_KEY:-}" ]; then
-            echo "GROQ_API_KEY=ci-groq" >> $GITHUB_ENV
+            echo "GROQ_API_KEY=ci-groq-placeholder-key" >> $GITHUB_ENV
+          fi
+
+          if [ -z "${NEXT_PUBLIC_APP_URL:-}" ]; then
+            echo "NEXT_PUBLIC_APP_URL=http://127.0.0.1:3000" >> $GITHUB_ENV
+          fi
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "CRON_SECRET=ci-cron-secret" >> $GITHUB_ENV
+          fi
+
+          if [ -z "${CLERK_WEBHOOK_SECRET:-}" ]; then
+            echo "CLERK_WEBHOOK_SECRET=whsec_ci_webhook_secret" >> $GITHUB_ENV
+          fi
+
+          if [ -z "${ADMIN_ACCESS_TOKEN:-}" ]; then
+            echo "ADMIN_ACCESS_TOKEN=ci-admin-token" >> $GITHUB_ENV
+          fi
+
+          if [ -z "${ADMIN_EMAILS:-}" ]; then
+            echo "ADMIN_EMAILS=admin@hercycle.app" >> $GITHUB_ENV
           fi
 
       - name: Run Linter

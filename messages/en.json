@@ -760,5 +760,26 @@
     "moreSymptomsThanUsual": "{diff} more symptoms than usual",
     "fewerSymptomsThanUsual": "{diff} fewer symptoms than usual",
     "sameSymptomsAsUsual": "Approximately the same symptom count"
+  },
+  "Community": {
+    "title": "Anonymous Community",
+    "subtitle": "A safe, anonymous space to discuss PCOD, cycle tracking, and mental health.",
+    "saved_posts": "Saved Posts",
+    "no_saved_posts": "You haven't saved any discussions yet.",
+    "be_the_first_save": "Save posts by clicking the bookmark icon on any discussion.",
+    "save_post": "Save post",
+    "remove_saved": "Remove bookmark",
+    "saved_success": "Post saved to your bookmarks",
+    "removed_success": "Post removed from your bookmarks",
+    "login_to_save": "Please sign in to save posts",
+    "bookmark_error": "Could not update bookmark",
+    "view_saved": "Saved Posts",
+    "back_to_discussions": "Back to discussions"
+  },
+  "InstallPrompt": {
+    "title": "Install HerCycle AI",
+    "subtitle": "Get instant offline access and a full-screen app experience.",
+    "install": "Install App",
+    "dismiss": "Dismiss install prompt"
   }
 }
