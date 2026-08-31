@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useTranslations } from 'next-intl'
+import toast from 'react-hot-toast'
+import { generatePredictionIcs, downloadIcsFile } from '@/lib/ics-export'
 
 /**
  * Animated count-up hook.
@@ -57,6 +59,25 @@ export default function PredictionCard({ cycleData }) {
 
   const nextDate = cycleData?.nextPeriodDate || '—'
   const avgLen = cycleData?.averageCycleLength || 28
+
+  const handleCalendarExport = () => {
+    try {
+      const icsContent = generatePredictionIcs(cycleData, { t })
+      if (!icsContent) {
+        toast.error(t('calendarExportError'))
+        return
+      }
+      const success = downloadIcsFile('hercycle-predictions.ics', icsContent)
+      if (success) {
+        toast.success(t('calendarExportSuccess'))
+      } else {
+        toast.error(t('calendarExportError'))
+      }
+    } catch (err) {
+      console.error('Failed to export calendar predictions:', err)
+      toast.error(t('calendarExportError'))
+    }
+  }
 
   // Confidence color gradient
   const confColor = rawConfidence >= 85
@@ -183,6 +204,18 @@ export default function PredictionCard({ cycleData }) {
           ? t('staleNote', { missed: String(missedCycles), avg: String(avgLen) })
           : t('basedOn', { avg: String(avgLen) })}
       </p>
+
+      {cycleData?.nextPeriodDate && cycleData.nextPeriodDate !== '—' && (
+        <button
+          type="button"
+          onClick={handleCalendarExport}
+          className="pred-calendar-btn"
+          aria-label={t('addToCalendar')}
+        >
+          <span>📅</span>
+          <span>{t('addToCalendar')}</span>
+        </button>
+      )}
     </div>
   )
 }

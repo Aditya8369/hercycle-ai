@@ -5,9 +5,25 @@ import { getAuthUserId } from '@/lib/clerk-server'
 import { getSupabaseAdmin } from '@/lib/supabase-admin'
 import { crudLimiter } from '@/lib/rateLimiter'
 import { logger } from '@/lib/logger'
+import { describeLogError } from '@/lib/log-cursor'
 
 const DEFAULT_LIMIT = 100
 const MAX_LIMIT = 365
+
+/**
+ * Parses a query-string integer, clamped, with a default for anything unusable.
+ *
+ * @param {string|null} raw
+ * @param {number} fallback
+ * @param {number} min
+ * @param {number} max
+ * @returns {number}
+ */
+function toBoundedInt(raw, fallback, min, max) {
+  const parsed = Number.parseInt(raw, 10)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.min(max, Math.max(min, parsed))
+}
 
 // GET /api/log-day/all?page=0&limit=100 — fetch paginated daily logs for the user
 export async function GET(request) {
@@ -32,8 +48,11 @@ export async function GET(request) {
 
     // Parse pagination params
     const { searchParams } = new URL(request.url)
-    const page  = Math.max(0, parseInt(searchParams.get('page')  || '0', 10))
-    const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(searchParams.get('limit') || String(DEFAULT_LIMIT), 10)))
+    // `parseInt('abc')` is NaN, and `Math.max(0, NaN)` is NaN — which reaches
+    // `.range(NaN, NaN)` and comes back as a PostgREST parse error. Both are
+    // now resolved to their defaults rather than propagated.
+    const page  = toBoundedInt(searchParams.get('page'), 0, 0, Number.MAX_SAFE_INTEGER)
+    const limit = toBoundedInt(searchParams.get('limit'), DEFAULT_LIMIT, 1, MAX_LIMIT)
     const from  = page * limit
     const to    = from + limit - 1
 
@@ -46,8 +65,14 @@ export async function GET(request) {
       .range(from, to)
 
     if (error) {
-      logger.error(`Database error fetching daily logs for user ${userId}:`, error.message);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+      // `error.message` used to be handed straight to the caller here; on a
+      // pooler fault it carries the database hostname.
+      const described = describeLogError(error)
+      logger.error(`[Log-day/all] ${described.code} for ${userId}: ${error.message}`)
+      return NextResponse.json(
+        { success: false, error: described.message, code: described.code },
+        { status: described.status }
+      )
     }
 
     logger.info(`Successfully fetched daily logs (page=${page}, limit=${limit}) for user ${userId}`);
@@ -65,6 +90,6 @@ export async function GET(request) {
     })
   } catch (error) {
     logger.error('Error fetching all logs:', error.message || error);
-    return NextResponse.json({ success: false, error: `Failed to fetch all logs: ${error.message || error}` }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Could not read your daily logs.' }, { status: 500 })
   }
 }
