@@ -16,6 +16,13 @@ updates:
       dependencies:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint-config-next"
+        update-types: ["version-update:semver-major"]
     labels:
       - "dependencies"
       - "ECSoC26"
