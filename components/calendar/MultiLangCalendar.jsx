@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { format, parseISO, isSameDay } from 'date-fns';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { format, isSameDay, parseISO } from 'date-fns';
 import { enUS, hi } from 'date-fns/locale';
 import {
   Calendar as CalendarIcon,
@@ -23,6 +23,17 @@ import {
 } from 'lucide-react';
 import fetchWithTimeout from '@/lib/fetch-with-timeout';
 import toast from 'react-hot-toast';
+import {
+  MAX_DESCRIPTION_LENGTH,
+  MAX_TITLE_LENGTH,
+  buildOccurrenceIndex,
+  composeStartTime,
+  dayKeyOf,
+  monthDayKeys,
+  parseWallTime,
+  resolveTimeZone,
+  zonedFields,
+} from '@/lib/event-schedule';
 
 const TIMEZONES = [
   { label: 'India Standard Time (IST)', value: 'Asia/Kolkata' },
@@ -58,27 +69,42 @@ export default function MultiLangCalendar({ locale = 'en' }) {
   const [formCategory, setFormCategory] = useState('reminder');
   const [formRecurrence, setFormRecurrence] = useState('none');
   const [formTime, setFormTime] = useState('09:00');
+  // The modal used to have no date field at all: both the create and the edit
+  // path rebuilt `start_time` from `selectedDate`, so renaming an event while a
+  // different day was highlighted silently moved it to that day.
+  const [formDate, setFormDate] = useState(() => dayKeyOf(zonedFields(Date.now(), 'Asia/Kolkata')));
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchEvents();
-  }, []);
+  // Every read and every write goes through this one value. `time_zone` was
+  // previously written on insert and read by nothing, so the picker changed
+  // what the cards said without changing what was stored.
+  const activeTimeZone = resolveTimeZone(selectedTimeZone, 'Asia/Kolkata');
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     setIsLoadingEvents(true);
     try {
       const res = await fetchWithTimeout('/api/events');
       const json = await res.json();
-      if (json.success) {
-        setEvents(json.events || []);
+      if (!res.ok || !json?.success) {
+        // A failed load used to leave the grid empty and silent, which is
+        // indistinguishable from an account that has no events yet.
+        throw new Error(json?.error || 'Failed to load events');
+      }
+      setEvents(json.data?.events || []);
+      if (json.data?.truncated) {
+        toast('Showing your most recent events only.', { icon: '\u2139\ufe0f' });
       }
     } catch (err) {
       console.error('Failed to fetch calendar events:', err);
-      toast.error('Failed to load events');
+      toast.error(err.message || 'Failed to load events');
     } finally {
       setIsLoadingEvents(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
 
   // Month Navigation
   const prevMonth = () => {
@@ -101,6 +127,11 @@ export default function MultiLangCalendar({ locale = 'en' }) {
     setFormCategory('reminder');
     setFormRecurrence('none');
     setFormTime('09:00');
+    setFormDate(dayKeyOf({
+      year: selectedDate.getFullYear(),
+      month: selectedDate.getMonth() + 1,
+      day: selectedDate.getDate(),
+    }));
     setShowEventModal(true);
   };
 
@@ -110,13 +141,21 @@ export default function MultiLangCalendar({ locale = 'en' }) {
     setFormDescription(event.description || '');
     setFormCategory(event.category || 'reminder');
     setFormRecurrence(event.recurrence_rule || 'none');
-    if (event.start_time) {
-      try {
-        const dateObj = parseISO(event.start_time);
-        setFormTime(format(dateObj, 'HH:mm'));
-      } catch (e) {
-        setFormTime('09:00');
-      }
+
+    // Read the stored instant back through the *selected* zone, so the day and
+    // time shown for editing are the ones the card displays.
+    const startMs = event.start_time ? Date.parse(event.start_time) : NaN;
+    const fields = Number.isFinite(startMs) ? zonedFields(startMs, activeTimeZone) : null;
+    if (fields) {
+      setFormDate(dayKeyOf(fields));
+      setFormTime(`${String(fields.hour).padStart(2, '0')}:${String(fields.minute).padStart(2, '0')}`);
+    } else {
+      setFormDate(dayKeyOf({
+        year: selectedDate.getFullYear(),
+        month: selectedDate.getMonth() + 1,
+        day: selectedDate.getDate(),
+      }));
+      setFormTime('09:00');
     }
     setShowEventModal(true);
   };
@@ -128,22 +167,36 @@ export default function MultiLangCalendar({ locale = 'en' }) {
       return;
     }
 
+    if (formTitle.trim().length > MAX_TITLE_LENGTH) {
+      toast.error(`Please keep the title under ${MAX_TITLE_LENGTH} characters`);
+      return;
+    }
+    if (!parseWallTime(formTime)) {
+      toast.error('Please choose a valid time');
+      return;
+    }
+
+    // `setHours()` resolves against the browser's zone, which is the one zone
+    // the user did not pick: choosing Tokyo and typing 09:00 in IST stored
+    // 03:30 UTC and then displayed it back as 12:30 PM. `composeStartTime`
+    // reads the wall clock in `activeTimeZone` instead.
+    const startTime = composeStartTime(formDate, formTime, activeTimeZone);
+    if (!startTime) {
+      toast.error('Please choose a valid date and time');
+      return;
+    }
+
     setIsSubmitting(true);
     const toastId = toast.loading(editingEventId ? 'Updating event...' : 'Creating event...');
 
     try {
-      // Build ISO Start Time string combining selectedDate and formTime
-      const [hours, minutes] = formTime.split(':').map(Number);
-      const combinedDate = new Date(selectedDate);
-      combinedDate.setHours(hours || 9, minutes || 0, 0, 0);
-
       const payload = {
         title: formTitle.trim(),
         description: formDescription.trim(),
         category: formCategory,
         recurrence_rule: formRecurrence,
-        start_time: combinedDate.toISOString(),
-        time_zone: selectedTimeZone,
+        start_time: startTime,
+        time_zone: activeTimeZone,
       };
 
       let res;
@@ -162,7 +215,7 @@ export default function MultiLangCalendar({ locale = 'en' }) {
       }
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to save event');
+      if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to save event');
 
       toast.success(editingEventId ? 'Event updated!' : 'Event created!', { id: toastId });
       setShowEventModal(false);
@@ -180,9 +233,9 @@ export default function MultiLangCalendar({ locale = 'en' }) {
 
     const toastId = toast.loading('Deleting event...');
     try {
-      const res = await fetchWithTimeout(`/api/events?id=${eventId}`, { method: 'DELETE' });
+      const res = await fetchWithTimeout(`/api/events?id=${encodeURIComponent(eventId)}`, { method: 'DELETE' });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to delete');
+      if (!res.ok || !json?.success) throw new Error(json?.error || 'Failed to delete');
 
       toast.success('Event deleted', { id: toastId });
       fetchEvents();
@@ -205,40 +258,41 @@ export default function MultiLangCalendar({ locale = 'en' }) {
     calendarDays.push(new Date(year, month, d));
   }
 
-  // Filter events for selected day (including recurring logic)
-  const getEventsForDate = (date) => {
-    if (!date) return [];
-    return events.filter((evt) => {
-      if (!evt.start_time) return false;
-      const evtDate = parseISO(evt.start_time);
+  // One pass over the event list per render instead of one per cell.
+  //
+  // `getEventsForDate` was called 42 times for the grid plus once for the side
+  // panel, and each call re-parsed every event's `start_time`. The modal's form
+  // state lives in this component, so every keystroke in the title field paid
+  // for all 43 passes.
+  //
+  // The expansion itself also moved: `date.getDate() === evtDate.getDate()`
+  // meant a monthly reminder anchored on the 31st did not exist in February,
+  // April, June, September or November, and a 29 February anniversary appeared
+  // once every four years.
+  const occurrences = useMemo(() => {
+    const keys = [
+      ...monthDayKeys(year, month + 1),
+      dayKeyOf({
+        year: selectedDate.getFullYear(),
+        month: selectedDate.getMonth() + 1,
+        day: selectedDate.getDate(),
+      }),
+    ];
+    return buildOccurrenceIndex(events, keys, activeTimeZone);
+  }, [events, year, month, selectedDate, activeTimeZone]);
 
-      if (isSameDay(evtDate, date)) return true;
-
-      // Recurrence Check
-      if (evt.recurrence_rule === 'daily' && date >= evtDate) return true;
-      if (
-        evt.recurrence_rule === 'weekly' &&
-        date >= evtDate &&
-        date.getDay() === evtDate.getDay()
-      )
-        return true;
-      if (
-        evt.recurrence_rule === 'monthly' &&
-        date >= evtDate &&
-        date.getDate() === evtDate.getDate()
-      )
-        return true;
-      if (
-        evt.recurrence_rule === 'yearly' &&
-        date >= evtDate &&
-        date.getMonth() === evtDate.getMonth() &&
-        date.getDate() === evtDate.getDate()
-      )
-        return true;
-
-      return false;
-    });
-  };
+  const getEventsForDate = useCallback(
+    (date) => {
+      if (!date) return [];
+      const key = dayKeyOf({
+        year: date.getFullYear(),
+        month: date.getMonth() + 1,
+        day: date.getDate(),
+      });
+      return occurrences.get(key) || [];
+    },
+    [occurrences]
+  );
 
   const selectedDateEvents = getEventsForDate(selectedDate);
 
@@ -455,13 +509,14 @@ export default function MultiLangCalendar({ locale = 'en' }) {
                   let formattedTime = '';
                   if (evt.start_time) {
                     try {
-                      const d = new Date(evt.start_time);
+                      // `activeTimeZone` is already validated, so this cannot
+                      // throw on a zone the database happened to hold.
                       formattedTime = new Intl.DateTimeFormat(locale === 'hi' ? 'hi-IN' : 'en-US', {
-                        timeZone: selectedTimeZone,
+                        timeZone: activeTimeZone,
                         hour: 'numeric',
                         minute: '2-digit',
                         hour12: true,
-                      }).format(d);
+                      }).format(new Date(evt.start_time));
                     } catch (e) {
                       formattedTime = format(parseISO(evt.start_time), 'hh:mm a');
                     }
@@ -543,6 +598,7 @@ export default function MultiLangCalendar({ locale = 'en' }) {
                   type="text"
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
+                  maxLength={MAX_TITLE_LENGTH}
                   placeholder="e.g. Habit Reminder / Donation Cycle"
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
                   required
@@ -556,6 +612,7 @@ export default function MultiLangCalendar({ locale = 'en' }) {
                 <textarea
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
+                  maxLength={MAX_DESCRIPTION_LENGTH}
                   placeholder="Add notes or reminders..."
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 min-h-[60px]"
                 />
@@ -597,17 +654,45 @@ export default function MultiLangCalendar({ locale = 'en' }) {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                  Time
-                </label>
-                <input
-                  type="time"
-                  value={formTime}
-                  onChange={(e) => setFormTime(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label
+                    htmlFor="event-date"
+                    className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1"
+                  >
+                    Date
+                  </label>
+                  <input
+                    id="event-date"
+                    type="date"
+                    value={formDate}
+                    onChange={(e) => setFormDate(e.target.value)}
+                    required
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="event-time"
+                    className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1"
+                  >
+                    Time
+                  </label>
+                  <input
+                    id="event-time"
+                    type="time"
+                    value={formTime}
+                    onChange={(e) => setFormTime(e.target.value)}
+                    required
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white focus:outline-none"
+                  />
+                </div>
               </div>
+
+              <p className="text-[11px] text-slate-500">
+                Saved in <span className="font-semibold text-slate-400">{activeTimeZone}</span>.
+              </p>
 
               <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
                 <button
