@@ -30,5 +30,10 @@ updates:
       github-actions:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "actions/checkout"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "actions/setup-node"
+        update-types: ["version-update:semver-major"]
     labels:
       - "dependencies"

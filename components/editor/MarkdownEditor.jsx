@@ -3,6 +3,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import fetchWithTimeout from '@/lib/fetch-with-timeout';
+import {
+  LEGACY_STORAGE_KEY,
+  MAX_CONTENT_LENGTH,
+  MAX_TITLE_LENGTH,
+  draftStorageKey,
+  isDraftSaved,
+  readDraftResponse,
+  resolveDraftType,
+} from '@/lib/draft-store';
 import MarkdownRenderer from './MarkdownRenderer';
 import {
   Bold,
@@ -27,7 +36,59 @@ import {
   Trash2
 } from 'lucide-react';
 
-const DRAFT_STORAGE_KEY = 'hercycle_markdown_draft';
+/**
+ * Reads the locally cached draft for one type, migrating a draft written by the
+ * previous version — which used a single unnamespaced key for every editor on
+ * the site, so the local fallback collided exactly the way the table did.
+ *
+ * @param {string} draftType
+ * @returns {object|null}
+ */
+function readLocalDraft(draftType) {
+  const key = draftStorageKey(draftType);
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved) return JSON.parse(saved);
+
+    // One-time migration off the shared key, so an in-progress draft is not
+    // abandoned by the upgrade.
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy) {
+      localStorage.setItem(key, legacy);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+      return JSON.parse(legacy);
+    }
+  } catch (e) {
+    console.error('Failed to load local draft:', e);
+  }
+  return null;
+}
+
+/**
+ * @param {string} draftType
+ * @param {object} draft
+ */
+function writeLocalDraft(draftType, draft) {
+  try {
+    localStorage.setItem(draftStorageKey(draftType), JSON.stringify(draft));
+    return true;
+  } catch (e) {
+    console.error('Failed to save to localStorage:', e);
+    return false;
+  }
+}
+
+/**
+ * @param {string} draftType
+ */
+function clearLocalDraft(draftType) {
+  try {
+    localStorage.removeItem(draftStorageKey(draftType));
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch (e) {
+    // Nothing to recover from; the cloud copy is authoritative.
+  }
+}
 
 export default function MarkdownEditor({
   value = '',
@@ -49,6 +110,26 @@ export default function MarkdownEditor({
   const saveTimeoutRef = useRef(null);
   const { getToken, isSignedIn } = useAuth();
 
+  const type = resolveDraftType(draftType);
+
+  /**
+   * Cancels a queued cloud save.
+   *
+   * Nothing used to clear this ref — not `clearDraft`, and not unmount. Publish
+   * within a second of typing and the sequence was: DELETE clears the draft →
+   * the page navigates → the orphaned timer fires → POST writes the draft back.
+   * Returning to the composer showed the post that had just been published,
+   * restored from autosave.
+   */
+  const cancelQueuedSave = useCallback(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => cancelQueuedSave, [cancelQueuedSave]);
+
   // Sync internal content when parent value updates externally
   useEffect(() => {
     if (value !== content && saveStatus !== 'saving') {
@@ -60,26 +141,21 @@ export default function MarkdownEditor({
   useEffect(() => {
     const loadDraft = async () => {
       // 1. Try local storage
-      let localDraft = null;
-      try {
-        const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
-        if (saved) {
-          localDraft = JSON.parse(saved);
-        }
-      } catch (e) {
-        console.error('Failed to load local draft:', e);
-      }
+      const localDraft = readLocalDraft(type);
 
-      // 2. If logged in, fetch cloud draft
+      // 2. If logged in, fetch cloud draft — for *this* type. The request used
+      // to carry no type at all, so whichever draft had been written last came
+      // back and a half-typed comment could be restored into the post composer.
       if (isSignedIn) {
         try {
           const token = await getToken();
-          const res = await fetchWithTimeout('/api/drafts', {
+          const res = await fetchWithTimeout(`/api/drafts?type=${encodeURIComponent(type)}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           const json = await res.json();
-          if (json.success && json.draft) {
-            const cloudDraft = json.draft;
+          const read = readDraftResponse(res, json);
+          if (read.ok && read.draft) {
+            const cloudDraft = read.draft;
             // Use whichever is newer or fallback to cloud draft
             if (!content && cloudDraft.content) {
               setContent(cloudDraft.content);
@@ -110,31 +186,30 @@ export default function MarkdownEditor({
     };
 
     loadDraft();
-  }, [isSignedIn]);
+  }, [isSignedIn, type]);
 
   // Save function (saves to localStorage immediately, debounces to cloud)
   const triggerAutosave = useCallback(
     (newContent, newTitle = title, newCat = categoryId) => {
-      // LocalStorage save
-      try {
-        localStorage.setItem(
-          DRAFT_STORAGE_KEY,
-          JSON.stringify({
-            content: newContent,
-            title: newTitle,
-            categoryId: newCat,
-            updatedAt: new Date().toISOString(),
-          })
-        );
-        setSaveStatus('saved_local');
-      } catch (e) {
-        console.error('Failed to save to localStorage:', e);
+      // An over-long draft cannot be stored, and truncating it would mean the
+      // draft handed back is not the draft that was written.
+      if (newContent.length > MAX_CONTENT_LENGTH || newTitle.length > MAX_TITLE_LENGTH) {
+        cancelQueuedSave();
+        setSaveStatus('error');
+        return;
       }
 
-      // Clear existing cloud timer
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
+      // LocalStorage save, under this draft type's own key.
+      if (writeLocalDraft(type, {
+        content: newContent,
+        title: newTitle,
+        categoryId: newCat,
+        updatedAt: new Date().toISOString(),
+      })) {
+        setSaveStatus('saved_local');
       }
+
+      cancelQueuedSave();
 
       // Debounce Cloud Save (1000ms)
       if (isSignedIn) {
@@ -152,14 +227,13 @@ export default function MarkdownEditor({
                 title: newTitle,
                 content: newContent,
                 categoryId: newCat,
-                draftType,
+                draftType: type,
               }),
             });
-            if (res.ok) {
-              setSaveStatus('saved_cloud');
-            } else {
-              setSaveStatus('saved_local');
-            }
+            // `res.ok` alone reported "Saved to cloud" for a 200 that carried
+            // `success: false`.
+            const json = await res.json().catch(() => null);
+            setSaveStatus(isDraftSaved(res, json) ? 'saved_cloud' : 'saved_local');
           } catch (err) {
             console.error('Cloud draft save error:', err);
             setSaveStatus('saved_local');
@@ -167,7 +241,7 @@ export default function MarkdownEditor({
         }, 1000);
       }
     },
-    [isSignedIn, title, categoryId, draftType, getToken]
+    [isSignedIn, title, categoryId, type, getToken, cancelQueuedSave]
   );
 
   const handleContentChange = (e) => {
@@ -179,9 +253,10 @@ export default function MarkdownEditor({
 
   // Clear draft
   const clearDraft = async () => {
-    try {
-      localStorage.removeItem(DRAFT_STORAGE_KEY);
-    } catch (e) {}
+    // Before anything else: a queued save would otherwise land after the delete
+    // and put the draft straight back.
+    cancelQueuedSave();
+    clearLocalDraft(type);
 
     setContent('');
     if (onChange) onChange('');
@@ -192,7 +267,7 @@ export default function MarkdownEditor({
     if (isSignedIn) {
       try {
         const token = await getToken();
-        await fetchWithTimeout('/api/drafts', {
+        await fetchWithTimeout(`/api/drafts?type=${encodeURIComponent(type)}`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -438,6 +513,18 @@ export default function MarkdownEditor({
             <span className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium" title="Draft saved to browser storage">
               <Check size={13} />
               Saved Locally
+            </span>
+          )}
+          {/* The 'error' status was declared in this component's state comment
+              and never rendered, so a draft that could not be autosaved looked
+              identical to one that had been. */}
+          {saveStatus === 'error' && (
+            <span
+              className="flex items-center gap-1.5 text-xs text-red-600 dark:text-red-400 font-medium"
+              title={`Drafts are limited to ${MAX_CONTENT_LENGTH} characters`}
+              role="status"
+            >
+              Too long to autosave
             </span>
           )}
 

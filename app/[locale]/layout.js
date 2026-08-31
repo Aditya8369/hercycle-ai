@@ -58,6 +58,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import ChatFAB from '@/components/layout/ChatFAB';
 import EncryptionGate from '@/components/layout/EncryptionGate';
+import InstallPrompt from '@/components/layout/InstallPrompt';
 
 
 export default async function RootLayout({ children, params }) {
@@ -100,6 +101,7 @@ export default async function RootLayout({ children, params }) {
                     {children}
                     <ChatFAB />
                     <EncryptionGate />
+                    <InstallPrompt />
                     <Toaster
                        position="top-center"
 
