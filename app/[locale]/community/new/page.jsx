@@ -13,6 +13,10 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
 import MarkdownEditor from '@/components/editor/MarkdownEditor';
+import { draftStorageKey } from '@/lib/draft-store';
+
+/** Which draft this composer owns. */
+const DRAFT_TYPE = 'forum_post';
 
 export default function NewPostPage({ params }) {
   const resolvedParams = params && typeof params.then === 'function' ? React.use(params) : (params || {});
@@ -69,10 +73,12 @@ export default function NewPostPage({ params }) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create post');
 
-      // Clear stored draft upon successful publish
+      // Clear the stored draft upon successful publish — this composer's draft
+      // only. The DELETE used to carry no type, so publishing a forum post also
+      // threw away an unrelated comment draft.
       try {
-        localStorage.removeItem('hercycle_markdown_draft');
-        await fetchWithTimeout('/api/drafts', {
+        localStorage.removeItem(draftStorageKey(DRAFT_TYPE));
+        await fetchWithTimeout(`/api/drafts?type=${encodeURIComponent(DRAFT_TYPE)}`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -153,7 +159,7 @@ export default function NewPostPage({ params }) {
               categories={categories}
               placeholder={t('content_placeholder') || 'Share your thoughts, articles, or experiences in rich Markdown...'}
               minHeight="350px"
-              draftType="forum_post"
+              draftType={DRAFT_TYPE}
             />
           </div>
 
