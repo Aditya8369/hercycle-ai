@@ -3,7 +3,7 @@
 
 version: 2
 updates:
-  # 1. Update npm dependencies in package.json
+  # 1. Update dependencies in package.json
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
@@ -11,7 +11,11 @@ updates:
       day: "monday"
       time: "09:00"
       timezone: "UTC"
-    open-pull-requests-limit: 5 # Limit total open Dependabot PRs to prevent clutter
+    open-pull-requests-limit: 3 # Limit total open Dependabot PRs
+    groups:
+      dependencies:
+        patterns:
+          - "*"
     labels:
       - "dependencies"
       - "ECSoC26"
@@ -20,7 +24,16 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly" # Actions updates are less frequent
+      interval: "monthly"
     open-pull-requests-limit: 3
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "actions/checkout"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "actions/setup-node"
+        update-types: ["version-update:semver-major"]
     labels:
       - "dependencies"
