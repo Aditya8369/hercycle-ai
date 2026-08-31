@@ -16,7 +16,8 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { Users, Hash, Search, Loader2, AlertCircle, X } from 'lucide-react';
+import { useAuth } from '@clerk/nextjs';
+import { Users, Hash, Search, Loader2, AlertCircle, X, Bookmark } from 'lucide-react';
 import PostCard from '@/components/community/PostCard';
 import fetchWithTimeout from '@/lib/fetch-with-timeout';
 import {
@@ -44,6 +45,7 @@ export default function CommunityFeed({
   initialHasMore = false,
 }) {
   const t = useTranslations('Community');
+  const { isLoaded, isSignedIn, getToken } = useAuth();
 
   const [searchInput, setSearchInput] = useState('');
   const [activeSearch, setActiveSearch] = useState(null);
@@ -51,11 +53,36 @@ export default function CommunityFeed({
   const [sort, setSort] = useState(SORT_NEWEST);
 
   const [posts, setPosts] = useState(initialPosts);
+  const [bookmarkedSet, setBookmarkedSet] = useState(new Set());
   const [nextCursor, setNextCursor] = useState(initialNextCursor);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [isLoading, setIsLoading] = useState(false);
   const [isPagingMore, setIsPagingMore] = useState(false);
   const [error, setError] = useState(null);
+
+  // Fetch bookmarked post IDs for authenticated user
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+
+    let isSubscribed = true;
+    async function loadBookmarkedIds() {
+      try {
+        const token = await getToken();
+        const res = await fetchWithTimeout('/api/forum/bookmarks?idsOnly=1', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (isSubscribed && res.ok && data.success && Array.isArray(data.bookmarkedPostIds)) {
+          setBookmarkedSet(new Set(data.bookmarkedPostIds));
+        }
+      } catch (err) {
+        // Silent failure for bookmark list preload
+      }
+    }
+
+    loadBookmarkedIds();
+    return () => { isSubscribed = false; };
+  }, [isLoaded, isSignedIn, getToken]);
 
   // True until the first user-driven query. While it holds, `posts` is still
   // the server-rendered page, which must not be replaced by a spinner.
@@ -176,12 +203,21 @@ export default function CommunityFeed({
               ? (t(`cat_${activeCategory.slug}_name`) || activeCategory.name)
               : (t('recent_discussions') || 'Recent Discussions')}
           </h2>
-          <Link
-            href={`/${locale}/community/new`}
-            className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg font-medium transition-colors"
-          >
-            {t('new_post') || 'New Post'}
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/${locale}/community/saved`}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors"
+            >
+              <Bookmark size={16} aria-hidden="true" />
+              <span>{t('saved_posts') || 'Saved Posts'}</span>
+            </Link>
+            <Link
+              href={`/${locale}/community/new`}
+              className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              {t('new_post') || 'New Post'}
+            </Link>
+          </div>
         </div>
 
         <div className="mb-6 flex flex-col sm:flex-row gap-3">
@@ -274,7 +310,14 @@ export default function CommunityFeed({
               <span>{t('searching') || 'Searching…'}</span>
             </div>
           ) : posts.length > 0 ? (
-            posts.map((post) => <PostCard key={post.id} post={post} locale={locale} />)
+            posts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                locale={locale}
+                initialIsBookmarked={bookmarkedSet.has(post.id)}
+              />
+            ))
           ) : showEmptyState && !error ? (
             <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
               <Users className="mx-auto h-12 w-12 text-slate-400 mb-3" aria-hidden="true" />

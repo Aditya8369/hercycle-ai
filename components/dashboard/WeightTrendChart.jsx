@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, Scale } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import toast from 'react-hot-toast'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
+import { readHistoryResponse, summariseHistory, toChartSeries } from '@/lib/weight-history'
 import {
   CartesianGrid,
   Legend,
@@ -24,10 +26,20 @@ const cardStyle = {
   marginBottom: '1.5rem',
 }
 
+/**
+ * A `YYYY-MM-DD` as a short label.
+ *
+ * Read as UTC midnight rather than local midnight: `new Date('2026-01-31T00:00:00')`
+ * is parsed in the browser's zone, so west of UTC the label could render the
+ * previous day.
+ */
 function formatDate(value) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString('en-IN', {
+  const ms = Date.parse(`${value}T00:00:00Z`)
+  if (!Number.isFinite(ms)) return value
+  return new Date(ms).toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'short',
+    timeZone: 'UTC',
   })
 }
 
@@ -44,11 +56,20 @@ export default function WeightTrendChart({ refreshKey = 0 }) {
       try {
         const response = await fetchWithTimeout('/api/weight', { cache: 'no-store' })
         const result = await response.json()
-        if (active && response.ok && result.success) {
-          setEntries(result.data || [])
+        if (!active) return
+
+        const read = readHistoryResponse(response, result)
+        if (!read.ok) {
+          // A failed load left the chart in its empty state, which is
+          // indistinguishable from an account that has never logged a weight.
+          throw new Error(read.error)
         }
+
+        setEntries(read.entries)
+        if (read.notice) toast(read.notice, { icon: '\u2139\ufe0f' })
       } catch (error) {
         console.error('Failed to load weight history:', error)
+        if (active) toast.error(error.message || 'Could not load your measurements.')
       } finally {
         if (active) setLoading(false)
       }
@@ -61,21 +82,17 @@ export default function WeightTrendChart({ refreshKey = 0 }) {
   }, [refreshKey])
 
   const chartData = useMemo(
-    () => entries.map(entry => ({
-      ...entry,
-      label: formatDate(entry.recorded_date),
-      weight: Number(entry.weight_kg),
-      waist: entry.waist_cm == null ? null : Number(entry.waist_cm),
-      bmi: Number(entry.bmi),
-    })).filter(entry => Number.isFinite(entry.weight) && entry.weight > 0),
+    () => toChartSeries(entries).map(point => ({ ...point, label: formatDate(point.recorded_date) })),
     [entries]
   )
 
-  const latest = chartData.at(-1)
-  const first = chartData[0]
-  const weightChange = latest && first
-    ? Number((latest.weight - first.weight).toFixed(1))
-    : null
+  // `chartData.at(-1)` was only "the most recent measurement" because the series
+  // happened to be ascending — and the endpoint was returning the *oldest* 365
+  // rows, so on any account past a year of logging this header reported a
+  // weight and a BMI from over a year ago as current.
+  const summary = useMemo(() => summariseHistory(entries), [entries])
+  const latest = summary.latest
+  const weightChange = summary.changeKg
 
   return (
     <section
