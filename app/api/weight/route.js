@@ -6,6 +6,13 @@ import { crudLimiter } from '@/lib/rateLimiter'
 import { logger } from '@/lib/logger'
 import { isoCalendarDate } from '@/lib/date-schemas'
 import { jsonSuccess, jsonError } from '@/lib/api-helpers'
+import {
+  HISTORY_LIMIT,
+  computeBmi,
+  describeWeightError,
+  isStorableBmi,
+  orderForChart,
+} from '@/lib/weight-history'
 
 const dateSchema = isoCalendarDate({ label: 'recorded_date' })
 
@@ -27,9 +34,23 @@ const weightEntrySchema = z.object({
     .optional(),
 })
 
-function calculateBMI(weightKg, heightCm) {
-  const heightMetres = heightCm / 100
-  return Number((weightKg / (heightMetres * heightMetres)).toFixed(2))
+/**
+ * Turns a Supabase error into a client-safe response and logs the real one.
+ *
+ * Both handlers used to `return jsonError(error.message, 500)`, which sent the
+ * driver's own sentence to the browser — relation name, constraint name, and on
+ * a connection fault the pooler host — and reported a bad request as a server
+ * fault while doing it.
+ *
+ * @param {object} error
+ * @param {string} context
+ * @param {string} userId
+ * @returns {Response}
+ */
+function respondToDatabaseError(error, context, userId) {
+  const described = describeWeightError(error)
+  logger.error(`[Weight ${context}] ${described.code} for ${userId}: ${error?.message || 'unknown error'}`)
+  return jsonError(described.message, described.status, described.code)
 }
 
 async function checkRateLimit(request, method) {
@@ -53,19 +74,38 @@ export async function GET(request) {
     }
 
     const supabaseAdmin = getSupabaseAdmin()
+
+    // Descending, so the LIMIT keeps the *recent* end of the history.
+    //
+    // This was `ascending: true`, which makes `LIMIT 365` mean "the first 365
+    // days this account ever logged". Past that many entries the window stopped
+    // moving: the chart froze, `chartData.at(-1)` reported a weight from over a
+    // year ago as "current", and a newly saved measurement was committed but
+    // absent from the refetch, with nothing in the UI to explain it. The
+    // table's own index is `(user_id, recorded_date DESC)`.
     const { data, error } = await supabaseAdmin
       .from('weight_entries')
       .select('*')
       .eq('user_id', userId)
-      .order('recorded_date', { ascending: true })
-      .limit(365)
+      .order('recorded_date', { ascending: false })
+      .limit(HISTORY_LIMIT)
 
     if (error) {
-      logger.error(`Unable to fetch weight entries for ${userId}:`, error.message)
-      return jsonError(error.message, 500)
+      return respondToDatabaseError(error, 'GET', userId)
     }
 
-    return jsonSuccess(data || [])
+    const window = data || []
+    // The chart plots oldest-first. Selecting the newest rows and presenting
+    // them chronologically are two separate decisions; conflating them is what
+    // produced the bug above.
+    const entries = orderForChart(window)
+
+    return jsonSuccess(
+      entries,
+      window.length >= HISTORY_LIMIT
+        ? `Showing your most recent ${HISTORY_LIMIT} measurements.`
+        : null
+    )
   } catch (error) {
     logger.error('Weight GET failed:', error.message || error)
     return jsonError('Failed to fetch weight history.', 500)
@@ -98,7 +138,24 @@ export async function POST(request) {
     }
 
     const { recorded_date, weight_kg, waist_cm = null, height_cm } = parsed.data
-    const bmi = calculateBMI(weight_kg, height_cm)
+
+    // One BMI implementation, shared with the form. The route rounded to two
+    // decimals and `WeightTracker` rounded to one, so the number the user
+    // watched while typing was not the number that came back in the chart
+    // header: 62 kg at 165 cm showed 22.8 and stored 22.77.
+    const bmi = computeBmi(weight_kg, height_cm)
+
+    // `weight_entries` carries CHECK (bmi >= 5 AND bmi <= 100), and the ranges
+    // this route already accepts can land outside it — 20 kg at 250 cm is 3.2.
+    // Saying so is better than letting Postgres say it with a constraint name.
+    if (bmi === null || !isStorableBmi(bmi)) {
+      logger.warn(`Rejected out-of-range BMI for user ${userId}: ${String(bmi)}`)
+      return jsonError(
+        'That height and weight give a BMI outside the range we can record. Please check both values.',
+        400,
+        'BMI_OUT_OF_RANGE'
+      )
+    }
 
     const supabaseAdmin = getSupabaseAdmin()
     const { data, error } = await supabaseAdmin
@@ -119,8 +176,7 @@ export async function POST(request) {
       .single()
 
     if (error) {
-      logger.error(`Unable to save weight entry for ${userId}:`, error.message)
-      return jsonError(error.message, 500)
+      return respondToDatabaseError(error, 'POST', userId)
     }
 
     return jsonSuccess(data)
