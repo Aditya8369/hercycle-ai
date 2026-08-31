@@ -19,10 +19,12 @@ const isPublicRoute = createRouteMatcher([
   '/:locale/auth/login(.*)',
   '/:locale/auth/signup(.*)',
   '/:locale/auth/callback(.*)',
+  '/auth/login(.*)',
+  '/auth/signup(.*)',
+  '/auth/callback(.*)',
   '/:locale/dashboard(.*)',
   '/dashboard(.*)',
   '/api/dashboard(.*)',
-  '/api/models/export-onnx(.*)',
   '/api/webhooks(.*)',
   '/manifest.json'
 ]);

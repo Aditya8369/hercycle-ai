@@ -7,13 +7,24 @@ import { CHALLENGES, BADGES } from '@/lib/challenges-data'
 import { resolveRequestDay } from '@/lib/request-day'
 import { calculateCurrentStreak } from '@/lib/challenge-streaks'
 import { jsonSuccess, jsonError } from '@/lib/api-helpers'
+import {
+  CHALLENGE_TYPES,
+  badgeScanFloor,
+  describeProgressError,
+  planBadgeAwards,
+  planIncrement,
+  readAwardedKeys,
+  summariseCompletions,
+} from '@/lib/challenge-progress'
 
-// const progressSchema = z.object({
-//   challenge_type: z.enum(['water', 'stretch', 'mood']),
-//   increment: z.number().int().positive().max(2000),
-// })
+// The accepted types are derived from CHALLENGES rather than repeated here.
+// This enum and `lib/challenges-data.js` were two lists holding the same five
+// keys with nothing keeping them together -- and a third copy lives in the
+// database CHECK constraint, which is how Iron and Sleep came to be clickable
+// in the UI and rejected by Postgres. See
+// supabase/10_challenge_types_and_badges.sql.
 const progressSchema = z.object({
-  challenge_type: z.enum(['water', 'stretch', 'mood', 'iron', 'sleep']),
+  challenge_type: z.enum(CHALLENGE_TYPES),
   increment: z.number().int().positive().max(2000),
 })
 
@@ -33,7 +44,18 @@ export async function POST(request) {
     }
     await ensureUserExists(userId)
 
-    const json = await request.json()
+    // Guarded like every other write route in the app. Unwrapped, a malformed
+    // body reached the outer catch and came back as
+    // `500 Internal Server Error: Unexpected token ... in JSON at position 0`,
+    // echoing the parser's message to the caller.
+    let json
+    try {
+      json = await request.json()
+    } catch (parseError) {
+      logger.warn(`Malformed JSON payload in challenge progress POST: ${parseError.message}`)
+      return jsonError('Bad Request: Invalid JSON payload', 400)
+    }
+
     const result = progressSchema.safeParse(json)
     if (!result.success) {
       logger.warn(`Malformed challenge progress payload from user ${userId}: ${result.error.message}`)
@@ -58,12 +80,16 @@ export async function POST(request) {
       .maybeSingle()
 
     if (fetchError) {
-      logger.error(`Database error fetching existing progress for user ${userId}:`, fetchError.message)
-      return jsonError(fetchError.message, 500)
+      const clean = describeProgressError(fetchError)
+      logger.error(`Database error fetching existing progress for user ${userId}: ${fetchError.message}`)
+      return jsonError(clean.message, clean.status, clean.code)
     }
 
-    const newValue = Math.min((existing?.progress_value || 0) + increment, target)
-    const justCompleted = !existing?.completed && newValue >= target
+    // `discarded` is reported rather than silently swallowed: capping at the
+    // target used to return the capped number with nothing saying the tap had
+    // done nothing.
+    const plan = planIncrement(existing?.progress_value, increment, target)
+    const justCompleted = !existing?.completed && plan.completed
 
     const { error: upsertError } = await supabaseAdmin
       .from('challenge_progress')
@@ -72,8 +98,8 @@ export async function POST(request) {
           user_id: userId,
           date: today,
           challenge_type,
-          progress_value: newValue,
-          completed: newValue >= target,
+          progress_value: plan.value,
+          completed: plan.completed,
           completed_at: justCompleted ? new Date().toISOString() : existing?.completed ? undefined : null,
           updated_at: new Date().toISOString(),
         },
@@ -81,8 +107,12 @@ export async function POST(request) {
       )
 
     if (upsertError) {
-      logger.error(`Database error upserting challenge progress for user ${userId}:`, upsertError.message)
-      return jsonError(upsertError.message, 500)
+      const clean = describeProgressError(upsertError)
+      // The raw driver message is logged, not returned. It used to be handed
+      // straight to the browser -- including the table and constraint names
+      // from the CHECK violation that made Iron and Sleep unrecordable.
+      logger.error(`Database error upserting challenge progress for user ${userId}: ${upsertError.message}`)
+      return jsonError(clean.message, clean.status, clean.code)
     }
 
     let newlyEarnedBadges = []
@@ -91,33 +121,84 @@ export async function POST(request) {
     }
 
     logger.info(`Successfully updated ${challenge_type} progress for user ${userId}`)
-    return jsonSuccess({ progress_value: newValue, completed: newValue >= target, newBadges: newlyEarnedBadges })
+    return jsonSuccess({
+      progress_value: plan.value,
+      completed: plan.completed,
+      // Non-zero when today's goal was already met and part (or all) of the
+      // increment could not be applied.
+      discarded: plan.discarded,
+      newBadges: newlyEarnedBadges,
+    })
   } catch (error) {
     logger.error('Error updating challenge progress:', error.message || error)
     return jsonError(`Internal Server Error: ${error.message || error}`, 500)
   }
 }
 
+/**
+ * Awards any badges the user has newly earned.
+ *
+ * Never throws: a badge is a reward for work that has already been recorded, so
+ * a failure here must not turn a successful completion into an error response.
+ */
 async function checkAndAwardBadges(supabaseAdmin, userId, today) {
-  const { data: allProgress } = await supabaseAdmin
-    .from('challenge_progress')
-    .select('challenge_type, completed, date')
-    .eq('user_id', userId)
-    .eq('completed', true)
+  try {
+    // Bounded. This scan was every completed row the user had ever written, on
+    // every completion, forever -- to answer three questions whose thresholds
+    // are 1, 3 and 5.
+    const { data: recentProgress, error: scanError } = await supabaseAdmin
+      .from('challenge_progress')
+      .select('challenge_type, completed, date')
+      .eq('user_id', userId)
+      .eq('completed', true)
+      .gte('date', badgeScanFloor(today))
 
-  const stats = {
-    totalCompletions: allProgress?.length || 0,
-    waterCompletions: allProgress?.filter((p) => p.challenge_type === 'water').length || 0,
-    streak: calculateCurrentStreak(allProgress || [], today),
+    if (scanError) {
+      logger.warn(`Could not scan progress for badges for user ${userId}: ${scanError.message}`)
+      return []
+    }
+
+    const rows = recentProgress || []
+    const stats = summariseCompletions(rows, { streak: calculateCurrentStreak(rows, today) })
+
+    const { data: existingBadges, error: badgeReadError } = await supabaseAdmin
+      .from('user_badges')
+      .select('badge_key')
+      .eq('user_id', userId)
+
+    if (badgeReadError) {
+      logger.warn(`Could not read badges for user ${userId}: ${badgeReadError.message}`)
+      return []
+    }
+
+    const planned = planBadgeAwards(BADGES, stats, (existingBadges || []).map((b) => b.badge_key))
+    if (planned.length === 0) return []
+
+    // Idempotent, and reads back what was actually created.
+    //
+    // The previous code issued a plain multi-row `insert` and did not
+    // destructure its result, so a `23505` from a concurrent request was not
+    // merely unhandled -- it was unobservable. Postgres rejects the *whole*
+    // multi-row insert on conflict, so a genuinely new badge in the same batch
+    // was lost while the route still reported it as earned, and the UI played
+    // the unlock animation for a badge the user did not have.
+    const { data: created, error: awardError } = await supabaseAdmin
+      .from('user_badges')
+      .upsert(
+        planned.map((badge_key) => ({ user_id: userId, badge_key })),
+        { onConflict: 'user_id,badge_key', ignoreDuplicates: true }
+      )
+      .select('badge_key')
+
+    if (awardError) {
+      logger.warn(`Could not award badges for user ${userId}: ${awardError.message}`)
+      return []
+    }
+
+    return readAwardedKeys(created, planned)
+  } catch (err) {
+    logger.warn(`Badge award failed for user ${userId}: ${err.message || err}`)
+    return []
   }
-
-  const { data: existingBadges } = await supabaseAdmin.from('user_badges').select('badge_key').eq('user_id', userId)
-  const earnedKeys = new Set((existingBadges || []).map((b) => b.badge_key))
-
-  const toAward = Object.values(BADGES).filter((b) => !earnedKeys.has(b.key) && b.check(stats))
-  if (toAward.length === 0) return []
-
-  await supabaseAdmin.from('user_badges').insert(toAward.map((b) => ({ user_id: userId, badge_key: b.key })))
-  return toAward.map((b) => b.key)
 }
 

@@ -37,6 +37,7 @@ import FeaturesSection from '@/components/dashboard/FeaturesSection'
 import PCOSMythFactCard from '@/components/dashboard/PCOSMythFactCard'
 import { isEncryptionFailure } from '@/lib/encryption-policy'
 import { getTodayISO, eachDayISO, addDaysISO } from '@/lib/date-utils'
+import { readChatResponse } from '@/lib/chat-fallback'
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
@@ -160,6 +161,7 @@ const HerCycleApp = () => {
   const [selectedMood, setSelectedMood] = useState(null)
   const [selectedFlow, setSelectedFlow] = useState(null)
   const [selectedDischarge, setSelectedDischarge] = useState(null)
+  const [selectedNotes, setSelectedNotes] = useState('')
   const [saveTrigger, setSaveTrigger] = useState(0)
   const [cycleData, setCycleData] = useState(null)
   const [pcodRisk, setPcodRisk] = useState(null)
@@ -310,14 +312,14 @@ const HerCycleApp = () => {
       const data = await response.json()
       setIsTyping(false)
 
-      if (data?.response) {
-        setChatMessages(prev => [...prev, { role: 'ai', text: data.response }])
-      } else {
-        setChatMessages(prev => [...prev, {
-          role: 'ai',
-          text: tChat('error')
-        }])
-      }
+      // `data.response` sits under `data.data` since the API envelope was
+      // standardised, so this check read `undefined` and swapped in the generic
+      // error string for replies that had actually succeeded.
+      const reply = readChatResponse(data)
+      setChatMessages(prev => [...prev, {
+        role: 'ai',
+        text: reply.text || tChat('error')
+      }])
     } catch (error) {
       setIsTyping(false)
       setChatMessages(prev => [...prev, {
@@ -334,7 +336,8 @@ const HerCycleApp = () => {
         symptoms: selectedSymptoms,
         mood: selectedMood,
         flow: selectedFlow,
-        cervical_discharge: selectedDischarge
+        cervical_discharge: selectedDischarge,
+        notes: selectedNotes,
       }
       const data = await offlineClient.saveDailyLog(logData)
       if (data.success) {
@@ -347,6 +350,7 @@ const HerCycleApp = () => {
         setSelectedMood(null)
         setSelectedFlow(null)
         setSelectedDischarge(null)
+        setSelectedNotes('')
         setSaveTrigger(prev => prev + 1)
         fetchCycleData()
       } else if (isEncryptionFailure(data)) {
@@ -569,6 +573,8 @@ const HerCycleApp = () => {
             setSelectedMood={setSelectedMood}
             selectedFlow={selectedFlow}
             setSelectedFlow={setSelectedFlow}
+            notes={selectedNotes}
+            setNotes={setSelectedNotes}
             handleSaveLog={handleSaveLog}
             cycleData={cycleData}
             activeLang={activeLang}

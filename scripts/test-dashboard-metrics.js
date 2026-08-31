@@ -20,6 +20,17 @@ function check(actual, expected, label) {
   console.error(`       actual:   ${JSON.stringify(actual)}`)
 }
 
+function checkApprox(actual, expected, tolerance, label) {
+  if (Math.abs(actual - expected) <= tolerance) {
+    passed += 1
+    return
+  }
+  failed += 1
+  console.error(`  ❌ ${label}`)
+  console.error(`       expected: ~${expected} (±${tolerance})`)
+  console.error(`       actual:   ${actual}`)
+}
+
 function checkDeep(actual, expected, label) {
   const a = JSON.stringify(actual)
   const b = JSON.stringify(expected)

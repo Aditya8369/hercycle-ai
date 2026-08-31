@@ -104,16 +104,17 @@ export async function POST(req) {
     } catch (networkError) {
       // A plain fetch() here held the function open for as long as Discord
       // chose to stall.
-      const reason = networkError instanceof TimeoutError ? 'timed out' : networkError.message;
+      const isTimeout = networkError instanceof TimeoutError;
+      const reason = isTimeout ? 'timed out' : networkError.message;
       logger.error(`Feedback webhook request failed (${reason})`);
-      const failure = describeWebhookFailure(null);
-      return NextResponse.json({ success: false, error: failure.error }, { status: failure.status });
+      const failure = describeWebhookFailure(isTimeout ? 504 : null);
+      return NextResponse.json({ success: false, error: failure.error, retryable: failure.retryable }, { status: failure.status });
     }
 
     if (!res.ok) {
       logger.error(`Feedback webhook rejected the payload with status ${res.status}`);
       const failure = describeWebhookFailure(res.status);
-      return NextResponse.json({ success: false, error: failure.error }, { status: failure.status });
+      return NextResponse.json({ success: false, error: failure.error, retryable: failure.retryable }, { status: failure.status });
     }
 
     logger.info(`Feedback (${type}) relayed for user ${userId}`);

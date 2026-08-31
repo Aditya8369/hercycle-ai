@@ -1,20 +1,17 @@
+'use me' // or 'use client'
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   Activity,
   BarChart2,
-  CheckCircle,
   Clock,
   Database,
-  Download,
-  FileCode,
   Filter,
   Layers,
   RefreshCw,
   Sliders,
   TrendingUp,
-  X,
   Zap
 } from 'lucide-react'
 import '@/styles/dashboard.css'
@@ -51,14 +48,6 @@ export default function ModelPerformanceDashboard() {
       hyperparameterHeatmap: [],
       confusionMatrix: null
     }
-  })
-
-  // ONNX Export Modal state
-  const [exportState, setExportState] = useState({
-    open: false,
-    loading: false,
-    error: null,
-    result: null
   })
 
   const fetchMetrics = useCallback(async () => {
@@ -109,56 +98,6 @@ export default function ModelPerformanceDashboard() {
     })
   }
 
-  // Handle One-Click ONNX Model Export
-  const handleExportONNX = async (targetModelId) => {
-    const modelToExport = targetModelId || (filters.modelId !== 'all' ? filters.modelId : 'pcod_risk_classifier')
-    
-    setExportState({
-      open: true,
-      loading: true,
-      error: null,
-      result: null
-    })
-
-    try {
-      const response = await fetch('/api/models/export-onnx', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ modelId: modelToExport })
-      })
-
-      const json = await response.json()
-
-      if (json.success) {
-        setExportState({
-          open: true,
-          loading: false,
-          error: null,
-          result: json.data
-        })
-      } else {
-        setExportState({
-          open: true,
-          loading: false,
-          error: json.error || 'Failed to export model to ONNX',
-          result: null
-        })
-      }
-    } catch (err) {
-      console.error('ONNX export failed:', err)
-      setExportState({
-        open: true,
-        loading: false,
-        error: 'Network error during ONNX export.',
-        result: null
-      })
-    }
-  }
-
-  const closeExportModal = () => {
-    setExportState({ open: false, loading: false, error: null, result: null })
-  }
-
   const { kpis, timeSeries, modelBenchmarks, hyperparameterHeatmap, confusionMatrix } = data.metrics
   const { models, datasets, learningRates, batchSizes } = data.filterOptions
 
@@ -166,28 +105,14 @@ export default function ModelPerformanceDashboard() {
     <div className="dashboard-container">
       {/* Header */}
       <header className="dashboard-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-          <div>
-            <div className="dashboard-title-badge">
-              <Activity size={16} />
-              <span>HerCycle AI Model Telemetry</span>
-            </div>
-            <h1 className="dashboard-title">Interactive Model Performance Dashboard</h1>
-            <p className="dashboard-subtitle">
-              Real-time insights for accuracy, loss, latency, hyper-parameter optimizations, and one-click ONNX export.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            className="export-onnx-toolbar-btn"
-            onClick={() => handleExportONNX()}
-            title="Export Model to ONNX Format"
-          >
-            <Download size={18} />
-            <span>Export to ONNX</span>
-          </button>
+        <div className="dashboard-title-badge">
+          <Activity size={16} />
+          <span>HerCycle AI Model Telemetry</span>
         </div>
+        <h1 className="dashboard-title">Interactive Model Performance Dashboard</h1>
+        <p className="dashboard-subtitle">
+          Real-time insights and benchmarks for accuracy, loss, inference latency, and hyper-parameter optimizations.
+        </p>
       </header>
 
       {/* Filter Control Panel */}
@@ -413,18 +338,9 @@ export default function ModelPerformanceDashboard() {
                   <div key={bm.modelId} className="benchmark-item">
                     <div className="bm-header">
                       <span className="bm-name">{bm.modelName}</span>
-                      <div className="bm-metrics">
-                        <span>{bm.avgAccuracy}% acc | {bm.avgInferenceTimeMs}ms</span>
-                        <button
-                          type="button"
-                          className="export-onnx-card-btn"
-                          onClick={() => handleExportONNX(bm.modelId)}
-                          title={`Export ${bm.modelName} to ONNX`}
-                        >
-                          <Download size={12} />
-                          <span>ONNX</span>
-                        </button>
-                      </div>
+                      <span className="bm-metrics">
+                        {bm.avgAccuracy}% acc | {bm.avgInferenceTimeMs}ms latency
+                      </span>
                     </div>
                     <div className="bm-bar-track">
                       <div className="bm-bar-fill-acc" style={{ width: `${bm.avgAccuracy}%` }} />
@@ -511,79 +427,6 @@ export default function ModelPerformanceDashboard() {
             )}
           </section>
         </main>
-      )}
-
-      {/* ONNX Export Progress & Success Modal */}
-      {exportState.open && (
-        <div className="onnx-modal-overlay" role="dialog" aria-modal="true">
-          <div className="onnx-modal-content">
-            <div className="onnx-modal-header">
-              <h3 className="onnx-modal-title">
-                <FileCode size={20} style={{ color: '#818cf8' }} />
-                <span>ONNX Model Export</span>
-              </h3>
-              <button type="button" className="onnx-close-btn" onClick={closeExportModal}>
-                <X size={18} />
-              </button>
-            </div>
-
-            {exportState.loading && (
-              <div className="state-container" style={{ padding: '1.5rem 0' }}>
-                <div className="spinner"></div>
-                <span style={{ color: '#cbd5e1', fontWeight: 500 }}>
-                  Compiling graph & exporting to ONNX format...
-                </span>
-              </div>
-            )}
-
-            {exportState.error && (
-              <div className="state-container" style={{ padding: '1rem 0', color: '#f87171' }}>
-                <span>{exportState.error}</span>
-              </div>
-            )}
-
-            {!exportState.loading && exportState.result && (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#34d399', fontWeight: 600 }}>
-                  <CheckCircle size={18} />
-                  <span>ONNX Model Graph Successfully Exported!</span>
-                </div>
-
-                <div className="onnx-export-details">
-                  <div className="onnx-detail-row">
-                    <span>Model:</span>
-                    <span className="onnx-detail-val">{exportState.result.modelName}</span>
-                  </div>
-                  <div className="onnx-detail-row">
-                    <span>File Name:</span>
-                    <span className="onnx-detail-val">{exportState.result.fileName}</span>
-                  </div>
-                  <div className="onnx-detail-row">
-                    <span>File Size:</span>
-                    <span className="onnx-detail-val">{exportState.result.fileSizeKb} KB</span>
-                  </div>
-                  <div className="onnx-detail-row">
-                    <span>ONNX Opset:</span>
-                    <span className="onnx-detail-val">Opset {exportState.result.opsetVersion} (IR v{exportState.result.irVersion})</span>
-                  </div>
-                  <div className="onnx-detail-row">
-                    <span>Framework:</span>
-                    <span className="onnx-detail-val">{exportState.result.framework}</span>
-                  </div>
-                </div>
-
-                <a
-                  href={exportState.result.downloadUrl}
-                  download={exportState.result.fileName}
-                  className="onnx-download-link"
-                >
-                  <Download size={18} />
-                  <span>Download .onnx Binary Model</span>
-                </a>
-              </>
-            )}
-          </div>
-        </div>
       )}
     </div>
   )

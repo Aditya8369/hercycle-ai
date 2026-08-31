@@ -14,6 +14,7 @@ import {
   planNextAttempt,
 } from './sync-queue'
 import fetchWithTimeout, { TimeoutError } from './fetch-with-timeout'
+import { hasUsableCyclePayload } from './cycle-page'
 import {
   RISK_UNAVAILABLE_REASONS,
   normaliseRiskResult,
@@ -406,7 +407,14 @@ export function OfflineProvider({ children }) {
         try {
           const res = await fetchWithTimeout('/api/cycles');
           const data = await res.json();
-          if (data.success) {
+          // `hasUsableCyclePayload` and not a bare `data.success`, because
+          // `cacheRecords` calls `replaceAll`, which clears the store before it
+          // writes. A response whose shape does not carry `data.cycles` --
+          // exactly what a server-side envelope change produces -- turns into
+          // `[]` inside `decryptRecords` and would therefore *delete* the
+          // user's local cycle history. The mirror is only replaced when the
+          // server actually sent an array of cycles. See lib/cycle-page.js.
+          if (hasUsableCyclePayload(data)) {
             // Decrypt everything FIRST. Awaiting inside a readwrite transaction
             // auto-commits it, after which every remaining put throws
             // TransactionInactiveError — which used to leave the store cleared
@@ -427,6 +435,16 @@ export function OfflineProvider({ children }) {
               }
             };
           }
+
+          // A 200 whose body does not carry cycles is a server-side fault, not
+          // an empty account. It used to fall through in silence, leaving the
+          // user with a stale mirror -- or, on a fresh device, an empty
+          // dashboard indistinguishable from a new account. Log it, then use
+          // the mirror deliberately rather than by accident.
+          logNetworkFallback(
+            new Error('The cycles response did not contain a cycle list'),
+            'Fetch cycles'
+          );
         } catch (e) {
           logNetworkFallback(e, 'Fetch cycles');
         }
