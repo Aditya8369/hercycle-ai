@@ -5,7 +5,7 @@ import Navbar from '@/components/layout/Navbar'
 import Footer from '@/components/layout/Footer'
 import CycleWellnessDashboard from '@/components/dashboard/CycleWellnessDashboard'
 import WeeklyGoalTracker from '@/components/wellness/WeeklyGoalTracker'
-import '../../styles/wellness-goals.css'
+import '@/styles/wellness-goals.css'
 
 /**
  * Wellness Goals page — cycle-phase-aware weekly goal tracker.
