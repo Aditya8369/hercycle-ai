@@ -1,0 +1,17 @@
+/* Cycle Regularity Dashboard — subtle animations */
+
+/* Score ring smooth entrance */
+@keyframes regularityFadeIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Distribution bars animate width on mount */
+@keyframes regularityBarGrow {
+  from { width: 0; }
+}
+
+/* Hover lift on the section */
+section:has(> h2):hover {
+  box-shadow: 0 8px 32px rgba(232, 82, 126, 0.08);
+}
