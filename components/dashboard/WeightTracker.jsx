@@ -1,11 +1,38 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, Ruler, Scale, Save, Loader2, CheckCircle2 } from 'lucide-react'
 import fetchWithTimeout from '@/lib/fetch-with-timeout'
 import toast from 'react-hot-toast'
 import { useTranslations } from 'next-intl'
 import { getTodayISO } from '@/lib/date-utils'
+import { classifyBmi, computeBmi, readSaveResponse } from '@/lib/weight-history'
+
+/** Where the last entered height is remembered between visits. */
+const HEIGHT_KEY = 'hercycle-height-cm'
+
+/**
+ * `localStorage` throws rather than returning undefined in a privacy-restricted
+ * browser — Safari's private mode raises `QuotaExceededError` on write. The read
+ * at mount was already guarded; the write was not, and it sat *inside* the
+ * submit's `try`, after the response had been accepted. A committed save was
+ * therefore reported to the user as a failure, with the form rolled back.
+ */
+function rememberHeight(heightCm) {
+  try {
+    localStorage.setItem(HEIGHT_KEY, String(heightCm))
+  } catch {
+    // Remembering the height is a convenience; losing it is not worth an error.
+  }
+}
+
+function recallHeight() {
+  try {
+    return localStorage.getItem(HEIGHT_KEY)
+  } catch {
+    return null
+  }
+}
 
 const cardStyle = {
   background: 'rgba(255,255,255,0.08)',
@@ -29,12 +56,16 @@ function todayISO() {
   return getTodayISO()
 }
 
+const BMI_LABEL_KEYS = {
+  below: 'bmiBelowRange',
+  healthy: 'bmiHealthyRange',
+  above: 'bmiAboveRange',
+  high: 'bmiHighRange',
+}
+
 function bmiLabel(bmi, t) {
-  if (!bmi) return t('bmiNotCalculated')
-  if (bmi < 18.5) return t('bmiBelowRange')
-  if (bmi < 25) return t('bmiHealthyRange')
-  if (bmi < 30) return t('bmiAboveRange')
-  return t('bmiHighRange')
+  const band = classifyBmi(bmi)
+  return band ? t(BMI_LABEL_KEYS[band]) : t('bmiNotCalculated')
 }
 
 export default function WeightTracker({ onSaved }) {
@@ -47,24 +78,28 @@ export default function WeightTracker({ onSaved }) {
   })
   const [saving, setSaving] = useState(false)
   const [pendingEntry, setPendingEntry] = useState(null)
+  const badgeTimerRef = useRef(null)
 
   useEffect(() => {
-    try {
-      const savedHeight = localStorage.getItem('hercycle-height-cm')
-      if (savedHeight) {
-        setForm(current => ({ ...current, height_cm: savedHeight }))
-      }
-    } catch {
-      // Local storage can be unavailable in privacy-restricted browsers.
+    const savedHeight = recallHeight()
+    if (savedHeight) {
+      setForm(current => ({ ...current, height_cm: savedHeight }))
     }
   }, [])
 
-  const bmi = useMemo(() => {
-    const weight = Number(form.weight_kg)
-    const height = Number(form.height_cm) / 100
-    if (!weight || !height) return null
-    return Number((weight / (height * height)).toFixed(1))
-  }, [form.weight_kg, form.height_cm])
+  // Clear the success badge's timer on unmount, so navigating away inside the
+  // 2.5s window does not set state on a component that is gone.
+  useEffect(() => () => {
+    if (badgeTimerRef.current) clearTimeout(badgeTimerRef.current)
+  }, [])
+
+  // The same BMI the route stores. These were two implementations rounding to
+  // different precisions, so the figure shown while typing (22.8) was not the
+  // figure that came back from the server (22.77).
+  const bmi = useMemo(
+    () => computeBmi(form.weight_kg, form.height_cm),
+    [form.weight_kg, form.height_cm]
+  )
 
   const setField = (name, value) => {
     setForm(current => ({ ...current, [name]: value }))
@@ -78,7 +113,12 @@ export default function WeightTracker({ onSaved }) {
     const waistNum = form.waist_cm ? Number(form.waist_cm) : null
     const dateVal = form.recorded_date
 
-    if (!weightNum || !heightNum) return
+    if (!Number.isFinite(weightNum) || weightNum <= 0 || !Number.isFinite(heightNum) || heightNum <= 0) {
+      // This used to `return` in silence: no toast, no field error, the button
+      // simply did nothing.
+      toast.error(t('saveError'))
+      return
+    }
 
     // Snapshot current form for potential rollback
     const previousForm = { ...form }
@@ -120,20 +160,23 @@ export default function WeightTracker({ onSaved }) {
       })
 
       const result = await response.json()
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || t('saveError'))
+      const read = readSaveResponse(response, result)
+      if (!read.ok) {
+        throw new Error(read.error || t('saveError'))
       }
 
-      localStorage.setItem('hercycle-height-cm', String(heightNum))
+      // Outside the failure path: a storage error here is not a save error.
+      rememberHeight(heightNum)
 
       // 2. Server confirmation update
-      const confirmedEntry = { ...result.data, isPending: false, status: 'saved' }
+      const confirmedEntry = { ...read.entry, isPending: false, status: 'saved' }
       setPendingEntry(confirmedEntry)
       toast.success(t('saveSuccess'))
       onSaved?.(confirmedEntry, { isOptimistic: false })
 
       // Clear badge after brief success display
-      setTimeout(() => {
+      if (badgeTimerRef.current) clearTimeout(badgeTimerRef.current)
+      badgeTimerRef.current = setTimeout(() => {
         setPendingEntry(null)
       }, 2500)
     } catch (error) {
