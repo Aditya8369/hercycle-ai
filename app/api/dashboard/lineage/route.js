@@ -1,14 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getDatasetLineageGraph, MOCK_DATASETS } from '@/lib/dashboard-metrics'
 import { registerDatasetVersion, getAllDatasetVersions } from '@/lib/dataset-versioning'
-import { verifyRbacPermission, PERMISSIONS } from '@/lib/rbac'
 
 export async function GET(request) {
-  const authCheck = verifyRbacPermission(request, PERMISSIONS.VIEW_LINEAGE)
-  if (!authCheck.authorized) {
-    return NextResponse.json({ success: false, error: authCheck.reason }, { status: 403 })
-  }
-
   try {
     const { searchParams } = new URL(request.url)
     const filters = {
@@ -39,11 +33,6 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const authCheck = verifyRbacPermission(request, PERMISSIONS.CREATE_DATASETS)
-  if (!authCheck.authorized) {
-    return NextResponse.json({ success: false, error: authCheck.reason }, { status: 403 })
-  }
-
   try {
     const body = await request.json()
     const { name, data, preprocessingMetadata } = body
